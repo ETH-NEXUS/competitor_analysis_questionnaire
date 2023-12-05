@@ -1,0 +1,11 @@
+django==5.0
+django_extensions==3.2.3
+django-cors-headers==4.3.1
+django-filter==23.5
+django-dbbackup==4.0.2
+djangorestframework==3.14.0
+drf-schema-adapter==3.0.6
+gunicorn==21.2.0
+uvicorn==0.24.0.post1
+psycopg2==2.9.9
+rich==13.7.0
