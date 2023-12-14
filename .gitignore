@@ -165,3 +165,5 @@ static/
 node_modules/
 
 Pipfile
+
+.DS_Store
