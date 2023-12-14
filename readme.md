@@ -41,6 +41,7 @@ This process has two main parts. If you would like to **setup a new project** co
 9. Visit `localhost:8077/admin` and login using the user and password defined in the `.env` file. It can happen that the changes are not immediatelly accepted and you have to shut down your containers and run them again for the admin user to be accepted.
 10. **[Optional if you skipped part 1]** Create a dummy book and an author for the book. Then visit the frontend on `localhost:8077` to see the frontend and the book.
 11. **[Optional]** Update existing python requirements and install new ones.
+12. Adjust the `readme.md` at the root of the project to describe your project and provide relevant information for it.
 
 Congratulations you're done!
 
