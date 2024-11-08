@@ -1,16 +1,15 @@
-version: "3"
 services:
   ws:
-    image: ethnexus/smnrp:1.1.3
+    image: ethnexus/smnrp:2.5.1
     volumes:
       - "web_root:/web_root:z"
       - ./api/static:/vol/web/static:z
       - ./api/media:/vol/web/media:z
-      - /etc/pki/tls/certs/DCcerts2023/ldm.nexus.ethz.ch.chain.crt.pem:/etc/letsencrypt/live/ldm.nexus.ethz.ch/fullchain.pem:ro
-      - /etc/pki/tls/private/key2023/ldm.nexus.ethz.ch.privkey.pem:/etc/letsencrypt/live/ldm.nexus.ethz.ch/privkey.pem:ro
+      # - /etc/pki/tls/certs/DCcerts2023/ldm.nexus.ethz.ch.chain.crt.pem:/etc/letsencrypt/live/ldm.nexus.ethz.ch/fullchain.pem:ro
+      # - /etc/pki/tls/private/key2023/ldm.nexus.ethz.ch.privkey.pem:/etc/letsencrypt/live/ldm.nexus.ethz.ch/privkey.pem:ro
 
     ports:
-      - "80:80"
+      - "8088:80"
       - "443:443"
     env_file: .env
     restart: unless-stopped
@@ -18,11 +17,20 @@ services:
       - api
       - db
   ui:
-    command: >
-      bash -c "\
-        yarn install
-        rm -rf /app/dist/*
-        yarn run build
-        mv /app/dist/spa/* /app/dist/.
-        rm -rf /app/dist/spa
-      "
+    volumes:
+      - "web_root:/app/dist:z"
+    restart: no
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /app/dist
+        npm install
+        npm run build
+        cp -a /app/.output/public/. /app/dist/
+        rm -rf /app/.output
+  api:
+    restart: unless-stopped
+    build:
+      args:
+        DCC_ENV: "prod"

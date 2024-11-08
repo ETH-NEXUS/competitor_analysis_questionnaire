@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from pathlib import Path
 from os import environ
+from pathlib import Path
+
 from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -48,6 +49,11 @@ INSTALLED_APPS = [
     "drf_auto_endpoint",
     "core",
 ]
+
+if DEBUG:
+    INSTALLED_APPS += [
+        "drf_yasg",
+    ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

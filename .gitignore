@@ -167,3 +167,5 @@ node_modules/
 Pipfile
 
 .DS_Store
+
+pythonenv

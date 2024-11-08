@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   ui:
     ports:
@@ -10,14 +8,17 @@ services:
       - /bin/sh
       - -c
       - |
-        yarn
-        yarn dev --host 0.0.0.0 --port 8077
+        npm install
+        npm run dev -- --host 0.0.0.0
     # use this only if you need to keep the container running but do not want to start the frontend application
     # command: bash -c 'while true; do sleep 5; done'
     restart: unless-stopped
     depends_on:
       - api
   api:
+    build:
+      args:
+        DCC_ENV: "dev"
     environment:
       - DJANGO_DEBUG=True
     ports:
@@ -25,3 +26,11 @@ services:
   db:
     ports:
       - "54377:5432"
+  mkdocs:
+    build:
+      context: docs
+      dockerfile: Dockerfile
+    ports:
+      - "8078:8000"
+    volumes:
+      - ./docs/:/docs/:z
