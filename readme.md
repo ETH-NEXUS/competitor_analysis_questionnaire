@@ -2,12 +2,24 @@
 
 This template should be used when starting up a new project with the default NEXUS stack.
 
-Core tech:
+### Core tech:
 
-- Python (Django)
-- Vue (Nuxt + PrimeVue + Tailwind + npm)
-- PostgreSQL
-- Docker
+<img src="https://img.shields.io/badge/Python-FFD43B?style=for-the-badge&logo=python&logoColor=blue"/>
+<img src="https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=green"/>
+<img src="https://img.shields.io/badge/django%20rest-ff1709?style=for-the-badge&logo=django&logoColor=white"/>
+<img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white"/>
+
+<img src="https://img.shields.io/badge/nuxt%20js-00C58E?style=for-the-badge&logo=nuxtdotjs&logoColor=white" />
+<img src="https://img.shields.io/badge/Vue%20js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
+" />
+<img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white"/>
+<img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white"/>
+
+<img src="https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white"/>
+<img src="https://img.shields.io/badge/Markdown-000000?style=for-the-badge&logo=markdown&logoColor=white"/>
+
+
+
 
 ## Setup Steps 🚀:
 
@@ -47,9 +59,10 @@ Install [django-unfold](https://github.com/unfoldadmin/django-unfold).
 
 ## URLs
 
-- `localhost:8077` = Application UI
-- `localhost:8077/admin` = Admin panel
-- `localhost:8077/swagger` = API UI with option to execute API calls directly
+- Frontend: `localhost:8077`
+- Admin panel: `localhost:8077/admin`
+- API Overview: `localhost:8077/swagger`
+- Docs: `localhost:8078`
 
 ### How to deploy?
 TODO: Add deploy instructions.
