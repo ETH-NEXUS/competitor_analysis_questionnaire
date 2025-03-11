@@ -3,6 +3,14 @@ const coreStore = useCoreStore();
 const isDarkMode = useCookie('darkMode', { default: () => 'false' });
 
 await callOnce(async () => {
+  // set favicon to match dark mode of the system
+  // this is independent of the dark mode of the application
+  const isSystemDark = usePreferredDark();
+  const favicon = computed(() => (isSystemDark.value ? '/favicon/nexus_logo_dark_mode.png' : '/favicon/nexus_logo.png'));
+  useFavicon(favicon, {
+    rel: 'icon',
+  });
+
   coreStore.setDarkMode(isDarkMode.value === 'true');
 });
 

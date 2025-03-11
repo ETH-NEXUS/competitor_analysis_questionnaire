@@ -21,6 +21,7 @@
     "@pinia/nuxt": "^0.7.0",
     "@primevue/nuxt-module": "^4.2.1",
     "@primevue/themes": "^4.2.1",
+    "@vueuse/nuxt": "^13.0.0",
     "nuxt": "^3.14.159",
     "tailwindcss-primeui": "^0.3.4",
     "vue": "latest",
