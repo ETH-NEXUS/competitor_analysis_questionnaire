@@ -1,23 +1,5 @@
 <script setup lang="ts">
 const coreStore = useCoreStore();
-const isDarkMode = useCookie('darkMode', { default: () => 'false' });
-
-await callOnce(async () => {
-  // set favicon to match dark mode of the system
-  // this is independent of the dark mode of the application
-  const isSystemDark = usePreferredDark();
-  const favicon = computed(() => (isSystemDark.value ? '/favicon/nexus_logo_dark_mode.png' : '/favicon/nexus_logo.png'));
-  useFavicon(favicon, {
-    rel: 'icon',
-  });
-
-  coreStore.setDarkMode(isDarkMode.value === 'true');
-});
-
-const updateDarkMode = () => {
-  isDarkMode.value = coreStore.isDarkMode ? 'true' : 'false';
-  coreStore.setDarkMode(coreStore.isDarkMode);
-};
 
 const fetchData = async () => {
   const response = await useAPI('books/', { method: 'GET' });
@@ -26,6 +8,7 @@ const fetchData = async () => {
 };
 
 onMounted(() => {
+  coreStore.initDarkMode();
   fetchData();
 });
 </script>
@@ -46,7 +29,7 @@ onMounted(() => {
               mollit anim id est laborum.
             </p>
           </Fieldset>
-          <ToggleSwitch v-model="coreStore.isDarkMode" @change="updateDarkMode" />
+          <ToggleSwitch v-model="coreStore.isDarkMode" @change="coreStore.toggleDarkMode" />
         </SplitterPanel>
         <SplitterPanel class="flex items-center justify-center" :size="80" :min-size="50">
           <MessageBox />
