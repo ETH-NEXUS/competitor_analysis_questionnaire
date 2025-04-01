@@ -20,16 +20,15 @@ onMounted(() => {
 
       <Splitter class="h-full w-full border-none">
         <SplitterPanel class="flex flex-col items-center gap-5 p-5" :size="20" :min-size="18">
-          <Fieldset legend="My cool title" :toggleable="true" class="w-full">
+          <Fieldset :legend="$t('app.title')" :toggleable="true" class="w-full">
             <p class="m-0">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-              dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex
-              ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-              fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
-              mollit anim id est laborum.
+              {{ $t('app.lorem_ipsum') }}
             </p>
           </Fieldset>
-          <ToggleSwitch v-model="coreStore.isDarkMode" @change="coreStore.toggleDarkMode" />
+          <div class="flex items-center gap-2">
+            <span>{{ coreStore.isDarkMode ? $t('common.dark_mode') : $t('common.light_mode') }}</span>
+            <ToggleSwitch v-model="coreStore.isDarkMode" @change="coreStore.toggleDarkMode" />
+          </div>
         </SplitterPanel>
         <SplitterPanel class="flex items-center justify-center" :size="80" :min-size="50">
           <MessageBox />
