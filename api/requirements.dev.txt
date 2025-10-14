@@ -4,4 +4,5 @@ flake8
 pur
 pytest-django
 pytest-cov
-drf-yasg
+drf-spectacular
+drf-spectacular-sidecar

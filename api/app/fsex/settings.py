@@ -52,7 +52,8 @@ INSTALLED_APPS = [
 
 if DEBUG:
     INSTALLED_APPS += [
-        "drf_yasg",
+        "drf_spectacular",
+        "drf_spectacular_sidecar",
     ]
 
 MIDDLEWARE = [
@@ -164,6 +165,22 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
 }
+
+# Use drf-spectacular for schema generation in DEBUG
+if DEBUG:
+    REST_FRAMEWORK["DEFAULT_SCHEMA_CLASS"] = "drf_spectacular.openapi.AutoSchema"
+    SPECTACULAR_SETTINGS = {
+        "TITLE": "NEXUS Full Stack API",
+        "DESCRIPTION": (
+            "This is the NEXUS full stack example API overview. You should be able to see "
+            "all the endpoints available in the API."
+        ),
+        "VERSION": "v1",
+        # Reflect the UI dev server origin to generate proper server URLs
+        "SERVERS": [
+            {"url": "http://localhost:8077/api/v1/"},
+        ],
+    }
 
 if DISABLE_BROWSABLE_API:
     REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [
