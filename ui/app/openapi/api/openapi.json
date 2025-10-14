@@ -1,0 +1,883 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "NEXUS Full Stack API",
+        "version": "v1",
+        "description": "This is the NEXUS full stack example API overview. You should be able to see all the endpoints available in the API."
+    },
+    "paths": {
+        "/api/v1/authors/": {
+            "get": {
+                "operationId": "authors_list",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Number of results to return per page.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "authors"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedAuthorList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "authors_create",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "tags": [
+                    "authors"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Author"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Author"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Author"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Author"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/authors/{id}/": {
+            "get": {
+                "operationId": "authors_retrieve",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this author.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "authors"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Author"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "put": {
+                "operationId": "authors_update",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this author.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "authors"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Author"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Author"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Author"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Author"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "authors_partial_update",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this author.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "authors"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedAuthor"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedAuthor"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedAuthor"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Author"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "authors_destroy",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this author.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "authors"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/v1/books/": {
+            "get": {
+                "operationId": "books_list",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Number of results to return per page.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "books"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedBookList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "books_create",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "tags": [
+                    "books"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Book"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Book"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Book"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Book"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/books/{id}/": {
+            "get": {
+                "operationId": "books_retrieve",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this book.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "books"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Book"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "put": {
+                "operationId": "books_update",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this book.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "books"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Book"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Book"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Book"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Book"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "books_partial_update",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this book.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "books"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedBook"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedBook"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedBook"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Book"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "books_destroy",
+                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this book.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "books"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/v1/schema/": {
+            "get": {
+                "operationId": "schema_retrieve",
+                "description": "OpenApi3 schema for this API. Format can be selected via content negotiation.\n\n- YAML: application/vnd.oai.openapi\n- JSON: application/vnd.oai.openapi+json",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "format",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "json",
+                                "yaml"
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "lang",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "af",
+                                "ar",
+                                "ar-dz",
+                                "ast",
+                                "az",
+                                "be",
+                                "bg",
+                                "bn",
+                                "br",
+                                "bs",
+                                "ca",
+                                "ckb",
+                                "cs",
+                                "cy",
+                                "da",
+                                "de",
+                                "dsb",
+                                "el",
+                                "en",
+                                "en-au",
+                                "en-gb",
+                                "eo",
+                                "es",
+                                "es-ar",
+                                "es-co",
+                                "es-mx",
+                                "es-ni",
+                                "es-ve",
+                                "et",
+                                "eu",
+                                "fa",
+                                "fi",
+                                "fr",
+                                "fy",
+                                "ga",
+                                "gd",
+                                "gl",
+                                "he",
+                                "hi",
+                                "hr",
+                                "hsb",
+                                "hu",
+                                "hy",
+                                "ia",
+                                "id",
+                                "ig",
+                                "io",
+                                "is",
+                                "it",
+                                "ja",
+                                "ka",
+                                "kab",
+                                "kk",
+                                "km",
+                                "kn",
+                                "ko",
+                                "ky",
+                                "lb",
+                                "lt",
+                                "lv",
+                                "mk",
+                                "ml",
+                                "mn",
+                                "mr",
+                                "ms",
+                                "my",
+                                "nb",
+                                "ne",
+                                "nl",
+                                "nn",
+                                "os",
+                                "pa",
+                                "pl",
+                                "pt",
+                                "pt-br",
+                                "ro",
+                                "ru",
+                                "sk",
+                                "sl",
+                                "sq",
+                                "sr",
+                                "sr-latn",
+                                "sv",
+                                "sw",
+                                "ta",
+                                "te",
+                                "tg",
+                                "th",
+                                "tk",
+                                "tr",
+                                "tt",
+                                "udm",
+                                "ug",
+                                "uk",
+                                "ur",
+                                "uz",
+                                "vi",
+                                "zh-hans",
+                                "zh-hant"
+                            ]
+                        }
+                    }
+                ],
+                "tags": [
+                    "schema"
+                ],
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/vnd.oai.openapi": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            },
+                            "application/yaml": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            },
+                            "application/vnd.oai.openapi+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Author": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "date_of_birth": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "date_of_death": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "date_of_birth",
+                    "id",
+                    "name"
+                ]
+            },
+            "Book": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "author": {
+                        "$ref": "#/components/schemas/NEXUSAuthor"
+                    }
+                },
+                "required": [
+                    "author",
+                    "id",
+                    "title"
+                ]
+            },
+            "NEXUSAuthor": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "date_of_birth": {
+                        "type": "string",
+                        "format": "date"
+                    }
+                },
+                "required": [
+                    "date_of_birth",
+                    "name"
+                ]
+            },
+            "PaginatedAuthorList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Author"
+                        }
+                    }
+                }
+            },
+            "PaginatedBookList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Book"
+                        }
+                    }
+                }
+            },
+            "PatchedAuthor": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "date_of_birth": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "date_of_death": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    }
+                }
+            },
+            "PatchedBook": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "author": {
+                        "$ref": "#/components/schemas/NEXUSAuthor"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "cookieAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "sessionid"
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8077/api/v1/"
+        }
+    ]
+}
