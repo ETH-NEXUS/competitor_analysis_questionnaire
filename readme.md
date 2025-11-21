@@ -34,7 +34,7 @@ You can either run it after you have made a copy for your own project or you can
 3. 🐳 To make life easier install the [Docker Compose Command-Wrapper (DCC)](https://github.com/ETH-NEXUS/dcc) using `curl -Ls https://raw.githubusercontent.com/ETH-NEXUS/dcc/main/setup.sh | bash`. On mac you may have to add `~/.local/bin` to your `$PATH` env variable in your `.zshrc` or `.bashrc`.
 5. ▶️ Run `dcc up` to start the project and create containers.
 6. 💾 In a separate terminal navigate to the root project directory and run `dcc sh api` to get into the api container. Then run `python manage.py makemigrations` to create migration files and `python manage.py migrate` to apply the changes.
-7. 🌐 Visit `localhost:8077/admin` and login using the user and password defined in the `.env` file. It can happen that the changes are not immediatelly accepted and you have to shut down your containers and run them again for the admin user to be accepted.
+7. 🌐 Visit `localhost:8077/admin` and login using the user and password defined in the `.env` file. It can happen that the changes are not immediately accepted and you have to shut down your containers and run them again for the admin user to be accepted.
 8. 📄 Adjust the `readme.md` at the root of the project to describe your project and provide relevant information for it.
 
 Congratulations you're done! 🎉
