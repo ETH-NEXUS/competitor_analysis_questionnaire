@@ -2,12 +2,14 @@ from drf_auto_endpoint import endpoints
 from .models import Book, Author
 from .serializers import BookSerializer
 from drf_auto_endpoint.router import register
+from rest_framework.permissions import AllowAny
 
 
 class DefaultEndpoint(endpoints.Endpoint):
     """The default Endpoint"""
 
     include_str = False
+    permission_classes = (AllowAny,)
 
     def get_url(self):
         """The core endpoint defaults to not include the application name in the apis url."""
