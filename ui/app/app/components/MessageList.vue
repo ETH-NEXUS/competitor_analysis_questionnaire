@@ -16,10 +16,11 @@ defineProps<{
 <template>
   <UChatMessages
     :messages="messages"
-    :spacing-offset="160"
+    :spacing-offset="80"
     :status="status"
-    :user="{ variant: 'solid', icon: 'i-lucide-user' }"
+    :user="{ variant: 'soft', icon: 'i-lucide-user' }"
     :assistant="{ variant: 'soft', icon: 'i-lucide-bot' }"
+    compact
     class="h-full w-full"
   >
     <template #content="{ message }">

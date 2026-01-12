@@ -44,12 +44,19 @@ const onSubmit = () => {
 </script>
 
 <template>
-  <div class="flex h-full w-full flex-col gap-3 p-3">
+  <div class="flex h-full w-full flex-col gap-2 p-2 sm:gap-3 sm:p-3">
     <div class="min-h-0 flex-1">
       <MessageList :messages="messages" :status="status" />
     </div>
 
-    <UChatPrompt v-model="input" variant="soft" placeholder="Write your question here ..." @submit="onSubmit">
+    <UChatPrompt
+      v-model="input"
+      variant="soft"
+      placeholder="Write your question here ..."
+      class="w-full text-sm sm:text-base"
+      :ui="{ base: 'max-h-16 sm:max-h-20' }"
+      @submit="onSubmit"
+    >
       <UChatPromptSubmit :status="status" class="rounded-full" />
 
       <template #footer>
@@ -59,6 +66,7 @@ const onSubmit = () => {
           :icon="selectedModelItem.icon"
           placeholder="Select a model"
           variant="ghost"
+          size="sm"
         />
       </template>
     </UChatPrompt>
