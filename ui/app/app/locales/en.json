@@ -6,5 +6,16 @@
   "common": {
     "dark_mode": "Dark Mode",
     "light_mode": "Light Mode"
+  },
+  "examples": {
+    "library": {
+      "title": "Library examples",
+      "refetch_books": "Refetch books",
+      "status_error": "Error",
+      "status_loading": "Loading",
+      "books_count": "{count} books",
+      "route_label": "route: {route}",
+      "go_home": "Go to /"
+    }
   }
 }
