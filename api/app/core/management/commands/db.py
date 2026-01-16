@@ -56,5 +56,5 @@ class Command(BaseCommand):
             elif options.get("action") == "reset":
                 self.reset()
         except Exception as ex:
-            print(ex)
+            self.stderr.write(self.style.ERROR(str(ex)))
             traceback.print_exc()
