@@ -9,22 +9,13 @@
         "/api/v1/authors/": {
             "get": {
                 "operationId": "authors_list",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "name": "page",
                         "required": false,
                         "in": "query",
                         "description": "A page number within the paginated result set.",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "page_size",
-                        "required": false,
-                        "in": "query",
-                        "description": "Number of results to return per page.",
                         "schema": {
                             "type": "integer"
                         }
@@ -44,7 +35,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/PaginatedAuthorList"
+                                    "$ref": "#/components/schemas/PaginatedNEXUSAuthorList"
                                 }
                             }
                         },
@@ -54,7 +45,7 @@
             },
             "post": {
                 "operationId": "authors_create",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Author model.",
                 "tags": [
                     "authors"
                 ],
@@ -62,17 +53,17 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/Author"
+                                "$ref": "#/components/schemas/NEXUSAuthor"
                             }
                         },
                         "application/x-www-form-urlencoded": {
                             "schema": {
-                                "$ref": "#/components/schemas/Author"
+                                "$ref": "#/components/schemas/NEXUSAuthor"
                             }
                         },
                         "multipart/form-data": {
                             "schema": {
-                                "$ref": "#/components/schemas/Author"
+                                "$ref": "#/components/schemas/NEXUSAuthor"
                             }
                         }
                     },
@@ -89,7 +80,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/Author"
+                                    "$ref": "#/components/schemas/NEXUSAuthor"
                                 }
                             }
                         },
@@ -101,7 +92,7 @@
         "/api/v1/authors/{id}/": {
             "get": {
                 "operationId": "authors_retrieve",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -127,7 +118,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/Author"
+                                    "$ref": "#/components/schemas/NEXUSAuthor"
                                 }
                             }
                         },
@@ -137,7 +128,7 @@
             },
             "put": {
                 "operationId": "authors_update",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -156,17 +147,17 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/Author"
+                                "$ref": "#/components/schemas/NEXUSAuthor"
                             }
                         },
                         "application/x-www-form-urlencoded": {
                             "schema": {
-                                "$ref": "#/components/schemas/Author"
+                                "$ref": "#/components/schemas/NEXUSAuthor"
                             }
                         },
                         "multipart/form-data": {
                             "schema": {
-                                "$ref": "#/components/schemas/Author"
+                                "$ref": "#/components/schemas/NEXUSAuthor"
                             }
                         }
                     },
@@ -183,7 +174,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/Author"
+                                    "$ref": "#/components/schemas/NEXUSAuthor"
                                 }
                             }
                         },
@@ -193,7 +184,7 @@
             },
             "patch": {
                 "operationId": "authors_partial_update",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -212,17 +203,17 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/PatchedAuthor"
+                                "$ref": "#/components/schemas/PatchedNEXUSAuthor"
                             }
                         },
                         "application/x-www-form-urlencoded": {
                             "schema": {
-                                "$ref": "#/components/schemas/PatchedAuthor"
+                                "$ref": "#/components/schemas/PatchedNEXUSAuthor"
                             }
                         },
                         "multipart/form-data": {
                             "schema": {
-                                "$ref": "#/components/schemas/PatchedAuthor"
+                                "$ref": "#/components/schemas/PatchedNEXUSAuthor"
                             }
                         }
                     }
@@ -238,7 +229,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/Author"
+                                    "$ref": "#/components/schemas/NEXUSAuthor"
                                 }
                             }
                         },
@@ -248,7 +239,7 @@
             },
             "delete": {
                 "operationId": "authors_destroy",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -279,22 +270,13 @@
         "/api/v1/books/": {
             "get": {
                 "operationId": "books_list",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "name": "page",
                         "required": false,
                         "in": "query",
                         "description": "A page number within the paginated result set.",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "page_size",
-                        "required": false,
-                        "in": "query",
-                        "description": "Number of results to return per page.",
                         "schema": {
                             "type": "integer"
                         }
@@ -324,7 +306,7 @@
             },
             "post": {
                 "operationId": "books_create",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Book model.",
                 "tags": [
                     "books"
                 ],
@@ -371,7 +353,7 @@
         "/api/v1/books/{id}/": {
             "get": {
                 "operationId": "books_retrieve",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -407,7 +389,7 @@
             },
             "put": {
                 "operationId": "books_update",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -463,7 +445,7 @@
             },
             "patch": {
                 "operationId": "books_partial_update",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -518,7 +500,7 @@
             },
             "delete": {
                 "operationId": "books_destroy",
-                "description": "A viewset that provides default `create()`, `retrieve()`, `update()`,\n`partial_update()`, `destroy()` and `list()` actions.",
+                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -684,6 +666,7 @@
                                 "hi",
                                 "hr",
                                 "hsb",
+                                "ht",
                                 "hu",
                                 "hy",
                                 "ia",
@@ -788,33 +771,6 @@
     },
     "components": {
         "schemas": {
-            "Author": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "readOnly": true
-                    },
-                    "name": {
-                        "type": "string",
-                        "maxLength": 50
-                    },
-                    "date_of_birth": {
-                        "type": "string",
-                        "format": "date"
-                    },
-                    "date_of_death": {
-                        "type": "string",
-                        "format": "date",
-                        "nullable": true
-                    }
-                },
-                "required": [
-                    "date_of_birth",
-                    "id",
-                    "name"
-                ]
-            },
             "Book": {
                 "type": "object",
                 "properties": {
@@ -822,12 +778,12 @@
                         "type": "integer",
                         "readOnly": true
                     },
+                    "author": {
+                        "$ref": "#/components/schemas/NEXUSAuthor"
+                    },
                     "title": {
                         "type": "string",
                         "maxLength": 100
-                    },
-                    "author": {
-                        "$ref": "#/components/schemas/NEXUSAuthor"
                     }
                 },
                 "required": [
@@ -903,37 +859,6 @@
                     "name"
                 ]
             },
-            "PaginatedAuthorList": {
-                "type": "object",
-                "required": [
-                    "count",
-                    "results"
-                ],
-                "properties": {
-                    "count": {
-                        "type": "integer",
-                        "example": 123
-                    },
-                    "next": {
-                        "type": "string",
-                        "nullable": true,
-                        "format": "uri",
-                        "example": "http://api.example.org/accounts/?page=4"
-                    },
-                    "previous": {
-                        "type": "string",
-                        "nullable": true,
-                        "format": "uri",
-                        "example": "http://api.example.org/accounts/?page=2"
-                    },
-                    "results": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Author"
-                        }
-                    }
-                }
-            },
             "PaginatedBookList": {
                 "type": "object",
                 "required": [
@@ -965,25 +890,34 @@
                     }
                 }
             },
-            "PatchedAuthor": {
+            "PaginatedNEXUSAuthorList": {
                 "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
                 "properties": {
-                    "id": {
+                    "count": {
                         "type": "integer",
-                        "readOnly": true
+                        "example": 123
                     },
-                    "name": {
+                    "next": {
                         "type": "string",
-                        "maxLength": 50
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
                     },
-                    "date_of_birth": {
+                    "previous": {
                         "type": "string",
-                        "format": "date"
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
                     },
-                    "date_of_death": {
-                        "type": "string",
-                        "format": "date",
-                        "nullable": true
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/NEXUSAuthor"
+                        }
                     }
                 }
             },
@@ -994,12 +928,25 @@
                         "type": "integer",
                         "readOnly": true
                     },
+                    "author": {
+                        "$ref": "#/components/schemas/NEXUSAuthor"
+                    },
                     "title": {
                         "type": "string",
                         "maxLength": 100
+                    }
+                }
+            },
+            "PatchedNEXUSAuthor": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 50
                     },
-                    "author": {
-                        "$ref": "#/components/schemas/NEXUSAuthor"
+                    "date_of_birth": {
+                        "type": "string",
+                        "format": "date"
                     }
                 }
             },

@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url'
 
 const appDir = fileURLToPath(new URL('./app', import.meta.url))
@@ -22,8 +23,18 @@ export default defineNuxtConfig({
       baseURL: process.env.API_URL || '',
     },
   },
+  vite: {
+    plugins: [tailwindcss()],
+  },
   devtools: { enabled: true },
-  modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/i18n', 'nuxt-open-fetch'],
+  modules: [
+    '@nuxt/ui',
+    '@nuxt/eslint',
+    '@pinia/nuxt',
+    '@vueuse/nuxt',
+    '@nuxtjs/i18n',
+    'nuxt-open-fetch',
+  ],
   openFetch: {
     clients: {
       api: {
@@ -53,6 +64,7 @@ export default defineNuxtConfig({
     langDir: 'app/locales',
   },
   devServer: {
+    host: '0.0.0.0',
     port: 8077,
   },
   alias: {

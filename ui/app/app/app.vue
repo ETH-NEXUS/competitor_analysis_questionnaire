@@ -75,6 +75,8 @@ onMounted(async () => {
             </div>
 
             <MessageBox class="w-full lg:w-[80%]" />
+
+            <LibraryExamples class="w-full lg:w-[80%]" />
           </div>
         </template>
       </UDashboardPanel>
