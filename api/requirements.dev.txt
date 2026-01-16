@@ -1,8 +1,0 @@
--r requirements.txt
-black
-flake8
-pur
-pytest-django
-pytest-cov
-drf-spectacular
-drf-spectacular-sidecar
