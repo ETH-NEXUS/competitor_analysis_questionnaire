@@ -13,10 +13,15 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from os import environ
 from pathlib import Path
 
+import environ as django_environ
+import structlog
 from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = django_environ.Env()
+django_environ.Env.read_env()
 
 
 # Quick-start development settings - unsuitable for production
@@ -46,7 +51,7 @@ INSTALLED_APPS = [
     "django_extensions",
     "corsheaders",
     "rest_framework",
-    "drf_auto_endpoint",
+    "django_structlog",
     "core",
     "ml",
 ]
@@ -61,6 +66,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "django_structlog.middlewares.RequestMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -94,7 +100,7 @@ WSGI_APPLICATION = "fsex.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "ENGINE": "django.db.backends.postgresql",
         "HOST": environ.get("POSTGRES_HOST"),
         "PORT": environ.get("POSTGRES_PORT"),
         "NAME": environ.get("POSTGRES_DB"),
@@ -102,6 +108,24 @@ DATABASES = {
         "PASSWORD": environ.get("POSTGRES_PASSWORD"),
     }
 }
+
+# Redis Cache Configuration
+REDIS_HOST = environ.get("REDIS_HOST", "redis")
+REDIS_PORT = environ.get("REDIS_PORT", "6379")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
+
+# Use Redis for session storage (faster than database)
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
 
 
 # Password validation
@@ -230,20 +254,77 @@ if not DEBUG:
 ###
 # LOGGING
 ###
+STRUCTLOG_RENDERER = (
+    structlog.dev.ConsoleRenderer()
+    if DEBUG
+    else structlog.processors.JSONRenderer()
+)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "structlog": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": STRUCTLOG_RENDERER,
+            "foreign_pre_chain": [
+                structlog.contextvars.merge_contextvars,
+                structlog.stdlib.add_logger_name,
+                structlog.processors.add_log_level,
+                structlog.processors.TimeStamper(fmt="iso"),
+            ],
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "structlog",
         },
     },
     "root": {
         "level": LOG_LEVEL,
         "handlers": ["console"],
     },
-    "loggers": {},
+    "loggers": {
+        "django.server": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
 }
+
+
+def _drop_openapi_schema_polling(logger, method_name, event_dict):
+    if not DEBUG:
+        return event_dict
+
+    event = event_dict.get("event")
+    if event not in {"request_started", "request_finished"}:
+        return event_dict
+
+    request = event_dict.get("request")
+    if isinstance(request, str) and "/api/v1/schema/" in request:
+        raise structlog.DropEvent
+
+    return event_dict
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.stdlib.add_logger_name,
+        _drop_openapi_schema_polling,
+        structlog.processors.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+    ],
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
 if LOG_SQL:
     LOGGING["loggers"]["django.db.backends"] = {
         "level": "DEBUG",

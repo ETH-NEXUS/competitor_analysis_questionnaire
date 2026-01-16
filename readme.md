@@ -1,8 +1,6 @@
-# ETHZ - NEXUS - Full Stack Template 🌟
+# ETHZ - NEXUS - Full Stack Template
 
-This template should be used when starting up a new project with the default NEXUS stack. 💻
-
-### Core tech: ⚙️
+## Core tech
 
 <img src="https://img.shields.io/badge/Python-FFD43B?style=for-the-badge&logo=python&logoColor=blue"/><img src="https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=green"/><img src="https://img.shields.io/badge/django%20rest-ff1709?style=for-the-badge&logo=django&logoColor=white"/><img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white"/>
 
@@ -10,51 +8,63 @@ This template should be used when starting up a new project with the default NEX
 
 <img src="https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white"/><img src="https://img.shields.io/badge/Markdown-000000?style=for-the-badge&logo=markdown&logoColor=white"/>
 
+## Quickstart (Docker)
 
+1. Copy `.env.TEMPLATE` to `.env`.
+2. Run `make doctor` for a quick check.
+3. Start the stack:
 
+```bash
+docker compose up -d
+```
 
-## Setup Steps 🚀:
+The default profile is `dev` via `COMPOSE_PROFILES=dev` in `.env`.
 
-This process has two main parts. If you would like to **setup a new project** complete the tasks in both parts. On the other hand, if you would only like to **try out the project** and play around with different features skip to the second part.
+## Environment variables
 
-### Setting up a New Project 🏗️
+The main knobs are in `.env.TEMPLATE`:
 
-1. 📋 Copy the files into a new project repository.
-2. ✏️ Change instances of `fsex` to `your_project_name` in 6 files.
-3. 📁 Rename `api/app/fsex` to `api/app/your_project_name`.
-4. 🗑️ Delete the content of the following files in the `api/app/core` folder: `models` / `admin` / `serializers` / `endpoints` (leave only the default endpoint).
-5. 🧹 Delete everything in the `api/app/core/migrations` folder except the init file.
-6. 🎨 Remove the example ui components.
+- `APP_ENV`: build-time env for the API image (default `dev`)
+- `NUXT_PUBLIC_API_URL`: optional external API base URL for the UI
+  - empty means "use same-origin" and rely on the Nuxt dev proxy to reach the API in Docker
 
-### Running This Project 🔧
-You can either run it after you have made a copy for your own project or you can run it directly without changing anything. ✨
+Ports are env-driven:
 
-1. 📝 Create an `.env` file in the main directory and copy the content of the `.env.TEMPLATE` in it.
-2. ⚙️ Adjust the `.env` file values based on your needs and preferences. The values set in this file will be used for configuring different services of the project (e.g. Django settings, database settings and Quasar settings)
-3. 🐳 To make life easier install the [Docker Compose Command-Wrapper (DCC)](https://github.com/ETH-NEXUS/dcc) using `curl -Ls https://raw.githubusercontent.com/ETH-NEXUS/dcc/main/setup.sh | bash`. On mac you may have to add `~/.local/bin` to your `$PATH` env variable in your `.zshrc` or `.bashrc`.
-5. ▶️ Run `dcc up` to start the project and create containers.
-6. 💾 In a separate terminal navigate to the root project directory and run `dcc sh api` to get into the api container. Then run `python manage.py makemigrations` to create migration files and `python manage.py migrate` to apply the changes.
-7. 🌐 Visit `localhost:8077/admin` and login using the user and password defined in the `.env` file. It can happen that the changes are not immediately accepted and you have to shut down your containers and run them again for the admin user to be accepted.
-8. 📄 Adjust the `readme.md` at the root of the project to describe your project and provide relevant information for it.
+- `UI_PORT` (default `8077`)
+- `DJANGO_BACKEND_PORT` (default `5077`)
+- `POSTGRES_HOST_PORT` (default `54377`)
+- `REDIS_HOST_PORT` (default `6379`)
+- `MKDOCS_PORT` (default `8078`)
+- `SMNRP_HTTP_PORT` (default `8088`)
+- `SMNRP_HTTPS_PORT` (default `443`)
 
-Congratulations you're done! 🎉
+## Health endpoint
 
-### How do I make my admin panel look fancy? ✨
-Install [django-unfold](https://github.com/unfoldadmin/django-unfold).
+The API exposes `GET /api/v1/health/` (used by Docker Compose healthchecks).
 
-### How do I make vscode detect my installed python packages? 🐍
-   1. 🔨 Create python environment: `python -m venv pythonenv` (make sure to name it pythonenv as it is also added to `.gitignore`)
-   2. 🔌 Activate python environment: `source pythonenv/bin/activate`
-   3. 📦 Install packages in python environment: `pipenv install -r ./api/requirements.dev.txt`
-   4. 🎯 Use python environment in your editor: Open the command palette and run the command `Python: Select Interpreter` and select `pythonenv`.
+## Pre-commit
 
+Pre-commit runs:
 
-## URLs 🔗
+- Ruff (API)
+- Prettier (UI)
 
-- 🎨 Frontend: `localhost:8077`
-- 👨‍💼 Admin panel: `localhost:8077/admin`
-- 📡 API Overview: `localhost:8077/swagger`
-- 📚 Docs: `localhost:8078`
+Install once:
 
-### How to deploy? 🚢
-TODO: Add deploy instructions.
+```bash
+pre-commit install
+```
+
+## URLs
+
+With the default `.env` ports:
+
+- Frontend: `http://localhost:8077`
+- Admin panel: `http://localhost:8077/admin`
+- API (direct): `http://localhost:5077/api/v1/`
+- API docs (dev): `http://localhost:8077/swagger`
+- Docs: `http://localhost:8078`
+
+## Deploy
+
+TODO

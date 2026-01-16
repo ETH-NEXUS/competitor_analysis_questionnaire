@@ -6,8 +6,12 @@ const appDir = fileURLToPath(new URL('./app', import.meta.url))
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   ssr: false,
-  css: ['~/assets/css/main.css'],
+  css: ['./app/assets/css/main.css'],
+  buildDir: '/cache/.nuxt',
   nitro: {
+    output: {
+      dir: '/cache/.output',
+    },
     static: true,
     devProxy: {
       '/api/v1': 'http://api:5000/api/v1',
@@ -20,7 +24,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      baseURL: process.env.API_URL || '',
+      baseURL: process.env.NUXT_PUBLIC_API_URL || '',
     },
   },
   vite: {
@@ -39,7 +43,9 @@ export default defineNuxtConfig({
     clients: {
       api: {
         // Prefer same-origin proxy in dev; allow override via env in prod
-        baseURL: process.env.API_URL ? `${process.env.API_URL}/api/v1` : '/api/v1',
+        baseURL: process.env.NUXT_PUBLIC_API_URL
+          ? `${process.env.NUXT_PUBLIC_API_URL}/api/v1`
+          : '/api/v1',
         // Local schema file kept up-to-date by scripts/watch-openapi.mjs
         schema: './openapi/api/openapi.json',
       },
