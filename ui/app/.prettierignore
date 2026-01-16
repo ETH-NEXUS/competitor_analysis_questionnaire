@@ -1,5 +1,6 @@
 # Ignore build output directories
 .nuxt/
+.output/
 dist/
 
 # Ignore node modules
@@ -15,6 +16,7 @@ node_modules/
 # Ignore lock files
 yarn.lock
 package-lock.json
+pnpm-lock.yaml
 
 # Ignore logs
 *.log
@@ -33,6 +35,3 @@ package-lock.json
 # Ignore other generated files
 coverage/
 build/
-# Ignore artifacts:
-build
-coverage
