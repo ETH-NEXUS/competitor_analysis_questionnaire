@@ -11,12 +11,19 @@
 ## Quickstart (Docker)
 
 1. Copy `.env.TEMPLATE` to `.env`.
-2. Run `make doctor` for a quick check.
-3. Start the stack:
+2. Start the stack:
 
 ```bash
 docker compose up -d
 ```
+
+
+## Development
+
+**IMPORTANT: UI dependencies are installed by Docker and written into `ui/app/node_modules` so your IDE (VS Code / JetBrains) can index them.
+Never run `npm install` or `pnpm install` on your host.**
+
+If you change UI dependencies, rebuild/restart the Docker UI service instead (e.g. `docker compose up -d --build ui`).
 
 The default profile is `dev` via `COMPOSE_PROFILES=dev` in `.env`.
 

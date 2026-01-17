@@ -7,11 +7,7 @@ const appDir = fileURLToPath(new URL('./app', import.meta.url))
 export default defineNuxtConfig({
   ssr: false,
   css: ['./app/assets/css/main.css'],
-  buildDir: '/cache/.nuxt',
   nitro: {
-    output: {
-      dir: '/cache/.output',
-    },
     static: true,
     devProxy: {
       '/api/v1': 'http://api:5000/api/v1',
