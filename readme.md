@@ -49,6 +49,43 @@ Ports are env-driven:
 
 The API exposes `GET /api/v1/health/` (used by Docker Compose healthchecks).
 
+## Authentication (session + CSRF)
+
+The API is secured by default and uses cookie-based session authentication (no JWT) via `dj-rest-auth`.
+
+Auth endpoints:
+
+- `GET /api/v1/auth/csrf/` - returns a CSRF token for SPA usage
+- `POST /api/v1/auth/login/` - creates a session (cookie)
+- `POST /api/v1/auth/logout/` - destroys the session
+- `GET /api/v1/auth/user/` - returns the current user
+
+The Nuxt app uses `nuxt-open-fetch` (`$api`) with:
+
+- `credentials: 'include'` for all requests (so cookies are sent)
+- automatic `X-CSRFToken` injection for `POST`/`PUT`/`PATCH`/`DELETE` (see `ui/app/app/plugins/open-fetch-auth.client.ts`)
+
+In dev, this works best with same-origin requests via the Nuxt dev proxy (default). If you use a separate origin, make sure `DJANGO_CORS_ALLOWED_ORIGINS` and `DJANGO_CSRF_TRUSTED_ORIGINS` match your UI URL.
+
+## Access control examples
+
+Example endpoints under `/api/v1/access/...`:
+
+- `GET /api/v1/access/public/` - no auth required
+- `GET /api/v1/access/authenticated/` - logged-in users only
+- `GET /api/v1/access/admin/` - admin users only
+- `GET /api/v1/access/editor/` - users in the `editor` group
+- `GET /api/v1/access/editor-books/` - books the editor has object-level permission for (django-guardian)
+- `POST /api/v1/access/editor-books/<id>/grant/` - admin grants `view_book` on a book to a user (`{"user": "alice"}`) or group (`{"group": "editor"}`)
+
+## SQL query logging (dev)
+
+To enable SQL query logging in the API, set:
+
+- `DJANGO_LOG_SQL=True`
+
+When enabled, queries from `django.db.backends` are logged to the console and pretty-printed (via `sqlparse`).
+
 ## Pre-commit
 
 Pre-commit runs:

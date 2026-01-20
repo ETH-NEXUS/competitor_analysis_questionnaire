@@ -14,6 +14,7 @@ from os import environ
 from pathlib import Path
 
 import environ as django_environ
+import sqlparse
 import structlog
 from corsheaders.defaults import default_headers
 
@@ -36,7 +37,7 @@ SECRET_KEY = environ.get(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (environ.get("DJANGO_DEBUG", "False")) == "True"
 LOG_LEVEL = environ.get("DJANGO_LOG_LEVEL", "INFO")
-LOG_SQL = False
+LOG_SQL = (environ.get("DJANGO_LOG_SQL", "False")) == "True"
 
 # Application definition
 
@@ -49,8 +50,11 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_filters",
     "django_extensions",
+    "guardian",
     "corsheaders",
     "rest_framework",
+    "rest_framework.authtoken",
+    "dj_rest_auth",
     "django_structlog",
     "core",
     "ml",
@@ -61,6 +65,13 @@ if DEBUG:
         "drf_spectacular",
         "drf_spectacular_sidecar",
     ]
+
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",
+    "guardian.backends.ObjectPermissionBackend",
+)
+
+ANONYMOUS_USER_ID = -1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -106,7 +117,7 @@ DATABASES = {
         "NAME": environ.get("POSTGRES_DB"),
         "USER": environ.get("POSTGRES_USER"),
         "PASSWORD": environ.get("POSTGRES_PASSWORD"),
-    }
+    },
 }
 
 # Redis Cache Configuration
@@ -172,7 +183,6 @@ MEDIA_ROOT = "/vol/web/media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DISABLE_BROWSABLE_API = False
-DISABLE_AUTH = False
 OLLAMA_BASE_URL = environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_TIMEOUT_S = float(environ.get("OLLAMA_TIMEOUT_S", "120"))
 
@@ -191,6 +201,13 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
+}
+
+REST_AUTH = {
+    "SESSION_LOGIN": True,
+    "USE_JWT": False,
+    "TOKEN_MODEL": None,
+    "TOKEN_SERIALIZER": "core.serializers.SessionLoginTokenSerializer",
 }
 
 # Use drf-spectacular for schema generation in DEBUG
@@ -216,10 +233,6 @@ if DISABLE_BROWSABLE_API:
         # "rest_framework_csv.renderers.CSVRenderer",
     ]
 
-if DISABLE_AUTH:
-    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = []
-    REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"] = []
-
 FIXTURE_DIRS = []
 
 ###
@@ -241,8 +254,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF configuration
 CSRF_TRUSTED_ORIGINS = environ.get("DJANGO_CSRF_TRUSTED_ORIGINS").split(",")
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = True
+CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Strict"
 SESSION_COOKIE_SAMESITE = "Strict"
 SESSION_COOKIE_AGE = 1209600  # (1209600) default: 2 weeks in seconds
@@ -260,6 +273,18 @@ STRUCTLOG_RENDERER = (
     else structlog.processors.JSONRenderer()
 )
 
+
+class _PrettySQLFormatter:
+    def format(self, record):
+        try:
+            return sqlparse.format(
+                record.getMessage(),
+                reindent=True,
+                keyword_case="upper",
+            )
+        except Exception:
+            return record.getMessage()
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -274,11 +299,18 @@ LOGGING = {
                 structlog.processors.TimeStamper(fmt="iso"),
             ],
         },
+        "pretty_sql": {
+            "()": "fsex.settings._PrettySQLFormatter",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "structlog",
+        },
+        "sql_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "pretty_sql",
         },
     },
     "root": {
@@ -328,6 +360,6 @@ structlog.configure(
 if LOG_SQL:
     LOGGING["loggers"]["django.db.backends"] = {
         "level": "DEBUG",
-        "handlers": ["console"],
+        "handlers": ["sql_console"],
         "propagate": False,
     }

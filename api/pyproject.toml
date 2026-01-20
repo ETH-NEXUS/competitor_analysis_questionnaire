@@ -1,23 +1,26 @@
 [project]
 name = "fsex-api"
 version = "0.1.0"
-description = "NEXUS Full Stack Example - Django API"
+description = "NEXUS Fullstack Template"
 requires-python = ">=3.12"
 dependencies = [
-    "django>=6.0.1",
+    "django>=5.2.10",
+    "django-redis>=6.0.0",
     "django-environ>=0.12.0",
     "django-extensions>=4.1",
     "django-cors-headers>=4.9.0",
+    "django-guardian>=3.2.0",
     "django-filter>=25.2",
     "django-dbbackup>=5.1.2",
     "django-structlog>=10.0.0",
     "djangorestframework>=3.16.1",
+    "dj-rest-auth>=7.0.2",
     "gunicorn>=23.0.0",
     "structlog>=25.5.0",
+    "sqlparse>=0.5.5",
     "uvicorn>=0.40.0",
     "psycopg[binary]>=3.2.0",
     "rich>=14.2.0",
-    "django-redis>=6.0.0",
 ]
 
 [project.optional-dependencies]

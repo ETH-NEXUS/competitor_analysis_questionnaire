@@ -16,3 +16,7 @@ class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
         fields = "__all__"
+
+
+class SessionLoginTokenSerializer(serializers.Serializer):
+    key = serializers.CharField(read_only=True, required=False)

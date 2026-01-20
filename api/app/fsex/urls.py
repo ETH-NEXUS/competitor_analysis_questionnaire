@@ -22,16 +22,30 @@ from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
 from core import views
-from core.viewsets import AuthorViewSet, BookViewSet
+from core.viewsets import (
+    AuthorViewSet,
+    BookViewSet,
+    AccessAdminViewSet,
+    AccessAuthenticatedViewSet,
+    AccessEditorBooksViewSet,
+    AccessEditorViewSet,
+    AccessPublicViewSet,
+)
 
-# Create a router and register our viewsets
 router = DefaultRouter()
 router.register("authors", AuthorViewSet, basename="author")
 router.register("books", BookViewSet, basename="book")
+router.register("access/public", AccessPublicViewSet, basename="access-public")
+router.register("access/authenticated", AccessAuthenticatedViewSet, basename="access-authenticated")
+router.register("access/admin", AccessAdminViewSet, basename="access-admin")
+router.register("access/editor", AccessEditorViewSet, basename="access-editor")
+router.register("access/editor-books", AccessEditorBooksViewSet, basename="access-editor-books")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/health/", views.health, name="health"),
+    path("api/v1/auth/csrf/", views.csrf, name="csrf"),
+    path("api/v1/auth/", include("dj_rest_auth.urls")),
     path("api/v1/", include(router.urls)),
     path("api/v1/ml/", include("ml.urls")),
 ]
