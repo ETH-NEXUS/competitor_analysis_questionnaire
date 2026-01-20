@@ -129,7 +129,7 @@ services:
     command: redis-server --appendonly yes
   mkdocs:
     profiles:
-      - dev
+      - docs
     build:
       context: docs
       dockerfile: Dockerfile

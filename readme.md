@@ -15,6 +15,9 @@
 
 ```bash
 docker compose up -d
+
+# With MkDocs documentation server (optional)
+docker compose --profile dev --profile docs up -d
 ```
 
 
@@ -107,7 +110,7 @@ With the default `.env` ports:
 - Admin panel: `http://localhost:8077/admin`
 - API (direct): `http://localhost:5077/api/v1/`
 - API docs (dev): `http://localhost:8077/swagger`
-- Docs: `http://localhost:8078`
+- Docs: `http://localhost:8078` (requires `--profile docs`)
 
 ## Deploy
 

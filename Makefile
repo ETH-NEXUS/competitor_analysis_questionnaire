@@ -56,13 +56,13 @@ up-prod:
 	docker compose --profile prod up -d
 
 down:
-	docker compose --profile dev --profile prod down
+	docker compose --profile dev --profile prod --profile docs down
 
 build:
-	docker compose --profile dev --profile prod build
+	docker compose --profile dev --profile prod --profile docs build
 
 logs:
-	docker compose --profile dev --profile prod logs -f
+	docker compose --profile dev --profile prod --profile docs logs -f
 
 logs-api:
 	docker compose logs -f api
@@ -71,13 +71,13 @@ logs-ui:
 	docker compose logs -f ui
 
 ps:
-	docker compose --profile dev --profile prod ps
+	docker compose --profile dev --profile prod --profile docs ps
 
 restart:
-	docker compose --profile dev --profile prod restart
+	docker compose --profile dev --profile prod --profile docs restart
 
 clean:
-	docker compose --profile dev --profile prod down -v
+	docker compose --profile dev --profile prod --profile docs down -v
 
 # Django commands
 shell:
@@ -122,5 +122,5 @@ ui-shell:
 
 # Documentation
 docs:
-	docker compose --profile dev up -d mkdocs
+	docker compose --profile docs up -d mkdocs
 	@echo "MkDocs running at http://localhost:$${MKDOCS_PORT:-8078}"
