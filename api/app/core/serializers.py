@@ -8,6 +8,11 @@ class SessionLoginTokenSerializer(serializers.Serializer):
     key = serializers.CharField(read_only=True, required=False)
 
 
+class AccessMessageSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    user = serializers.CharField(required=False)
+
+
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author

@@ -218,6 +218,7 @@ REST_AUTH = {
     "SESSION_LOGIN": True,
     "USE_JWT": False,
     "TOKEN_MODEL": None,
+    "TOKEN_SERIALIZER": "core.serializers.SessionLoginTokenSerializer",
 }
 
 # Use drf-spectacular for schema generation in DEBUG
@@ -337,7 +338,7 @@ LOGGING = {
 }
 
 
-def _drop_openapi_schema_polling(logger, method_name, event_dict):
+def _drop_common_polling_logs(logger, method_name, event_dict):
     if not DEBUG:
         return event_dict
 
@@ -347,7 +348,16 @@ def _drop_openapi_schema_polling(logger, method_name, event_dict):
 
     request = event_dict.get("request")
     if isinstance(request, str) and "/api/v1/schema/" in request:
-        raise structlog.DropEvent
+        if event == "request_started":
+            raise structlog.DropEvent
+        if event == "request_finished" and int(event_dict.get("code", 0)) < 400:
+            raise structlog.DropEvent
+
+    if isinstance(request, str) and "/api/v1/health/" in request:
+        if event == "request_started":
+            raise structlog.DropEvent
+        if event == "request_finished" and int(event_dict.get("code", 0)) < 400:
+            raise structlog.DropEvent
 
     return event_dict
 
@@ -356,7 +366,7 @@ structlog.configure(
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.stdlib.add_logger_name,
-        _drop_openapi_schema_polling,
+        _drop_common_polling_logs,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),

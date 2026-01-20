@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from .models import Author, Book
 from .permissions import IsEditor, Perms
-from .serializers import AuthorSerializer, BookSerializer
+from .serializers import AccessMessageSerializer, AuthorSerializer, BookSerializer
 
 
 class AuthorViewSet(viewsets.ModelViewSet):
@@ -22,6 +22,7 @@ class BookViewSet(viewsets.ModelViewSet):
 
 class AccessPublicViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
+    serializer_class = AccessMessageSerializer
 
     def list(self, _request):
         return Response({"message": "public"})
@@ -29,6 +30,7 @@ class AccessPublicViewSet(viewsets.ViewSet):
 
 class AccessAuthenticatedViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = AccessMessageSerializer
 
     def list(self, request):
         return Response({"message": "authenticated", "user": request.user.username})
@@ -36,6 +38,7 @@ class AccessAuthenticatedViewSet(viewsets.ViewSet):
 
 class AccessAdminViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAdminUser]
+    serializer_class = AccessMessageSerializer
 
     def list(self, request):
         return Response({"message": "admin", "user": request.user.username})
@@ -43,6 +46,7 @@ class AccessAdminViewSet(viewsets.ViewSet):
 
 class AccessEditorViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, IsEditor]
+    serializer_class = AccessMessageSerializer
 
     def list(self, request):
         return Response({"message": "editor", "user": request.user.username})

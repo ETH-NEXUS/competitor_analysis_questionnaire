@@ -6,6 +6,213 @@
         "description": "This is the NEXUS full stack example API overview. You should be able to see all the endpoints available in the API."
     },
     "paths": {
+        "/api/v1/access/admin/": {
+            "get": {
+                "operationId": "access_admin_list",
+                "tags": [
+                    "access"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AccessMessage"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/access/authenticated/": {
+            "get": {
+                "operationId": "access_authenticated_list",
+                "tags": [
+                    "access"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AccessMessage"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/access/editor/": {
+            "get": {
+                "operationId": "access_editor_list",
+                "tags": [
+                    "access"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AccessMessage"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/access/editor-books/": {
+            "get": {
+                "operationId": "access_editor_books_list",
+                "description": "Books that the editor has object-level 'view_book' permission for.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "tags": [
+                    "access"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedBookList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/access/editor-books/{id}/grant/": {
+            "post": {
+                "operationId": "access_editor_books_grant_create",
+                "description": "Grant view_book permission on this book.\nBody: {\"user\": \"alice\"} or {\"group\": \"editor\"}",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this book.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "access"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Book"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Book"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Book"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Book"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/access/public/": {
+            "get": {
+                "operationId": "access_public_list",
+                "tags": [
+                    "access"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AccessMessage"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/auth/login/": {
             "post": {
                 "operationId": "auth_login_create",
@@ -336,7 +543,6 @@
         "/api/v1/authors/": {
             "get": {
                 "operationId": "authors_list",
-                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "name": "page",
@@ -371,7 +577,6 @@
             },
             "post": {
                 "operationId": "authors_create",
-                "description": "ViewSet for Author model.",
                 "tags": [
                     "authors"
                 ],
@@ -417,7 +622,6 @@
         "/api/v1/authors/{id}/": {
             "get": {
                 "operationId": "authors_retrieve",
-                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -452,7 +656,6 @@
             },
             "put": {
                 "operationId": "authors_update",
-                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -507,7 +710,6 @@
             },
             "patch": {
                 "operationId": "authors_partial_update",
-                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -561,7 +763,6 @@
             },
             "delete": {
                 "operationId": "authors_destroy",
-                "description": "ViewSet for Author model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -591,7 +792,6 @@
         "/api/v1/books/": {
             "get": {
                 "operationId": "books_list",
-                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "name": "page",
@@ -626,7 +826,6 @@
             },
             "post": {
                 "operationId": "books_create",
-                "description": "ViewSet for Book model.",
                 "tags": [
                     "books"
                 ],
@@ -672,7 +871,6 @@
         "/api/v1/books/{id}/": {
             "get": {
                 "operationId": "books_retrieve",
-                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -707,7 +905,6 @@
             },
             "put": {
                 "operationId": "books_update",
-                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -762,7 +959,6 @@
             },
             "patch": {
                 "operationId": "books_partial_update",
-                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -816,7 +1012,6 @@
             },
             "delete": {
                 "operationId": "books_destroy",
-                "description": "ViewSet for Book model.",
                 "parameters": [
                     {
                         "in": "path",
@@ -1010,6 +1205,20 @@
     },
     "components": {
         "schemas": {
+            "AccessMessage": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "user": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "message"
+                ]
+            },
             "Book": {
                 "type": "object",
                 "properties": {
