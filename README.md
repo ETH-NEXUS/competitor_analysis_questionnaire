@@ -373,10 +373,10 @@ make doctor          # Check environment
 Key variables in `.env.TEMPLATE`:
 
 ### Application
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `APP_ENV` | `dev` | Build environment (dev/prod) |
-| `COMPOSE_PROFILES` | `dev` | Docker profiles to enable |
+| Variable | Default | Description                          |
+|----------|---------|--------------------------------------|
+| `APP_ENV` | `dev` | Build environment (dev/prod)         |
+| `COMPOSE_PROFILES` | `dev` | Docker profiles to enable by default |
 
 ### Django
 | Variable | Default | Description |
