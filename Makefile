@@ -2,7 +2,7 @@
         shell migrate makemigrations test createsuperuser \
         dbshell db-backup db-restore \
         lint format typecheck \
-        ui-shell docs
+        ui-shell docs celery logs-celery
 
 # Default target
 help:
@@ -37,6 +37,10 @@ help:
 	@echo "  format          Format code with ruff"
 	@echo "  typecheck       Run mypy type checker"
 	@echo ""
+	@echo "Celery (optional):"
+	@echo "  celery          Start Celery worker + beat"
+	@echo "  logs-celery     Follow Celery logs"
+	@echo ""
 	@echo "Other:"
 	@echo "  ui-shell        Open shell in UI container"
 	@echo "  docs            Start MkDocs server"
@@ -56,13 +60,13 @@ up-prod:
 	docker compose --profile prod up -d
 
 down:
-	docker compose --profile dev --profile prod --profile docs down
+	docker compose --profile dev --profile prod --profile docs --profile celery down
 
 build:
-	docker compose --profile dev --profile prod --profile docs build
+	docker compose --profile dev --profile prod --profile docs --profile celery build
 
 logs:
-	docker compose --profile dev --profile prod --profile docs logs -f
+	docker compose --profile dev --profile prod --profile docs --profile celery logs -f
 
 logs-api:
 	docker compose logs -f api
@@ -71,13 +75,13 @@ logs-ui:
 	docker compose logs -f ui
 
 ps:
-	docker compose --profile dev --profile prod --profile docs ps
+	docker compose --profile dev --profile prod --profile docs --profile celery ps
 
 restart:
-	docker compose --profile dev --profile prod --profile docs restart
+	docker compose --profile dev --profile prod --profile docs --profile celery restart
 
 clean:
-	docker compose --profile dev --profile prod --profile docs down -v
+	docker compose --profile dev --profile prod --profile docs --profile celery down -v
 
 # Django commands
 shell:
@@ -119,6 +123,14 @@ typecheck:
 # UI commands
 ui-shell:
 	docker compose exec ui sh
+
+# Celery (optional)
+celery:
+	docker compose --profile celery up -d celery-worker celery-beat
+	@echo "Celery worker and beat started"
+
+logs-celery:
+	docker compose --profile celery logs -f celery-worker celery-beat
 
 # Documentation
 docs:

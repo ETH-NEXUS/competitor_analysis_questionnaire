@@ -10,10 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from os import environ
 from pathlib import Path
 
-import environ as django_environ
+import environ
 import sqlparse
 import structlog
 from corsheaders.defaults import default_headers
@@ -21,23 +20,23 @@ from corsheaders.defaults import default_headers
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-env = django_environ.Env()
-django_environ.Env.read_env()
+env = environ.Env()
+environ.Env.read_env()
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = environ.get(
+SECRET_KEY = env.str(
     "DJANGO_SECRET_KEY",
-    "dd8d1abef5651a7d7c12-3f6db86b9-da531b6b55b-114d4fdf0bf5d3de876b",
+    default="dd8d1abef5651a7d7c12-3f6db86b9-da531b6b55b-114d4fdf0bf5d3de876b",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = (environ.get("DJANGO_DEBUG", "False")) == "True"
-LOG_LEVEL = environ.get("DJANGO_LOG_LEVEL", "INFO")
-LOG_SQL = (environ.get("DJANGO_LOG_SQL", "False")) == "True"
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
+LOG_LEVEL = env.str("DJANGO_LOG_LEVEL", default="INFO")
+LOG_SQL = env.bool("DJANGO_LOG_SQL", default=False)
 
 # Application definition
 
@@ -65,6 +64,11 @@ if DEBUG:
         "drf_spectacular",
         "drf_spectacular_sidecar",
     ]
+
+INSTALLED_APPS += [
+    "django_celery_beat",
+    "django_celery_results",
+]
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
@@ -112,17 +116,17 @@ WSGI_APPLICATION = "fsex.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "HOST": environ.get("POSTGRES_HOST"),
-        "PORT": environ.get("POSTGRES_PORT"),
-        "NAME": environ.get("POSTGRES_DB"),
-        "USER": environ.get("POSTGRES_USER"),
-        "PASSWORD": environ.get("POSTGRES_PASSWORD"),
+        "HOST": env.str("POSTGRES_HOST"),
+        "PORT": env.str("POSTGRES_PORT"),
+        "NAME": env.str("POSTGRES_DB"),
+        "USER": env.str("POSTGRES_USER"),
+        "PASSWORD": env.str("POSTGRES_PASSWORD"),
     },
 }
 
 # Redis Cache Configuration
-REDIS_HOST = environ.get("REDIS_HOST", "redis")
-REDIS_PORT = environ.get("REDIS_PORT", "6379")
+REDIS_HOST = env.str("REDIS_HOST", default="redis")
+REDIS_PORT = env.str("REDIS_PORT", default="6379")
 
 CACHES = {
     "default": {
@@ -137,6 +141,13 @@ CACHES = {
 # Use Redis for session storage (faster than database)
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
+
+# Celery configuration (optional, requires celery extras)
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 
 
 # Password validation
@@ -207,7 +218,6 @@ REST_AUTH = {
     "SESSION_LOGIN": True,
     "USE_JWT": False,
     "TOKEN_MODEL": None,
-    "TOKEN_SERIALIZER": "core.serializers.SessionLoginTokenSerializer",
 }
 
 # Use drf-spectacular for schema generation in DEBUG
@@ -238,11 +248,11 @@ FIXTURE_DIRS = []
 ###
 # SECURITY
 ###
-ALLOWED_HOSTS = environ.get("DJANGO_ALLOWED_HOSTS").split(",")
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = environ.get("DJANGO_CORS_ALLOWED_ORIGINS").split(",")
+CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_HEADERS = default_headers + (
     "cache-control",
     "pragma",
@@ -253,7 +263,7 @@ CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF configuration
-CSRF_TRUSTED_ORIGINS = environ.get("DJANGO_CSRF_TRUSTED_ORIGINS").split(",")
+CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS")
 CSRF_USE_SESSIONS = True
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Strict"

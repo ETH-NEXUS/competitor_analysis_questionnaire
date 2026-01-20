@@ -81,6 +81,33 @@ Example endpoints under `/api/v1/access/...`:
 - `GET /api/v1/access/editor-books/` - books the editor has object-level permission for (django-guardian)
 - `POST /api/v1/access/editor-books/<id>/grant/` - admin grants `view_book` on a book to a user (`{"user": "alice"}`) or group (`{"group": "editor"}`)
 
+## Celery
+
+Celery is included for background tasks and scheduled jobs. The API can dispatch tasks, but workers only run when enabled:
+
+```bash
+# Start Celery worker + beat scheduler
+docker compose --profile celery up -d
+
+# Or use make
+make celery
+```
+
+Example task in `core/tasks.py`:
+
+```python
+from celery import shared_task
+
+@shared_task
+def example_task(message: str) -> str:
+    return f"Processed: {message}"
+
+# Dispatch from anywhere (views, management commands, etc.)
+example_task.delay("hello")
+```
+
+Celery uses Redis as the broker and stores results in the database (django-celery-results). Scheduled tasks can be configured via Django admin (django-celery-beat).
+
 ## SQL query logging (dev)
 
 To enable SQL query logging in the API, set:

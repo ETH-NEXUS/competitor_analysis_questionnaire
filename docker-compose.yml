@@ -127,6 +127,42 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+  celery-worker:
+    profiles:
+      - celery
+    build:
+      context: api
+      args:
+        DCC_ENV: ${APP_ENV:-dev}
+    hostname: celery-worker
+    restart: unless-stopped
+    volumes:
+      - ./api/app:/app
+    env_file: .env
+    command: celery -A fsex worker -l INFO
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  celery-beat:
+    profiles:
+      - celery
+    build:
+      context: api
+      args:
+        DCC_ENV: ${APP_ENV:-dev}
+    hostname: celery-beat
+    restart: unless-stopped
+    volumes:
+      - ./api/app:/app
+    env_file: .env
+    command: celery -A fsex beat -l INFO
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
   mkdocs:
     profiles:
       - docs
