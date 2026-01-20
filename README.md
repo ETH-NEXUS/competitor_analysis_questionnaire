@@ -120,25 +120,16 @@ Default admin credentials: `admin` / `admin` (set via `DJANGO_SU_*` in `.env`)
 
 ### API Endpoints
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/api/v1/health/` | GET | No | Health check |
-| `/api/v1/auth/csrf/` | GET | No | Get CSRF token |
-| `/api/v1/auth/login/` | POST | No | Login |
-| `/api/v1/auth/logout/` | POST | Yes | Logout |
-| `/api/v1/auth/user/` | GET | Yes | Current user |
-| `/api/v1/authors/` | CRUD | Yes | Author management |
-| `/api/v1/books/` | CRUD | Yes | Book management |
+| Endpoint | Method | Auth | Description        |
+|----------|--------|------|--------------------|
+| `/api/v1/health/` | GET | No | Health check       |
+| `/api/v1/auth/csrf/` | GET | No | Get CSRF token     |
+| `/api/v1/auth/login/` | POST | No | Login              |
+| `/api/v1/auth/logout/` | POST | Yes | Logout             |
+| `/api/v1/auth/user/` | GET | Yes | Current user       |
 | `/api/v1/schema/` | GET | No | OpenAPI spec (dev) |
-| `/api/v1/schema/swagger-ui/` | GET | No | Swagger UI (dev) |
-
-### Models
-
-```python
-# core/models.py
-Author: name, date_of_birth, date_of_death
-Book: title, author (FK)
-```
+| `/api/v1/schema/swagger-ui/` | GET | No | Swagger UI (dev)   |
+| `/api/v1/schema/redoc/` | GET | No | Redoc UI (dev)     |
 
 ### Permissions
 
@@ -197,8 +188,8 @@ const { data } = await $api('/books/')
 
 ## Docker Services
 
-| Service | Profile | Port | Description |
-|---------|---------|------|-------------|
+| Service | Profile | Host Port | Description |
+|---------|---------|-----------|-------------|
 | `ui` | dev | 8077 | Nuxt dev server |
 | `api` | - | 5077 | Django REST API |
 | `db` | - | 54377 | PostgreSQL |
@@ -206,7 +197,7 @@ const { data } = await $api('/books/')
 | `celery-worker` | celery | - | Task processor |
 | `celery-beat` | celery | - | Task scheduler |
 | `mkdocs` | docs | 8078 | Documentation |
-| `ws` | prod | 80/443 | Production proxy |
+| `ws` | prod | 8088/443 | Production proxy |
 
 ### Profiles
 
@@ -412,13 +403,23 @@ Key variables in `.env.TEMPLATE`:
 | `DJANGO_SU_PASSWORD` | `admin` | Superuser password |
 
 ### Ports
+
+Each service uses `*_PORT` for the internal container port and `*_HOST_PORT` for the port exposed to the host machine.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `UI_PORT` | `8077` | Frontend |
-| `DJANGO_BACKEND_PORT` | `5077` | API |
-| `POSTGRES_HOST_PORT` | `54377` | PostgreSQL |
-| `REDIS_HOST_PORT` | `6379` | Redis |
-| `MKDOCS_PORT` | `8078` | Documentation |
+| `DJANGO_PORT` | `5000` | API internal port |
+| `DJANGO_HOST_PORT` | `5077` | API host port |
+| `UI_PORT` | `8077` | Frontend internal port |
+| `UI_HOST_PORT` | `8077` | Frontend host port |
+| `POSTGRES_PORT` | `5432` | PostgreSQL internal port |
+| `POSTGRES_HOST_PORT` | `54377` | PostgreSQL host port |
+| `REDIS_PORT` | `6379` | Redis internal port |
+| `REDIS_HOST_PORT` | `6379` | Redis host port |
+| `MKDOCS_PORT` | `8000` | MkDocs internal port |
+| `MKDOCS_HOST_PORT` | `8078` | MkDocs host port |
+| `SMNRP_HTTP_HOST_PORT` | `8088` | Reverse proxy HTTP host port |
+| `SMNRP_HTTPS_HOST_PORT` | `443` | Reverse proxy HTTPS host port |
 
 ## Code Quality
 
@@ -486,7 +487,7 @@ nexus-fullstack-example/
 
 ## Development Notes
 
-**UI dependencies**: Installed by Docker into `ui/app/node_modules` (mounted to host for IDE indexing). Never run `npm install` on host.
+**UI dependencies**: Installed by Docker into `ui/app/node_modules` (mounted to host for IDE indexing). __Never run `npm install` on host!__
 
 **Hot reload**: Both API and UI support hot reload via volume mounts.
 
@@ -509,7 +510,7 @@ The `prod` profile runs:
 
 ### SMNRP Reverse Proxy
 
-[SMNRP](https://github.com/ethnexus/smnrp) is a lightweight nginx-like reverse proxy that handles:
+[SMNRP](https://github.com/ETH-NEXUS/smnrp) is a lightweight nginx-like reverse proxy that handles:
 - **SSL termination**: HTTPS with automatic certificate handling
 - **Static file serving**: Nuxt build, Django static/media files
 - **API proxying**: Routes `/api/v1/*` to Django
@@ -523,8 +524,8 @@ Configuration via environment variables:
 | `SMNRP_UPSTREAMS` | Backend services (api:5000) |
 | `SMNRP_UPSTREAM_PROTOCOL` | HTTP or HTTPS |
 | `SMNRP_LOCATIONS` | Custom routing rules |
-| `SMNRP_HTTP_PORT` | HTTP port (default 8088) |
-| `SMNRP_HTTPS_PORT` | HTTPS port (default 443) |
+| `SMNRP_HTTP_HOST_PORT` | HTTP host port (default 8088) |
+| `SMNRP_HTTPS_HOST_PORT` | HTTPS host port (default 443) |
 
 SSL certificates can be mounted to `/etc/letsencrypt/live/<domain>/`.
 

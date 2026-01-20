@@ -10,12 +10,12 @@ export default defineNuxtConfig({
   nitro: {
     static: true,
     devProxy: {
-      '/api/v1': 'http://api:5000/api/v1',
+      '/api/v1': `http://api:${process.env.DJANGO_PORT || '5000'}/api/v1`,
       // drf-spectacular swagger UI
-      '/swagger': 'http://api:5000/api/v1/schema/swagger-ui',
-      '/admin': 'http://api:5000/admin',
-      '/media': 'http://api:5000/media',
-      '/static': 'http://api:5000/static',
+      '/swagger': `http://api:${process.env.DJANGO_PORT || '5000'}/api/v1/schema/swagger-ui`,
+      '/admin': `http://api:${process.env.DJANGO_PORT || '5000'}/admin`,
+      '/media': `http://api:${process.env.DJANGO_PORT || '5000'}/media`,
+      '/static': `http://api:${process.env.DJANGO_PORT || '5000'}/static`,
     },
   },
   runtimeConfig: {
@@ -67,7 +67,7 @@ export default defineNuxtConfig({
   },
   devServer: {
     host: '0.0.0.0',
-    port: 8077,
+    port: parseInt(process.env.UI_PORT || '8077', 10),
   },
   alias: {
     components: `${appDir}/components`,
