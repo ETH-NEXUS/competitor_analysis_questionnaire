@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_auto_endpoint",
     "core",
+    "ml",
 ]
 
 if DEBUG:
@@ -148,6 +149,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DISABLE_BROWSABLE_API = False
 DISABLE_AUTH = False
+OLLAMA_BASE_URL = environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_TIMEOUT_S = float(environ.get("OLLAMA_TIMEOUT_S", "120"))
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -180,6 +183,7 @@ if DEBUG:
         "SERVERS": [
             {"url": "http://localhost:8077/api/v1/"},
         ],
+        "SCHEMA_PATH_PREFIX": "/api/v1/",
     }
 
 if DISABLE_BROWSABLE_API:

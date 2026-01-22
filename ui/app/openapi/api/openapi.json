@@ -546,6 +546,81 @@
                 }
             }
         },
+        "/api/v1/ml/chat/": {
+            "post": {
+                "operationId": "ml_chat_create",
+                "description": "Send a chat message and receive a streaming response via Server-Sent Events (Content-Type: text/event-stream).",
+                "summary": "Chat with the LLM",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "format",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "json",
+                                "sse"
+                            ]
+                        }
+                    }
+                ],
+                "tags": [
+                    "ml"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChatRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChatRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChatRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Server-Sent Events stream"
+                    }
+                }
+            }
+        },
+        "/api/v1/ml/models/": {
+            "get": {
+                "operationId": "ml_models_retrieve",
+                "summary": "List available models",
+                "tags": [
+                    "ml"
+                ],
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ModelsResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/schema/": {
             "get": {
                 "operationId": "schema_retrieve",
@@ -761,6 +836,56 @@
                     "title"
                 ]
             },
+            "ChatMessage": {
+                "type": "object",
+                "properties": {
+                    "role": {
+                        "$ref": "#/components/schemas/RoleEnum"
+                    },
+                    "content": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "content",
+                    "role"
+                ]
+            },
+            "ChatRequest": {
+                "type": "object",
+                "properties": {
+                    "model": {
+                        "type": "string"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChatMessage"
+                        }
+                    }
+                },
+                "required": [
+                    "messages",
+                    "model"
+                ]
+            },
+            "ModelsResponse": {
+                "type": "object",
+                "properties": {
+                    "models": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "models"
+                ]
+            },
             "NEXUSAuthor": {
                 "type": "object",
                 "properties": {
@@ -877,6 +1002,15 @@
                         "$ref": "#/components/schemas/NEXUSAuthor"
                     }
                 }
+            },
+            "RoleEnum": {
+                "enum": [
+                    "system",
+                    "user",
+                    "assistant"
+                ],
+                "type": "string",
+                "description": "* `system` - system\n* `user` - user\n* `assistant` - assistant"
             }
         },
         "securitySchemes": {

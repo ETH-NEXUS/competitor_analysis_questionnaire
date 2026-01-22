@@ -1,3 +1,7 @@
+import { fileURLToPath } from 'node:url'
+
+const appDir = fileURLToPath(new URL('./app', import.meta.url))
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   ssr: false,
@@ -51,4 +55,11 @@ export default defineNuxtConfig({
   devServer: {
     port: 8077,
   },
-});
+  alias: {
+    components: `${appDir}/components`,
+    stores: `${appDir}/stores`,
+    types: `${appDir}/types`,
+    utils: `${appDir}/utils`,
+    errors: `${appDir}/utils/errors`,
+  },
+})

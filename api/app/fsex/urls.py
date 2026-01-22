@@ -23,6 +23,7 @@ from rest_framework import permissions
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include(router.urls)),
+    path("api/v1/ml/", include("ml.urls")),
 ]
 
 if settings.DEBUG:
