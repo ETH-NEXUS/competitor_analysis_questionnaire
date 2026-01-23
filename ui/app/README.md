@@ -1,75 +1,20 @@
-# Nuxt Minimal Starter
+# UI (Nuxt)
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+For the recommended Docker-based workflow, follow the root `README.md`.
 
-## Setup
+## Local development (without Docker)
 
-Make sure to install dependencies:
+From `ui/app`:
 
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
-npm run dev
-
-# pnpm
 pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+The dev script also runs `scripts/watch-openapi.mjs` to keep `openapi/api/openapi.json` up to date.
 
-Build the application for production:
+## Environment
 
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+- `NUXT_PUBLIC_API_URL`:
+  - if set, the UI will talk to `${NUXT_PUBLIC_API_URL}/api/v1`
+  - if empty, it will default to `/api/v1` (intended for the Docker dev proxy)

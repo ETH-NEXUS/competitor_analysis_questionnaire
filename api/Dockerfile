@@ -1,4 +1,4 @@
-FROM python:3.11-bookworm
+FROM python:3.12-bookworm
 ARG DCC_ENV=dev
 # Optimise python and debian in docker
 ENV PYTHONUNBUFFERED 1
@@ -21,17 +21,17 @@ RUN apt-get install -y postgresql-client
 # Cleanup
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Update pip
-RUN pip install --upgrade pip
+# Install uv package manager
+RUN pip install uv
 
-# Global python requirements
-COPY ./requirements.dev.txt /
-COPY ./requirements.txt /
+# Copy pyproject.toml for dependency installation
+COPY ./pyproject.toml /app/
 
+# Install dependencies using uv
 RUN if [ "$DCC_ENV" = "dev" ]; then \
-    pip install -r /requirements.dev.txt; \
+    uv pip install --system -e "/app[dev]"; \
 else \
-    pip install -r /requirements.txt; \
+    uv pip install --system -e "/app"; \
 fi
 
 # Set working directory

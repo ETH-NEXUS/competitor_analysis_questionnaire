@@ -1,19 +1,77 @@
 volumes:
   pg_data:
   web_root:
+  redis_data:
 services:
   ui:
+    profiles:
+      - dev
     build:
       context: ui
     volumes:
       - ./ui/app:/app
-      # - "web_root:/app/dist:z"
     hostname: ui
-    restart: "no"
+    restart: unless-stopped
     env_file: .env
+    ports:
+      - "${UI_HOST_PORT:-8077}:${UI_PORT:-8077}"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        pnpm install --no-frozen-lockfile
+        pnpm run dev
+    depends_on:
+      api:
+        condition: service_healthy
+  ui-build:
+    profiles:
+      - prod
+    build:
+      context: ui
+    volumes:
+      - ./ui/app:/app
+      - "web_root:/app/dist:z"
+    restart: "no"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /app/dist
+        set -e
+        pnpm install --frozen-lockfile
+        pnpm run build
+        cp -a /app/.output/public/. /app/dist/
+        rm -rf /app/.output
+
+  ws:
+    profiles:
+      - prod
+    image: ethnexus/smnrp:3.1.2
+    volumes:
+      - "web_root:/web_root:z"
+      - ./api/static:/vol/web/static:z
+      - ./api/media:/vol/web/media:z
+      # - /etc/pki/tls/certs/DCcerts2023/ldm.nexus.ethz.ch.chain.crt.pem:/etc/letsencrypt/live/ldm.nexus.ethz.ch/fullchain.pem:ro
+      # - /etc/pki/tls/private/key2023/ldm.nexus.ethz.ch.privkey.pem:/etc/letsencrypt/live/ldm.nexus.ethz.ch/privkey.pem:ro
+    ports:
+      - "${SMNRP_HTTP_HOST_PORT:-8088}:80"
+      - "${SMNRP_HTTPS_HOST_PORT:-443}:443"
+    env_file: .env
+    restart: unless-stopped
+    depends_on:
+      ui-build:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+      db:
+        condition: service_healthy
   api:
     build:
       context: api
+      args:
+        DCC_ENV: ${APP_ENV:-dev}
     hostname: api
     restart: unless-stopped
     entrypoint: sh -c '/app/entrypoint.sh'
@@ -27,12 +85,91 @@ services:
       - GIT_VERSION=${GIT_VERSION}
       - GIT_BRANCH=${GIT_BRANCH}
       - GIT_LASTCOMMITDATE=${GIT_LASTCOMMITDATE}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-True}
+    ports:
+      - "${DJANGO_HOST_PORT:-5077}:${DJANGO_PORT:-5000}"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os; import urllib.request; urllib.request.urlopen('http://localhost:' + os.environ.get('DJANGO_PORT', '5000') + '/api/v1/health/').read()\""]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
   db:
-    image: postgres:15-bookworm
+    image: postgres:18-bookworm
     hostname: db
     restart: unless-stopped
     env_file: .env
+    ports:
+      - "${POSTGRES_HOST_PORT:-54377}:${POSTGRES_PORT:-5432}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p ${POSTGRES_PORT:-5432} -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql
+  redis:
+    image: redis:8-alpine
+    hostname: redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:${REDIS_PORT:-6379}"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "${REDIS_PORT:-6379}", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - redis_data:/data
+    command: redis-server --port ${REDIS_PORT:-6379} --appendonly yes
+  celery-worker:
+    profiles:
+      - celery
+    build:
+      context: api
+      args:
+        DCC_ENV: ${APP_ENV:-dev}
+    hostname: celery-worker
+    restart: unless-stopped
+    volumes:
+      - ./api/app:/app
+    env_file: .env
+    command: celery -A fsex worker -l INFO
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  celery-beat:
+    profiles:
+      - celery
+    build:
+      context: api
+      args:
+        DCC_ENV: ${APP_ENV:-dev}
+    hostname: celery-beat
+    restart: unless-stopped
+    volumes:
+      - ./api/app:/app
+    env_file: .env
+    command: celery -A fsex beat -l INFO
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  mkdocs:
+    profiles:
+      - docs
+    build:
+      context: docs
+      dockerfile: Dockerfile
+    ports:
+      - "${MKDOCS_HOST_PORT:-8078}:${MKDOCS_PORT:-8000}"
+    volumes:
+      - ./docs/:/docs/:z

@@ -1,0 +1,30 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.14
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^api/
+      - id: ruff-format
+        files: ^api/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: bash
+        language: system
+        files: ^ui/app/
+        args:
+          - -lc
+          - cd ui/app && files=(); for f in "$@"; do files+=("${f#ui/app/}"); done; pnpm exec prettier --write --ignore-unknown --config .prettierrc --ignore-path .prettierignore "${files[@]}"
+          - --
