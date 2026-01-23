@@ -20,6 +20,7 @@ Do not keep any deprecated or legacy code, if you decide to remove code, make su
 
 - Do not introduce new architectural patterns, libraries, or frameworks without asking the user for confirmation.
 - If we do introduce a new pattern, framework or helper/abstraction, document its usage in the CLAUDE.md file with a short description and example.
+- Before editing any file, always check its current size (roughly: line count). Keep it under ~400 lines. If your change would push it beyond that, refactor it into multiple files.
 - If you are unsure about a library/framework detail, check the official docs on the internet (Django, DRF, Nuxt, Vue, Pinia, Tailwind, etc.).
 - Do not create new top-level folders without checking existing structure.
 - Do not duplicate existing abstractions or helpers (e.g. HTTP clients, stores, auth logic).
