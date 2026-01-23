@@ -1,31 +1,31 @@
 <script setup lang="ts">
-const coreStore = useCoreStore();
-const authStore = useAuthStore();
+const coreStore = useCoreStore()
+const authStore = useAuthStore()
 
 const isDark = computed({
   get: () => coreStore.isDark,
   set: (value) => coreStore.toggleDarkMode(value),
-});
+})
 
-const loginOpen = ref(false);
-const loginUsername = ref('');
-const loginPassword = ref('');
+const loginOpen = ref(false)
+const loginUsername = ref('')
+const loginPassword = ref('')
 
-const loginDisabled = computed(() => authStore.isLoading || !loginUsername.value || !loginPassword.value);
+const loginDisabled = computed(() => authStore.isLoading || !loginUsername.value || !loginPassword.value)
 
 const openLogin = () => {
-  authStore.clearError();
-  loginOpen.value = true;
-};
+  authStore.clearError()
+  loginOpen.value = true
+}
 
 const onLogin = async () => {
-  authStore.clearError();
-  const ok = await authStore.login(loginUsername.value, loginPassword.value);
+  authStore.clearError()
+  const ok = await authStore.login(loginUsername.value, loginPassword.value)
   if (ok) {
-    loginOpen.value = false;
-    loginPassword.value = '';
+    loginOpen.value = false
+    loginPassword.value = ''
   }
-};
+}
 
 const userMenuItems = computed(() => [
   {
@@ -46,13 +46,13 @@ const userMenuItems = computed(() => [
     color: 'red',
     onSelect: () => authStore.logout(),
   },
-]);
+])
 
 onMounted(async () => {
-  coreStore.initColorMode();
+  coreStore.initColorMode()
 
-  await authStore.loadUser();
-});
+  await authStore.loadUser()
+})
 </script>
 
 <template>
@@ -82,21 +82,10 @@ onMounted(async () => {
         <template #body>
           <form class="flex flex-col gap-3" @submit.prevent="onLogin">
             <UInput v-model="loginUsername" placeholder="Username" autocomplete="username" />
-            <UInput
-              v-model="loginPassword"
-              type="password"
-              placeholder="Password"
-              autocomplete="current-password"
-            />
+            <UInput v-model="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
 
             <div class="flex items-center gap-2">
-              <UButton
-                type="submit"
-                size="sm"
-                variant="soft"
-                :loading="authStore.isLoading"
-                :disabled="loginDisabled"
-              >
+              <UButton type="submit" size="sm" variant="soft" :loading="authStore.isLoading" :disabled="loginDisabled">
                 Login
               </UButton>
               <UButton type="button" size="sm" variant="ghost" @click="loginOpen = false">Cancel</UButton>
@@ -110,7 +99,7 @@ onMounted(async () => {
       <div class="flex min-h-0 flex-1 overflow-hidden">
         <UDashboardPanel
           id="left-panel"
-          class="hidden lg:flex !min-h-0"
+          class="hidden !min-h-0 lg:flex"
           resizable
           :min-size="15"
           :default-size="25"

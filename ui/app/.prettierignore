@@ -6,6 +6,9 @@ dist/
 # Ignore node modules
 node_modules/
 
+# Ignore pnpm store
+.pnpm-store/
+
 # Ignore specific configuration files
 *.config.js
 

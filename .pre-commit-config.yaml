@@ -21,10 +21,10 @@ repos:
     hooks:
       - id: prettier
         name: prettier
-        entry: prettier
-        language: node
+        entry: bash
+        language: system
         files: ^ui/app/
-        args: [--write, --config, ui/app/.prettierrc, --ignore-path, ui/app/.prettierignore]
-        additional_dependencies:
-          - prettier@3.3.3
-          - prettier-plugin-tailwindcss@0.6.8
+        args:
+          - -lc
+          - cd ui/app && files=(); for f in "$@"; do files+=("${f#ui/app/}"); done; pnpm exec prettier --write --ignore-unknown --config .prettierrc --ignore-path .prettierignore "${files[@]}"
+          - --

@@ -58,7 +58,10 @@ class StreamParser:
         if not delta:
             return None
         if self._state == _StreamState.CONTENT:
-            return {"type": "content_delta", "delta": self._strip_prefix_if_needed(delta)}
+            return {
+                "type": "content_delta",
+                "delta": self._strip_prefix_if_needed(delta),
+            }
         return {"type": "thinking_delta", "delta": delta}
 
     def _flush_safe(self) -> dict | None:

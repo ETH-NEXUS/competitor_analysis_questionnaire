@@ -1,20 +1,20 @@
 <script setup lang="ts">
-const authStore = useAuthStore();
+const authStore = useAuthStore()
 
-const username = ref('');
-const password = ref('');
+const username = ref('')
+const password = ref('')
 
-const authErrorStatus = useState<number | null>('authErrorStatus', () => null);
+const authErrorStatus = useState<number | null>('authErrorStatus', () => null)
 
-const submitDisabled = computed(() => authStore.isLoading || !username.value || !password.value);
+const submitDisabled = computed(() => authStore.isLoading || !username.value || !password.value)
 
 const onLogin = async () => {
-  authStore.clearError();
-  const ok = await authStore.login(username.value, password.value);
+  authStore.clearError()
+  const ok = await authStore.login(username.value, password.value)
   if (ok) {
-    password.value = '';
+    password.value = ''
   }
-};
+}
 </script>
 
 <template>

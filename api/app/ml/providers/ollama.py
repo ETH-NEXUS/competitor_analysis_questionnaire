@@ -1,6 +1,5 @@
 import json
 import re
-import socket
 import time
 from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
@@ -67,7 +66,11 @@ class OllamaProvider:
         parsed_thinking = parsed.get("thinking")
         if isinstance(parsed_content, str):
             content = parsed_content
-        thinking = parsed_thinking if isinstance(parsed_thinking, str) and parsed_thinking else None
+        thinking = (
+            parsed_thinking
+            if isinstance(parsed_thinking, str) and parsed_thinking
+            else None
+        )
         return content, thinking
 
     def _extract_thinking_from_extra(self, extra):
@@ -83,7 +86,9 @@ class OllamaProvider:
         think_match = re.search(r"<think>(.*?)</think>", content, flags=re.DOTALL)
         if think_match:
             thinking = think_match.group(1).strip() or None
-            content = (content[: think_match.start()] + content[think_match.end() :]).strip()
+            content = (
+                content[: think_match.start()] + content[think_match.end() :]
+            ).strip()
             return content, thinking
 
         marker_match = re.search(
@@ -93,7 +98,9 @@ class OllamaProvider:
         )
         if marker_match:
             thinking = marker_match.group(1).strip() or None
-            content = (content[: marker_match.start()] + content[marker_match.end() :]).lstrip(" \n\t.:")
+            content = (
+                content[: marker_match.start()] + content[marker_match.end() :]
+            ).lstrip(" \n\t.:")
             return content, thinking
 
         return content, None
@@ -104,17 +111,23 @@ class OllamaProvider:
             resp = urlopen(Request(url, method="GET"), timeout=self.timeout_s)
             raw = resp.read().decode("utf-8")
         except HTTPError as e:
-            raise ProviderError(f"Ollama HTTP error: {getattr(e, 'code', 'unknown')}") from e
-        except (socket.timeout, TimeoutError) as e:
-            raise ProviderError(f"Ollama timed out after {self.timeout_s}s at {url}") from e
+            raise ProviderError(
+                f"Ollama HTTP error: {getattr(e, 'code', 'unknown')}"
+            ) from e
+        except TimeoutError as e:
+            raise ProviderError(
+                f"Ollama timed out after {self.timeout_s}s at {url}"
+            ) from e
         except URLError as e:
-            raise ProviderError(f"Ollama unreachable at {self.base_url} ({getattr(e, 'reason', e)})") from e
+            raise ProviderError(
+                f"Ollama unreachable at {self.base_url} ({getattr(e, 'reason', e)})"
+            ) from e
 
         try:
             parsed = json.loads(raw)
             models = parsed.get("models") or []
             names = [m.get("name") or m.get("model") for m in models]
-            return sorted(set(n for n in names if n))
+            return sorted({n for n in names if n})
         except Exception as e:
             raise ProviderError("Invalid Ollama response") from e
 
@@ -122,7 +135,9 @@ class OllamaProvider:
         started = time.monotonic()
 
         lc_messages = self._build_lc_messages(THINKING_PROMPT_JSON, messages)
-        llm = ChatOllama(model=model, base_url=self.base_url, request_timeout=self.timeout_s)
+        llm = ChatOllama(
+            model=model, base_url=self.base_url, request_timeout=self.timeout_s
+        )
         try:
             result = llm.invoke(lc_messages)
         except Exception as e:
@@ -131,7 +146,9 @@ class OllamaProvider:
         content = getattr(result, "content", "") or ""
         content, thinking = self._parse_json_response(content)
         if not thinking:
-            thinking = self._extract_thinking_from_extra(getattr(result, "additional_kwargs", None))
+            thinking = self._extract_thinking_from_extra(
+                getattr(result, "additional_kwargs", None)
+            )
         if not thinking:
             content, thinking = self._extract_thinking_from_content(content)
         duration_ms = int((time.monotonic() - started) * 1000)
@@ -139,7 +156,9 @@ class OllamaProvider:
 
     def chat_stream(self, *, model, messages):
         lc_messages = self._build_lc_messages(THINKING_PROMPT_TAGS, messages)
-        llm = ChatOllama(model=model, base_url=self.base_url, request_timeout=self.timeout_s)
+        llm = ChatOllama(
+            model=model, base_url=self.base_url, request_timeout=self.timeout_s
+        )
         parser = StreamParser()
 
         try:
@@ -147,8 +166,7 @@ class OllamaProvider:
                 text = self._extract_chunk_text(chunk)
                 if not text:
                     continue
-                for event in parser.feed(text):
-                    yield event
+                yield from parser.feed(text)
         except Exception as e:
             raise ProviderError(f"Ollama chat failed ({type(e).__name__})") from e
 

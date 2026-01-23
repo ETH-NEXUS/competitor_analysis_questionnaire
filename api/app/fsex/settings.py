@@ -279,9 +279,7 @@ if not DEBUG:
 # LOGGING
 ###
 STRUCTLOG_RENDERER = (
-    structlog.dev.ConsoleRenderer()
-    if DEBUG
-    else structlog.processors.JSONRenderer()
+    structlog.dev.ConsoleRenderer() if DEBUG else structlog.processors.JSONRenderer()
 )
 
 
@@ -295,6 +293,7 @@ class _PrettySQLFormatter:
             )
         except Exception:
             return record.getMessage()
+
 
 LOGGING = {
     "version": 1,
@@ -360,6 +359,7 @@ def _drop_common_polling_logs(logger, method_name, event_dict):
             raise structlog.DropEvent
 
     return event_dict
+
 
 structlog.configure(
     processors=[

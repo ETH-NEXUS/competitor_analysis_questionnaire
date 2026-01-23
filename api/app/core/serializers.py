@@ -17,7 +17,7 @@ class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
         fields = ("name", "date_of_birth")
-        ref_name = 'NEXUSAuthorSerializer'
+        ref_name = "NEXUSAuthorSerializer"
 
 
 class BookSerializer(serializers.ModelSerializer):

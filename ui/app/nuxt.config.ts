@@ -1,4 +1,4 @@
-import tailwindcss from '@tailwindcss/vite';
+import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
 
 const appDir = fileURLToPath(new URL('./app', import.meta.url))
@@ -27,21 +27,12 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
   devtools: { enabled: true },
-  modules: [
-    '@nuxt/ui',
-    '@nuxt/eslint',
-    '@pinia/nuxt',
-    '@vueuse/nuxt',
-    '@nuxtjs/i18n',
-    'nuxt-open-fetch',
-  ],
+  modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/i18n', 'nuxt-open-fetch'],
   openFetch: {
     clients: {
       api: {
         // Prefer same-origin proxy in dev; allow override via env in prod
-        baseURL: process.env.NUXT_PUBLIC_API_URL
-          ? `${process.env.NUXT_PUBLIC_API_URL}/api/v1`
-          : '/api/v1',
+        baseURL: process.env.NUXT_PUBLIC_API_URL ? `${process.env.NUXT_PUBLIC_API_URL}/api/v1` : '/api/v1',
         // Local schema file kept up-to-date by scripts/watch-openapi.mjs
         schema: './openapi/api/openapi.json',
       },

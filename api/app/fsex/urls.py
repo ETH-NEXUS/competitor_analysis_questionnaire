@@ -23,23 +23,27 @@ from rest_framework.routers import DefaultRouter
 
 from core import views
 from core.viewsets import (
-    AuthorViewSet,
-    BookViewSet,
     AccessAdminViewSet,
     AccessAuthenticatedViewSet,
     AccessEditorBooksViewSet,
     AccessEditorViewSet,
     AccessPublicViewSet,
+    AuthorViewSet,
+    BookViewSet,
 )
 
 router = DefaultRouter()
 router.register("authors", AuthorViewSet, basename="author")
 router.register("books", BookViewSet, basename="book")
 router.register("access/public", AccessPublicViewSet, basename="access-public")
-router.register("access/authenticated", AccessAuthenticatedViewSet, basename="access-authenticated")
+router.register(
+    "access/authenticated", AccessAuthenticatedViewSet, basename="access-authenticated"
+)
 router.register("access/admin", AccessAdminViewSet, basename="access-admin")
 router.register("access/editor", AccessEditorViewSet, basename="access-editor")
-router.register("access/editor-books", AccessEditorBooksViewSet, basename="access-editor-books")
+router.register(
+    "access/editor-books", AccessEditorBooksViewSet, basename="access-editor-books"
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),

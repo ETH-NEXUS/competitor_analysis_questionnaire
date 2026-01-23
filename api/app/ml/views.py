@@ -20,6 +20,7 @@ from .serializers import ChatRequestSerializer, ModelsResponseSerializer
 try:
     from drf_spectacular.utils import OpenApiResponse, extend_schema
 except ImportError:
+
     def extend_schema(*args, **kwargs):
         def decorator(fn):
             return fn

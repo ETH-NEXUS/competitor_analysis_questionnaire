@@ -74,17 +74,25 @@ class AccessEditorBooksViewSet(viewsets.GenericViewSet):
         groupname = request.data.get("group")
 
         if not username and not groupname:
-            return Response({"detail": "user or group required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "user or group required"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if username:
             user_model = get_user_model()
             try:
                 target = user_model.objects.get(username=username)
             except user_model.DoesNotExist:
-                return Response({"detail": "user not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"detail": "user not found"}, status=status.HTTP_404_NOT_FOUND
+                )
             assign_perm(Perms.VIEW_BOOK, target, book)
-            return Response({"granted": Perms.VIEW_BOOK, "user": username, "book": book.id})
+            return Response(
+                {"granted": Perms.VIEW_BOOK, "user": username, "book": book.id}
+            )
 
         group, created = Group.objects.get_or_create(name=groupname)
         assign_perm(Perms.VIEW_BOOK, group, book)
-        return Response({"granted": Perms.VIEW_BOOK, "group": groupname, "book": book.id})
+        return Response(
+            {"granted": Perms.VIEW_BOOK, "group": groupname, "book": book.id}
+        )

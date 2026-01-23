@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-const DEFAULT_API = process.env.NUXT_PUBLIC_API_URL || 'http://api:5000';
-const SCHEMA_URL = process.env.SCHEMA_URL || `${DEFAULT_API.replace(/\/$/, '')}/api/v1/schema/`;
+const DEFAULT_API = process.env.NUXT_PUBLIC_API_URL || 'http://api:5000'
+const SCHEMA_URL = process.env.SCHEMA_URL || `${DEFAULT_API.replace(/\/$/, '')}/api/v1/schema/`
 // nuxt-open-fetch expects schemas in ./openapi/[client]/openapi.json (or .yaml)
 const OUTPUT_SCHEMA = process.env.OUTPUT_SCHEMA || 'openapi/api/openapi.json'
 const INTERVAL_MS = Number(process.env.SCHEMA_POLL_INTERVAL_MS || 5000)
