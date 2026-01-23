@@ -12,6 +12,7 @@
       "title": "Library examples",
       "refetch_books": "Refetch books",
       "status_error": "Error",
+      "status_login_required": "Login required",
       "status_loading": "Loading",
       "books_count": "{count} books",
       "route_label": "route: {route}",

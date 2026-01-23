@@ -194,8 +194,8 @@ MEDIA_ROOT = "/vol/web/media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DISABLE_BROWSABLE_API = False
-OLLAMA_BASE_URL = environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_TIMEOUT_S = float(environ.get("OLLAMA_TIMEOUT_S", "120"))
+OLLAMA_BASE_URL = env.str("OLLAMA_BASE_URL", default="http://localhost:11434")
+OLLAMA_TIMEOUT_S = env.float("OLLAMA_TIMEOUT_S", default=120.0)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

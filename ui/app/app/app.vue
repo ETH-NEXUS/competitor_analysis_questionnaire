@@ -117,7 +117,7 @@ onMounted(async () => {
           :max-size="40"
         >
           <template #body>
-            <div class="flex flex-col items-center gap-5">
+            <div class="flex h-full min-h-0 flex-col items-center gap-5 overflow-y-auto">
               <UCard class="w-full">
                 <template #header>
                   <h3 class="text-base font-semibold">{{ $t('app.title') }}</h3>
@@ -126,6 +126,8 @@ onMounted(async () => {
                   {{ $t('app.lorem_ipsum') }}
                 </p>
               </UCard>
+
+              <LibraryExamples class="w-full" />
             </div>
           </template>
         </UDashboardPanel>
@@ -134,8 +136,6 @@ onMounted(async () => {
           <template #body>
             <div class="flex w-full flex-col items-center gap-4">
               <MessageBox class="w-full lg:w-[80%]" />
-
-              <LibraryExamples class="w-full lg:w-[80%]" />
             </div>
           </template>
         </UDashboardPanel>

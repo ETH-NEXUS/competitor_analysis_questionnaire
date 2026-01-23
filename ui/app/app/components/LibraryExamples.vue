@@ -3,6 +3,7 @@ import type { ApiResponse } from '#open-fetch';
 import { useQuery } from '@tanstack/vue-query';
 
 const { $api } = useNuxtApp();
+const authStore = useAuthStore();
 
 const { t } = useI18n();
 
@@ -37,11 +38,19 @@ const bookCount = computed(() => booksQuery.data.value?.length ?? 0);
           variant="soft"
           icon="i-heroicons-arrow-path"
           :loading="booksQuery.isFetching.value"
+          :disabled="!authStore.isAuthenticated"
           @click="booksQuery.refetch()"
         >
           {{ t('examples.library.refetch_books') }}
         </UButton>
-        <UBadge v-if="booksQuery.isError.value" color="red" variant="soft">{{ t('examples.library.status_error') }}</UBadge>
+        <UBadge
+          v-if="!authStore.isAuthenticated"
+          color="amber"
+          variant="soft"
+        >
+          {{ t('examples.library.status_login_required') }}
+        </UBadge>
+        <UBadge v-else-if="booksQuery.isError.value" color="red" variant="soft">{{ t('examples.library.status_error') }}</UBadge>
         <UBadge v-else-if="booksQuery.isFetching.value" color="amber" variant="soft">{{ t('examples.library.status_loading') }}</UBadge>
         <UBadge v-else color="green" variant="soft">{{ t('examples.library.books_count', { count: bookCount }) }}</UBadge>
       </div>
