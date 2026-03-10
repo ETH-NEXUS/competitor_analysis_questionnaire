@@ -4,7 +4,7 @@ import { dirname } from 'node:path'
 
 const DEFAULT_API = process.env.NUXT_PUBLIC_API_URL || 'http://api:5000'
 const SCHEMA_URL = process.env.SCHEMA_URL || `${DEFAULT_API.replace(/\/$/, '')}/api/v1/schema/`
-// nuxt-open-fetch expects schemas in ./openapi/[client]/openapi.json (or .yaml)
+// Orval reads schemas from ./openapi/[client]/openapi.json
 const OUTPUT_SCHEMA = process.env.OUTPUT_SCHEMA || 'openapi/api/openapi.json'
 const INTERVAL_MS = Number(process.env.SCHEMA_POLL_INTERVAL_MS || 5000)
 const FETCH_TIMEOUT_MS = Number(process.env.SCHEMA_FETCH_TIMEOUT_MS || 30000)

@@ -27,17 +27,7 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
   devtools: { enabled: true },
-  modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/i18n', 'nuxt-open-fetch'],
-  openFetch: {
-    clients: {
-      api: {
-        // Prefer same-origin proxy in dev; allow override via env in prod
-        baseURL: process.env.NUXT_PUBLIC_API_URL ? `${process.env.NUXT_PUBLIC_API_URL}/api/v1` : '/api/v1',
-        // Local schema file kept up-to-date by scripts/watch-openapi.mjs
-        schema: './openapi/api/openapi.json',
-      },
-    },
-  },
+  modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/i18n'],
   i18n: {
     restructureDir: '',
     strategy: 'prefix_except_default',

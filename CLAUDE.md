@@ -42,18 +42,20 @@ class Perms:
 from guardian.shortcuts import assign_perm, get_objects_for_user
 ```
 
-**API calls** - use `$api` from nuxt-open-fetch (not axios/fetch):
+**API calls** - use Orval-generated functions (not raw fetch/axios):
 ```typescript
-const { $api } = useNuxtApp();
-const response = await $api('/api/v1/books/', { method: 'GET' });
+// In components: use generated Vue Query composables
+import { useBooksList } from '~/app/api/generated/books/books'
+const { data, isFetching, refetch } = useBooksList()
+
+// In stores: use generated raw functions for imperative calls
+import { authLoginCreate } from '~/app/api/generated/auth/auth'
+await authLoginCreate({ username, password })
 ```
 
-**Server state** - use Vue Query (not raw $api in components):
-```typescript
-const query = useQuery({
-  queryKey: ['books'],
-  queryFn: async () => (await $api('/api/v1/books/')).results,
-});
+**Regenerate API layer** after OpenAPI schema changes:
+```bash
+pnpm generate:api
 ```
 
 **Pinia stores** - composition API style with `defineStore(() => {})`
@@ -64,5 +66,14 @@ const query = useQuery({
 
 ## Auth
 
-Session-based with CSRF (auto-handled by `open-fetch-auth.client.ts`).
+Session-based with CSRF (auto-handled by `app/api/mutator/custom-fetch.ts`).
 Endpoints: `/api/v1/auth/login/`, `/api/v1/auth/logout/`, `/api/v1/auth/user/`
+
+## Orval (API Code Generation)
+
+Orval generates typed Vue Query composables and raw fetch functions from the OpenAPI schema.
+
+- **Config**: `ui/app/orval.config.ts`
+- **Generated output**: `ui/app/app/api/generated/` (gitignored, regenerate with `pnpm generate:api`)
+- **Custom fetch mutator**: `ui/app/app/api/mutator/custom-fetch.ts` — handles CSRF tokens and `credentials: 'include'`
+- **OpenAPI schema**: `ui/app/openapi/api/openapi.json` (auto-updated by `watch-openapi.mjs`)

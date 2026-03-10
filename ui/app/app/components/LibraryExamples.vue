@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import type { ApiResponse } from '#open-fetch'
-import { useQuery } from '@tanstack/vue-query'
+import { useBooksList } from '~/app/api/generated/books'
 
-const { $api } = useNuxtApp()
 const authStore = useAuthStore()
 
 const { t } = useI18n()
@@ -10,16 +8,9 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const booksQuery = useQuery({
-  queryKey: ['books'],
-  queryFn: async () => {
-    const response = await $api('/api/v1/books/', { method: 'GET' })
-    return (response?.results ?? []) as ApiResponse<'books_list'>['results']
-  },
-  enabled: false,
-})
+const booksQuery = useBooksList({ query: { enabled: false } })
 
-const bookCount = computed(() => booksQuery.data.value?.length ?? 0)
+const bookCount = computed(() => booksQuery.data.value?.results?.length ?? 0)
 </script>
 
 <template>
@@ -64,8 +55,8 @@ const bookCount = computed(() => booksQuery.data.value?.length ?? 0)
         <UButton size="xs" variant="ghost" @click="router.replace('/')">{{ t('examples.library.go_home') }}</UButton>
       </div>
 
-      <ul v-if="booksQuery.data.value?.length" class="list-disc pl-5">
-        <li v-for="book in booksQuery.data.value.slice(0, 3)" :key="book.id">
+      <ul v-if="booksQuery.data.value?.results?.length" class="list-disc pl-5">
+        <li v-for="book in booksQuery.data.value.results.slice(0, 3)" :key="book.id">
           {{ book.title }}
         </li>
       </ul>
