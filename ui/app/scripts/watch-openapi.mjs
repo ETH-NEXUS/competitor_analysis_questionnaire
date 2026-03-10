@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { execFile } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
@@ -67,6 +68,13 @@ async function tick() {
       mkdirSync(dirname(OUTPUT_SCHEMA), { recursive: true })
       writeFileSync(OUTPUT_SCHEMA, text)
       console.log(`[openapi] Schema written to ${OUTPUT_SCHEMA} (hash=${hash.slice(0, 8)}...)`)
+      execFile('npx', ['orval'], (err, stdout, stderr) => {
+        if (err) {
+          console.error(`[orval] Generation failed:`, stderr || err.message)
+        } else {
+          console.log(`[orval] API layer regenerated`)
+        }
+      })
     }
   } catch (e) {
     console.error(`[openapi] Failed to fetch schema from ${SCHEMA_URL}:`, e?.message || e)
