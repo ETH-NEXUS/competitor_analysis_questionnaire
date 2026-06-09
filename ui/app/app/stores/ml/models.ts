@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { ModelItem } from 'types/ml'
+import { mlModelsRetrieve } from '~/app/api/generated/ml'
 
 const NO_MODEL: ModelItem = { label: '(No model)', value: null }
 
@@ -22,12 +23,9 @@ export const useMlModelsStore = defineStore('mlModelsStore', {
 
   actions: {
     async loadModels() {
-      const { $api } = useNuxtApp()
       try {
-        const response = (await $api('/api/v1/ml/models/', { method: 'GET' })) as {
-          models?: string[]
-        }
-        const remoteModels: string[] = response?.models || []
+        const response = await mlModelsRetrieve()
+        const remoteModels = response?.models || []
 
         if (!remoteModels.length) {
           this.models = [NO_MODEL]

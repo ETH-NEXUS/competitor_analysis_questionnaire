@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto'
+import { execFile } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
 const DEFAULT_API = process.env.NUXT_PUBLIC_API_URL || 'http://api:5000'
 const SCHEMA_URL = process.env.SCHEMA_URL || `${DEFAULT_API.replace(/\/$/, '')}/api/v1/schema/`
-// nuxt-open-fetch expects schemas in ./openapi/[client]/openapi.json (or .yaml)
+// Orval reads schemas from ./openapi/[client]/openapi.json
 const OUTPUT_SCHEMA = process.env.OUTPUT_SCHEMA || 'openapi/api/openapi.json'
 const INTERVAL_MS = Number(process.env.SCHEMA_POLL_INTERVAL_MS || 5000)
 const FETCH_TIMEOUT_MS = Number(process.env.SCHEMA_FETCH_TIMEOUT_MS || 30000)
@@ -67,6 +68,13 @@ async function tick() {
       mkdirSync(dirname(OUTPUT_SCHEMA), { recursive: true })
       writeFileSync(OUTPUT_SCHEMA, text)
       console.log(`[openapi] Schema written to ${OUTPUT_SCHEMA} (hash=${hash.slice(0, 8)}...)`)
+      execFile('npx', ['orval'], (err, stdout, stderr) => {
+        if (err) {
+          console.error(`[orval] Generation failed:`, stderr || err.message)
+        } else {
+          console.log(`[orval] API layer regenerated`)
+        }
+      })
     }
   } catch (e) {
     console.error(`[openapi] Failed to fetch schema from ${SCHEMA_URL}:`, e?.message || e)

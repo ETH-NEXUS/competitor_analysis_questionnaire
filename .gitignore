@@ -173,6 +173,7 @@ node-compile-cache/
 
 .pnpm-store/
 .nuxt/
+ui/app/app/api/generated/
 .output/
 dist/
 .nitro/
