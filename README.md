@@ -23,10 +23,10 @@ cp .env.TEMPLATE .env
 docker compose up -d
 
 # 3. Access the app
-# Frontend:    http://localhost:8077
-# API:         http://localhost:5077/api/v1/
-# Admin:       http://localhost:8077/admin
-# Swagger:     http://localhost:8077/swagger
+# Frontend:    http://localhost:4080
+# API:         http://localhost:4000/api/v1/
+# Admin:       http://localhost:4080/admin
+# Swagger:     http://localhost:4080/swagger
 ```
 
 Default admin credentials: `admin` / `admin` (set via `DJANGO_SU_*` in `.env`)
@@ -36,7 +36,7 @@ Default admin credentials: `admin` / `admin` (set via `DJANGO_SU_*` in `.env`)
 **Development:**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Browser (localhost:8077)                  │
+│                    Browser (localhost:4080)                  │
 │                    Nuxt 4 SPA + Pinia + TailwindCSS         │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -192,14 +192,14 @@ const { data } = await $api('/books/')
 
 | Service | Profile | Host Port | Description |
 |---------|---------|-----------|-------------|
-| `ui` | dev | 8077 | Nuxt dev server |
-| `api` | - | 5077 | Django REST API |
-| `db` | - | 54377 | PostgreSQL |
-| `redis` | - | 6379 | Cache & sessions |
+| `ui` | dev | 4080 | Nuxt dev server |
+| `api` | - | 4000 | Django REST API |
+| `db` | - | 4432 | PostgreSQL |
+| `redis` | - | 4379 | Cache & sessions |
 | `celery-worker` | celery | - | Task processor |
 | `celery-beat` | celery | - | Task scheduler |
-| `mkdocs` | docs | 8078 | Documentation |
-| `ws` | prod | 8088/443 | Production proxy |
+| `mkdocs` | docs | 4081 | Documentation |
+| `ws` | prod | 4088/4443 | Production proxy |
 
 ### Profiles
 
@@ -417,17 +417,17 @@ Each service uses `*_PORT` for the internal container port and `*_HOST_PORT` for
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DJANGO_PORT` | `5000` | API internal port |
-| `DJANGO_HOST_PORT` | `5077` | API host port |
+| `DJANGO_HOST_PORT` | `4000` | API host port |
 | `UI_PORT` | `8077` | Frontend internal port |
-| `UI_HOST_PORT` | `8077` | Frontend host port |
+| `UI_HOST_PORT` | `4080` | Frontend host port |
 | `POSTGRES_PORT` | `5432` | PostgreSQL internal port |
-| `POSTGRES_HOST_PORT` | `54377` | PostgreSQL host port |
+| `POSTGRES_HOST_PORT` | `4432` | PostgreSQL host port |
 | `REDIS_PORT` | `6379` | Redis internal port |
-| `REDIS_HOST_PORT` | `6379` | Redis host port |
+| `REDIS_HOST_PORT` | `4379` | Redis host port |
 | `MKDOCS_PORT` | `8000` | MkDocs internal port |
-| `MKDOCS_HOST_PORT` | `8078` | MkDocs host port |
-| `SMNRP_HTTP_HOST_PORT` | `8088` | Reverse proxy HTTP host port |
-| `SMNRP_HTTPS_HOST_PORT` | `443` | Reverse proxy HTTPS host port |
+| `MKDOCS_HOST_PORT` | `4081` | MkDocs host port |
+| `SMNRP_HTTP_HOST_PORT` | `4088` | Reverse proxy HTTP host port |
+| `SMNRP_HTTPS_HOST_PORT` | `4443` | Reverse proxy HTTPS host port |
 
 ## Code Quality
 
@@ -487,7 +487,7 @@ nexus-fullstack-example/
 ├── docs/                         # MkDocs documentation
 │   ├── Dockerfile
 │   └── mkdocs.yml
-├── docker-compose.yml
+├── compose.yml
 ├── Makefile
 ├── .env.TEMPLATE
 └── .pre-commit-config.yaml
@@ -532,8 +532,8 @@ Configuration via environment variables:
 | `SMNRP_UPSTREAMS` | Backend services (api:5000) |
 | `SMNRP_UPSTREAM_PROTOCOL` | HTTP or HTTPS |
 | `SMNRP_LOCATIONS` | Custom routing rules |
-| `SMNRP_HTTP_HOST_PORT` | HTTP host port (default 8088) |
-| `SMNRP_HTTPS_HOST_PORT` | HTTPS host port (default 443) |
+| `SMNRP_HTTP_HOST_PORT` | HTTP host port (default 4088) |
+| `SMNRP_HTTPS_HOST_PORT` | HTTPS host port (default 4443) |
 
 SSL certificates can be mounted to `/etc/letsencrypt/live/<domain>/`.
 

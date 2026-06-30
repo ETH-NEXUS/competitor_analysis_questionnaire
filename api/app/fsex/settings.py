@@ -233,7 +233,7 @@ if DEBUG:
         "VERSION": "v1",
         # Reflect the UI dev server origin to generate proper server URLs
         "SERVERS": [
-            {"url": "http://localhost:8077/api/v1/"},
+            {"url": f"http://localhost:{env.str('UI_HOST_PORT', default='4080')}/api/v1/"},
         ],
         "SCHEMA_PATH_PREFIX": "/api/v1/",
     }

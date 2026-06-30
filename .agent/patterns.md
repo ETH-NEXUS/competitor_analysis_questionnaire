@@ -22,7 +22,7 @@ from guardian.shortcuts import assign_perm, get_objects_for_user
 
 ## Frontend data fetching
 
-Use Orval-generated functions (not raw `fetch`/`axios`):
+Use Orval-generated functions (not raw `fetch`/`axios`). The generated composables wrap TanStack (Vue) Query, so server state is cached and refetched automatically — do not roll your own `useQuery` against raw fetch.
 
 ```typescript
 // In components: use generated Vue Query composables
@@ -35,6 +35,12 @@ await authLoginCreate({ username, password })
 ```
 
 Pinia stores: composition API style with `defineStore(() => {})`.
+
+```typescript
+export const useExampleStore = defineStore('example', () => {
+  return {};
+});
+```
 
 ## UI / i18n
 
