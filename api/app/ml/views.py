@@ -17,6 +17,7 @@ from ml.providers.ollama import ChatMessage, OllamaProvider, ProviderError
 from .renderers import ServerSentEventsRenderer
 from .serializers import ChatRequestSerializer, ModelsResponseSerializer
 
+
 try:
     from drf_spectacular.utils import OpenApiResponse, extend_schema
 except ImportError:
@@ -27,7 +28,7 @@ except ImportError:
 
         return decorator
 
-    def OpenApiResponse(*args, **kwargs):
+    def OpenApiResponse(*args, **kwargs):  # noqa: N802
         return None
 
 
@@ -38,7 +39,7 @@ except ImportError:
 @api_view(["GET"])
 @permission_classes([AllowAny])
 @authentication_classes([])
-def models_view(request):
+def models_view(request):  # noqa: ARG001
     provider = OllamaProvider()
     try:
         models = provider.list_models()

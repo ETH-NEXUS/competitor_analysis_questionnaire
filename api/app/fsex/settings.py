@@ -12,10 +12,11 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
+from corsheaders.defaults import default_headers
 import environ
 import sqlparse
 import structlog
-from corsheaders.defaults import default_headers
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -198,13 +199,10 @@ OLLAMA_BASE_URL = env.str("OLLAMA_BASE_URL", default="http://localhost:11434")
 OLLAMA_TIMEOUT_S = env.float("OLLAMA_TIMEOUT_S", default=120.0)
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.SessionAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    # "DEFAULT_METADATA_CLASS": "meta.serializers.APIMetadata",
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
@@ -254,7 +252,8 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS")
-CORS_ALLOW_HEADERS = default_headers + (
+CORS_ALLOW_HEADERS = (
+    *default_headers,
     "cache-control",
     "pragma",
     "expires",
@@ -285,14 +284,15 @@ STRUCTLOG_RENDERER = (
 
 class _PrettySQLFormatter:
     def format(self, record):
+        message = record.getMessage()
         try:
             return sqlparse.format(
-                record.getMessage(),
+                message,
                 reindent=True,
                 keyword_case="upper",
             )
-        except Exception:
-            return record.getMessage()
+        except (ValueError, TypeError):
+            return message
 
 
 LOGGING = {
@@ -337,7 +337,11 @@ LOGGING = {
 }
 
 
-def _drop_common_polling_logs(logger, method_name, event_dict):
+_HTTP_ERROR_THRESHOLD = 400
+_SILENCED_POLLING_PATHS = ("/api/v1/schema/", "/api/v1/health/")
+
+
+def _drop_common_polling_logs(logger, method_name, event_dict):  # noqa: ARG001
     if not DEBUG:
         return event_dict
 
@@ -346,16 +350,13 @@ def _drop_common_polling_logs(logger, method_name, event_dict):
         return event_dict
 
     request = event_dict.get("request")
-    if isinstance(request, str) and "/api/v1/schema/" in request:
-        if event == "request_started":
-            raise structlog.DropEvent
-        if event == "request_finished" and int(event_dict.get("code", 0)) < 400:
-            raise structlog.DropEvent
+    if not isinstance(request, str):
+        return event_dict
 
-    if isinstance(request, str) and "/api/v1/health/" in request:
+    if any(path in request for path in _SILENCED_POLLING_PATHS):
         if event == "request_started":
             raise structlog.DropEvent
-        if event == "request_finished" and int(event_dict.get("code", 0)) < 400:
+        if event == "request_finished" and int(event_dict.get("code", 0)) < _HTTP_ERROR_THRESHOLD:
             raise structlog.DropEvent
 
     return event_dict

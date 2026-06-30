@@ -32,20 +32,19 @@ class Command(BaseCommand):
         if answer and len(answer) > 0 and answer[0].lower() == "y":
             with connection.cursor() as cursor:
                 # First disconnect all connection except our own
+                # dbname comes from trusted Django settings, not user input
                 cursor.execute(
-                    f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND datname='{dbname}'"
+                    f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND datname='{dbname}'"  # noqa: S608
                 )
                 # disconnect our own connection
                 cursor.execute(
-                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='{dbname}'"
+                    f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='{dbname}'"  # noqa: S608
                 )
             # make sure everything is disconnected
             connections.close_all()
             # reset the database DROP / CREATE
             call_command("reset_db", "--no-input")
-            self.stdout.write(
-                self.style.SUCCESS(f"Successfully reset database '{dbname}'")
-            )
+            self.stdout.write(self.style.SUCCESS(f"Successfully reset database '{dbname}'"))
 
     def handle(self, *args, **options):
         try:
@@ -55,6 +54,6 @@ class Command(BaseCommand):
                 self.init()
             elif options.get("action") == "reset":
                 self.reset()
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001
             self.stderr.write(self.style.ERROR(str(ex)))
             traceback.print_exc()

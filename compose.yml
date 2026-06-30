@@ -77,6 +77,7 @@ services:
     entrypoint: sh -c '/app/entrypoint.sh'
     volumes:
       - ./api/app:/app
+      - ./api/pyproject.toml:/pyproject.toml
       - ./api/backups:/vol/backups
       - ./api/static:/vol/web/static:z
       - ./api/media:/vol/web/media:z

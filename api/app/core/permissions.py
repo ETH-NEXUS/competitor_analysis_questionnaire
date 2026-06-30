@@ -13,7 +13,5 @@ class IsEditor(permissions.BasePermission):
     def has_permission(self, request, _view):
         user = request.user
         return bool(
-            user
-            and user.is_authenticated
-            and user.groups.filter(name=Groups.EDITOR).exists()
+            user and user.is_authenticated and user.groups.filter(name=Groups.EDITOR).exists()
         )

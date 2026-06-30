@@ -41,25 +41,83 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 target-version = "py312"
+src = ["app"]
 
 [tool.ruff.lint]
 select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # pyflakes
-    "I",      # isort
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "UP",     # pyupgrade
+    # Core correctness
+    "F",    # Pyflakes
+    "E",    # Pycodestyle errors
+    "W",    # Pycodestyle warnings
+
+    # Readability / style / modernization
+    "I",    # isort (import sorting)
+    "UP",   # pyupgrade (modern syntax)
+    "RUF",  # Ruff-specific rules
+    "SIM",  # flake8-simplify
+    "C4",   # flake8-comprehensions
+    "PIE",  # flake8-pie
+    "INT",  # flake8-gettext
+    "DJ",   # flake8-django
+    "N",    # pep8-naming rules
+
+    # Common bug patterns
+    "B",    # flake8-bugbear
+    "A",    # flake8-builtins
+    "DTZ",  # flake8-datetimez
+    "ARG",  # flake8-unused-arguments
+    "S",    # flake8-bandit
+    "T20",  # flake8-print
+    "BLE",  # flake8-blind-except
+    "FBT",  # flake8-boolean-trap
+    "TRY",  # tryceratops
+    "RET",  # flake8-return
+    "ERA",  # eradicate
+    "G",    # flake8-logging-format
+    "LOG",  # flake8-logging
+
+    # Complexity / clean code
+    "C90",  # mccabe complexity
+    "PL",   # Pylint rules (Ruff subset)
+    "PERF", # performance anti-patterns
+    "FURB", # refurb cleanups
 ]
 ignore = [
-    "E501",   # line too long (handled by formatter)
+    # Formatting is handled by Ruff formatter
+    "E501",
+    # tryceratops rules that are often noisy
+    "TRY003",
+    "TRY301",
+    # mutable class attributes requiring `typing.ClassVar`
+    "RUF012",
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.pylint]
+max-branches = 10
+max-statements = 40
+max-nested-blocks = 4
 
 [tool.ruff.lint.isort]
 known-first-party = ["core", "fsex"]
+combine-as-imports = true
+force-sort-within-sections = true
+lines-after-imports = 2
+
+[tool.ruff.lint.flake8-unused-arguments]
+# Don't flag *args / **kwargs (required by framework signatures, e.g. Command.handle)
+ignore-variadic-names = true
+
+[tool.ruff.lint.per-file-ignores]
+"**/migrations/*.py" = ["E", "F401", "F841", "I", "UP", "RUF", "B", "PL", "ARG"]
+"**/tests/**/*.py" = ["S106", "S107"]
 
 [tool.ruff.format]
 quote-style = "double"

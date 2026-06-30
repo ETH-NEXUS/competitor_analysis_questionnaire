@@ -8,7 +8,7 @@ class ServerSentEventsRenderer(BaseRenderer):
     format = "sse"
     charset = "utf-8"
 
-    def render(self, data, accepted_media_type=None, renderer_context=None):
+    def render(self, data):
         if data is None:
             return b""
         if isinstance(data, (bytes, bytearray)):

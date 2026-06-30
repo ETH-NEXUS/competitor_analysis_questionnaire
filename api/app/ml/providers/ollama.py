@@ -1,7 +1,7 @@
+from dataclasses import dataclass
 import json
 import re
 import time
-from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -66,11 +66,7 @@ class OllamaProvider:
         parsed_thinking = parsed.get("thinking")
         if isinstance(parsed_content, str):
             content = parsed_content
-        thinking = (
-            parsed_thinking
-            if isinstance(parsed_thinking, str) and parsed_thinking
-            else None
-        )
+        thinking = parsed_thinking if isinstance(parsed_thinking, str) and parsed_thinking else None
         return content, thinking
 
     def _extract_thinking_from_extra(self, extra):
@@ -86,9 +82,7 @@ class OllamaProvider:
         think_match = re.search(r"<think>(.*?)</think>", content, flags=re.DOTALL)
         if think_match:
             thinking = think_match.group(1).strip() or None
-            content = (
-                content[: think_match.start()] + content[think_match.end() :]
-            ).strip()
+            content = (content[: think_match.start()] + content[think_match.end() :]).strip()
             return content, thinking
 
         marker_match = re.search(
@@ -98,26 +92,24 @@ class OllamaProvider:
         )
         if marker_match:
             thinking = marker_match.group(1).strip() or None
-            content = (
-                content[: marker_match.start()] + content[marker_match.end() :]
-            ).lstrip(" \n\t.:")
+            content = (content[: marker_match.start()] + content[marker_match.end() :]).lstrip(
+                " \n\t.:"
+            )
             return content, thinking
 
         return content, None
 
     def list_models(self):
         url = f"{self.base_url}/api/tags"
+        if not url.startswith(("http://", "https://")):
+            raise ProviderError(f"Unsupported Ollama URL scheme: {url}")
         try:
-            resp = urlopen(Request(url, method="GET"), timeout=self.timeout_s)
+            resp = urlopen(Request(url, method="GET"), timeout=self.timeout_s)  # noqa: S310
             raw = resp.read().decode("utf-8")
         except HTTPError as e:
-            raise ProviderError(
-                f"Ollama HTTP error: {getattr(e, 'code', 'unknown')}"
-            ) from e
+            raise ProviderError(f"Ollama HTTP error: {getattr(e, 'code', 'unknown')}") from e
         except TimeoutError as e:
-            raise ProviderError(
-                f"Ollama timed out after {self.timeout_s}s at {url}"
-            ) from e
+            raise ProviderError(f"Ollama timed out after {self.timeout_s}s at {url}") from e
         except URLError as e:
             raise ProviderError(
                 f"Ollama unreachable at {self.base_url} ({getattr(e, 'reason', e)})"
@@ -135,9 +127,7 @@ class OllamaProvider:
         started = time.monotonic()
 
         lc_messages = self._build_lc_messages(THINKING_PROMPT_JSON, messages)
-        llm = ChatOllama(
-            model=model, base_url=self.base_url, request_timeout=self.timeout_s
-        )
+        llm = ChatOllama(model=model, base_url=self.base_url, request_timeout=self.timeout_s)
         try:
             result = llm.invoke(lc_messages)
         except Exception as e:
@@ -146,9 +136,7 @@ class OllamaProvider:
         content = getattr(result, "content", "") or ""
         content, thinking = self._parse_json_response(content)
         if not thinking:
-            thinking = self._extract_thinking_from_extra(
-                getattr(result, "additional_kwargs", None)
-            )
+            thinking = self._extract_thinking_from_extra(getattr(result, "additional_kwargs", None))
         if not thinking:
             content, thinking = self._extract_thinking_from_content(content)
         duration_ms = int((time.monotonic() - started) * 1000)
@@ -156,9 +144,7 @@ class OllamaProvider:
 
     def chat_stream(self, *, model, messages):
         lc_messages = self._build_lc_messages(THINKING_PROMPT_TAGS, messages)
-        llm = ChatOllama(
-            model=model, base_url=self.base_url, request_timeout=self.timeout_s
-        )
+        llm = ChatOllama(model=model, base_url=self.base_url, request_timeout=self.timeout_s)
         parser = StreamParser()
 
         try:

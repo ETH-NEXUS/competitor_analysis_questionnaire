@@ -64,7 +64,7 @@ class AccessEditorBooksViewSet(viewsets.GenericViewSet):
         return Response([{"id": b.id, "title": b.title} for b in books])
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
-    def grant(self, request, pk=None):
+    def grant(self, request):
         """
         Grant view_book permission on this book.
         Body: {"user": "alice"} or {"group": "editor"}
@@ -83,16 +83,10 @@ class AccessEditorBooksViewSet(viewsets.GenericViewSet):
             try:
                 target = user_model.objects.get(username=username)
             except user_model.DoesNotExist:
-                return Response(
-                    {"detail": "user not found"}, status=status.HTTP_404_NOT_FOUND
-                )
+                return Response({"detail": "user not found"}, status=status.HTTP_404_NOT_FOUND)
             assign_perm(Perms.VIEW_BOOK, target, book)
-            return Response(
-                {"granted": Perms.VIEW_BOOK, "user": username, "book": book.id}
-            )
+            return Response({"granted": Perms.VIEW_BOOK, "user": username, "book": book.id})
 
-        group, created = Group.objects.get_or_create(name=groupname)
+        group, _created = Group.objects.get_or_create(name=groupname)
         assign_perm(Perms.VIEW_BOOK, group, book)
-        return Response(
-            {"granted": Perms.VIEW_BOOK, "group": groupname, "book": book.id}
-        )
+        return Response({"granted": Perms.VIEW_BOOK, "group": groupname, "book": book.id})
