@@ -48,7 +48,6 @@ urlpatterns = [
     path("api/v1/auth/csrf/", views.csrf, name="csrf"),
     path("api/v1/auth/", include("dj_rest_auth.urls")),
     path("api/v1/", include(router.urls)),
-    path("api/v1/ml/", include("ml.urls")),
 ]
 
 if settings.DEBUG:

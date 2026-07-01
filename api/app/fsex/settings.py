@@ -57,7 +57,6 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "django_structlog",
     "core",
-    "ml",
 ]
 
 if DEBUG:
@@ -195,8 +194,6 @@ MEDIA_ROOT = "/vol/web/media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DISABLE_BROWSABLE_API = False
-OLLAMA_BASE_URL = env.str("OLLAMA_BASE_URL", default="http://localhost:11434")
-OLLAMA_TIMEOUT_S = env.float("OLLAMA_TIMEOUT_S", default=120.0)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",),
