@@ -123,9 +123,7 @@ onMounted(async () => {
 
         <UDashboardPanel id="right-panel" class="flex !min-h-0">
           <template #body>
-            <div class="flex w-full flex-col items-center gap-4">
-              <MessageBox class="w-full lg:w-[80%]" />
-            </div>
+            <div class="flex w-full flex-col items-center gap-4" />
           </template>
         </UDashboardPanel>
       </div>

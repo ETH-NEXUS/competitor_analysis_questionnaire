@@ -117,8 +117,6 @@ Default admin credentials: `admin` / `admin` (set via `DJANGO_SU_*` in `.env`)
 | `drf-spectacular` | OpenAPI schema generation (dev) |
 | `gunicorn` | Production WSGI server |
 | `psycopg` | PostgreSQL adapter |
-| `langchain` | Utilities for LLMS |
-| `langchain-ollama` | Utilities for interaction with OLLAMA |
 
 ### API Endpoints
 
@@ -403,12 +401,6 @@ Key variables in `.env.TEMPLATE`:
 | `DJANGO_SU_NAME` | `admin` | Superuser username |
 | `DJANGO_SU_EMAIL` | - | Superuser email |
 | `DJANGO_SU_PASSWORD` | `admin` | Superuser password |
-
-### ML Features
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AI_PROVIDER` | `ollama` | ML model provider |
-| `OLLAMA_BASE_URL` | `host.docker.internal:11434` | Location of ollama (default is ollama on host) |
 
 ### Ports
 
