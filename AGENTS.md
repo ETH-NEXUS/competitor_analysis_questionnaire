@@ -53,17 +53,7 @@ After presenting the plan, execute it one step at a time. For each step:
 - Stop and ask the user to review the changes and commit them.
 - Do not proceed until the user confirms they reviewed *and* committed the changes.
 
-### 3. Temporary Plan Tracking (Multi-Step Work Only)
-
-If the plan has more than one step, create a temporary `plan.md` checklist, keep it updated as steps complete, and delete it once all steps are done.
-
-```md
-- [ ] Step 1: ...
-- [ ] Step 2: ...
-- [ ] Step 3: ...
-```
-
-### 4. Minimal Solution First, Improvements Second
+### 3. Minimal Solution First, Improvements Second
 
 Implement the minimal viable, safe, best-practice solution first. Only after that, propose optional improvements as follow-ups — never mixed into the core implementation.
 

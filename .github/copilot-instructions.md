@@ -92,24 +92,7 @@ For each step:
 
 Only after the commit is confirmed may you proceed to the next step.
 
-### Step 3: Temporary Plan Tracking for Multi-Step Work
-
-If the plan contains more than one step:
-
-- Create a temporary `plan.md` file containing the checklist plan.
-- Use checkbox format as shown below.
-- Update the file as progress is made.
-- Delete `plan.md` when all steps are completed.
-
-Example:
-
-```md
-- [ ] Step 1: ...
-- [ ] Step 2: ...
-- [ ] Step 3: ...
-```
-
-### Step 4: Minimal Solution First, Improvements Second
+### Step 3: Minimal Solution First, Improvements Second
 
 You must always:
 
