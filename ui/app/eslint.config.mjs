@@ -1,5 +1,8 @@
 // @ts-check
 import withNuxt from './.nuxt/eslint.config.mjs'
+// eslint-plugin-prettier ships CommonJS types (`export =`), so the default import
+// is runtime-correct but trips ts(1192) in the inferred project (no esModuleInterop).
+// @ts-ignore
 import prettierPlugin from 'eslint-plugin-prettier'
 import eslintConfigPrettier from 'eslint-config-prettier'
 import tsParser from '@typescript-eslint/parser'
