@@ -11,7 +11,6 @@ export default defineNuxtConfig({
     static: true,
     devProxy: {
       '/api/v1': `http://api:${process.env.DJANGO_PORT || '5000'}/api/v1`,
-      // drf-spectacular swagger UI
       '/swagger': `http://api:${process.env.DJANGO_PORT || '5000'}/api/v1/schema/swagger-ui`,
       '/admin': `http://api:${process.env.DJANGO_PORT || '5000'}/admin`,
       '/media': `http://api:${process.env.DJANGO_PORT || '5000'}/media`,
@@ -56,5 +55,7 @@ export default defineNuxtConfig({
     types: `${appDir}/types`,
     utils: `${appDir}/utils`,
     errors: `${appDir}/utils/errors`,
+    api: `${appDir}/api`,
+    assets: `${appDir}/assets`,
   },
 })

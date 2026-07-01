@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBooksList } from '~/app/api/generated/books'
+import { useBooksList } from 'api/generated/books'
 
 const authStore = useAuthStore()
 
@@ -8,7 +8,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const booksQuery = useBooksList({ query: { enabled: false } })
+const booksQuery = useBooksList(undefined, { query: { enabled: false } })
 
 const bookCount = computed(() => booksQuery.data.value?.results?.length ?? 0)
 </script>
@@ -30,20 +30,24 @@ const bookCount = computed(() => booksQuery.data.value?.results?.length ?? 0)
           icon="i-heroicons-arrow-path"
           :loading="booksQuery.isFetching.value"
           :disabled="!authStore.isAuthenticated"
-          @click="booksQuery.refetch()"
+          @click="
+            () => {
+              booksQuery.refetch()
+            }
+          "
         >
           {{ t('examples.library.refetch_books') }}
         </UButton>
-        <UBadge v-if="!authStore.isAuthenticated" color="amber" variant="soft">
+        <UBadge v-if="!authStore.isAuthenticated" color="warning" variant="soft">
           {{ t('examples.library.status_login_required') }}
         </UBadge>
-        <UBadge v-else-if="booksQuery.isError.value" color="red" variant="soft">{{
+        <UBadge v-else-if="booksQuery.isError.value" color="error" variant="soft">{{
           t('examples.library.status_error')
         }}</UBadge>
-        <UBadge v-else-if="booksQuery.isFetching.value" color="amber" variant="soft">{{
+        <UBadge v-else-if="booksQuery.isFetching.value" color="warning" variant="soft">{{
           t('examples.library.status_loading')
         }}</UBadge>
-        <UBadge v-else color="green" variant="soft">{{
+        <UBadge v-else color="success" variant="soft">{{
           t('examples.library.books_count', { count: bookCount })
         }}</UBadge>
       </div>
@@ -52,7 +56,16 @@ const bookCount = computed(() => booksQuery.data.value?.results?.length ?? 0)
         <UBadge color="neutral" variant="soft">{{
           t('examples.library.route_label', { route: route.fullPath })
         }}</UBadge>
-        <UButton size="xs" variant="ghost" @click="router.replace('/')">{{ t('examples.library.go_home') }}</UButton>
+        <UButton
+          size="xs"
+          variant="ghost"
+          @click="
+            () => {
+              router.replace('/')
+            }
+          "
+          >{{ t('examples.library.go_home') }}</UButton
+        >
       </div>
 
       <ul v-if="booksQuery.data.value?.results?.length" class="list-disc pl-5">

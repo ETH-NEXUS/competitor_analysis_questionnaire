@@ -22,8 +22,8 @@ const onLogin = async () => {
     <template #header>
       <div class="flex items-center justify-between gap-2">
         <h3 class="text-base font-semibold">Auth</h3>
-        <UBadge v-if="authStore.isAuthenticated" color="green" variant="soft">signed in</UBadge>
-        <UBadge v-else color="amber" variant="soft">signed out</UBadge>
+        <UBadge v-if="authStore.isAuthenticated" color="success" variant="soft">signed in</UBadge>
+        <UBadge v-else color="warning" variant="soft">signed out</UBadge>
       </div>
     </template>
 
@@ -37,10 +37,29 @@ const onLogin = async () => {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <UButton size="xs" variant="soft" :loading="authStore.isLoading" @click="authStore.loadUser()">
+          <UButton
+            size="xs"
+            variant="soft"
+            :loading="authStore.isLoading"
+            @click="
+              () => {
+                authStore.loadUser()
+              }
+            "
+          >
             Refresh user
           </UButton>
-          <UButton size="xs" color="red" variant="soft" :loading="authStore.isLoading" @click="authStore.logout()">
+          <UButton
+            size="xs"
+            color="error"
+            variant="soft"
+            :loading="authStore.isLoading"
+            @click="
+              () => {
+                authStore.logout()
+              }
+            "
+          >
             Logout
           </UButton>
         </div>
@@ -54,14 +73,23 @@ const onLogin = async () => {
           <UButton type="submit" size="xs" variant="soft" :loading="authStore.isLoading" :disabled="submitDisabled">
             Login
           </UButton>
-          <UButton size="xs" variant="ghost" :loading="authStore.isLoading" @click="authStore.loadUser()">
+          <UButton
+            size="xs"
+            variant="ghost"
+            :loading="authStore.isLoading"
+            @click="
+              () => {
+                authStore.loadUser()
+              }
+            "
+          >
             Check session
           </UButton>
         </div>
       </form>
 
-      <UBadge v-if="authStore.error" color="red" variant="soft">{{ authStore.error }}</UBadge>
-      <UBadge v-else-if="authErrorStatus" color="amber" variant="soft">Auth error: {{ authErrorStatus }}</UBadge>
+      <UBadge v-if="authStore.error" color="error" variant="soft">{{ authStore.error }}</UBadge>
+      <UBadge v-else-if="authErrorStatus" color="warning" variant="soft">Auth error: {{ authErrorStatus }}</UBadge>
     </div>
   </UCard>
 </template>

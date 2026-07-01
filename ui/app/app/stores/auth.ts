@@ -1,5 +1,5 @@
-import { authUserRetrieve, authLoginCreate, authLogoutCreate } from '~/app/api/generated/auth'
-import type { UserDetails } from '~/app/api/generated/model'
+import { authUserRetrieve, authLoginCreate, authLogoutCreate } from 'api/generated/auth'
+import type { UserDetails } from 'api/generated/model'
 
 export const useAuthStore = defineStore('authStore', () => {
   const user = ref<UserDetails | null>(null)

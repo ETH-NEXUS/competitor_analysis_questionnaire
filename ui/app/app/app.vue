@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 const coreStore = useCoreStore()
 const authStore = useAuthStore()
 
@@ -27,7 +29,7 @@ const onLogin = async () => {
   }
 }
 
-const userMenuItems = computed(() => [
+const userMenuItems = computed<DropdownMenuItem[]>(() => [
   {
     type: 'label',
     label: authStore.user?.username ? `Signed in as ${authStore.user.username}` : 'Signed in',
@@ -43,7 +45,7 @@ const userMenuItems = computed(() => [
   {
     label: 'Logout',
     icon: 'i-heroicons-arrow-right-on-rectangle',
-    color: 'red',
+    color: 'error',
     onSelect: () => authStore.logout(),
   },
 ])
@@ -88,10 +90,20 @@ onMounted(async () => {
               <UButton type="submit" size="sm" variant="soft" :loading="authStore.isLoading" :disabled="loginDisabled">
                 Login
               </UButton>
-              <UButton type="button" size="sm" variant="ghost" @click="loginOpen = false">Cancel</UButton>
+              <UButton
+                type="button"
+                size="sm"
+                variant="ghost"
+                @click="
+                  () => {
+                    loginOpen = false
+                  }
+                "
+                >Cancel</UButton
+              >
             </div>
 
-            <UBadge v-if="authStore.error" color="red" variant="soft">{{ authStore.error }}</UBadge>
+            <UBadge v-if="authStore.error" color="error" variant="soft">{{ authStore.error }}</UBadge>
           </form>
         </template>
       </UModal>
