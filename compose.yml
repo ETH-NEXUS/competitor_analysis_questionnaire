@@ -5,8 +5,8 @@ volumes:
 
 networks:
   smnrpx:
-  name: smnrpx
-  external: true
+    name: smnrpx
+    external: true
 
 services:
   ui:
