@@ -2,6 +2,12 @@ volumes:
   pg_data:
   web_root:
   redis_data:
+
+networks:
+  smnrpx:
+  name: smnrpx
+  external: true
+
 services:
   ui:
     profiles:
