@@ -64,6 +64,8 @@ services:
     ports:
       - "${SMNRP_HTTP_HOST_PORT:-8088}:80"
       - "${SMNRP_HTTPS_HOST_PORT:-443}:443"
+    networks:
+      - smnrpx
     env_file: .env
     restart: unless-stopped
     depends_on:
