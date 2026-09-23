@@ -21,6 +21,8 @@ services:
     env_file: .env
     ports:
       - "${UI_HOST_PORT:-8077}:${UI_PORT:-8077}"
+    networks:
+      - smnrpx
     command:
       - /bin/sh
       - -c
@@ -38,18 +40,17 @@ services:
       context: ui
     volumes:
       - ./ui/app:/app
-      - "web_root:/app/dist:z"
+      - "web_root:/web_root:z"
     restart: "no"
     command:
       - /bin/sh
       - -c
       - |
-        mkdir -p /app/dist
         set -e
+        mkdir -p /web_root
         pnpm install --frozen-lockfile
         pnpm run build
-        cp -a /app/.output/public/. /app/dist/
-        rm -rf /app/.output
+        cp -a /app/.output/public/. /web_root/
 
   ws:
     profiles:
