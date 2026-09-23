@@ -1,0 +1,162 @@
+{
+  "clinicalCapabilities": {
+    "label": "Which clinical functional areas are covered by your solution?",
+    "options": [
+      "Clinical documentation",
+      "Medication management",
+      "Nursing documentation / workflows",
+      "Scheduling / resource planning",
+      "Ward management",
+      "Clinical decision support",
+      "Coding & billing",
+      "Laboratory",
+      "Radiology / imaging",
+      "Anaesthesia",
+      "PDMS"
+    ]
+  },
+  "specialties": {
+    "label": "For which specialties do you offer dedicated modules? Select each specialty you support and describe the module(s).",
+    "options": [
+      "Emergency",
+      "Surgery",
+      "Orthopaedics",
+      "Cardiology",
+      "Neurology",
+      "Oncology",
+      "Psychiatry",
+      "Obstetrics / gynecology",
+      "Pediatrics",
+      "Rehabilitation",
+      "Other (specify in the description)"
+    ]
+  },
+  "documentation": {
+    "label": "Which capabilities are available to reduce documentation burden?",
+    "options": [
+      "Ambient AI",
+      "Speech-to-text / dictation",
+      "Auto-population from existing data",
+      "Summarisation",
+      "Coding assistance",
+      "Reusable text/macros",
+      "Other"
+    ]
+  },
+  "dataCapabilities": {
+    "label": "Which capabilities does your solution provide?",
+    "options": [
+      "Clinical data repository / longitudinal health record",
+      "Integration engine",
+      "FHIR server",
+      "API management",
+      "Master patient index / identity management",
+      "Terminology services",
+      "Data transformation / mapping",
+      "Messaging / event broker",
+      "Workflow / orchestration",
+      "Application development / low-code environment",
+      "Data warehouse / analytics platform",
+      "Vendor-neutral archive",
+      "Other"
+    ]
+  },
+  "architecture": {
+    "label": "Briefly describe the primary role of the solution within a hospital IT architecture."
+  },
+  "dataIndependent": {
+    "label": "Can the solution be purchased and operated independently of the customer’s hospital-wide CIS?",
+    "options": ["Yes", "No", "Other"]
+  },
+  "patientFunctions": {
+    "label": "Which functions are available directly to patients through the portal / app?",
+    "options": [
+      "View and manage appointments",
+      "Appointment reminders / notifications",
+      "Secure messaging with care teams",
+      "View and download results / reports",
+      "View medication list",
+      "Complete forms / pre-registration",
+      "Complete questionnaires / PROMs",
+      "Submit patient-generated health data",
+      "Connect wearables / home monitoring devices",
+      "Other"
+    ]
+  },
+  "languages": {
+    "label": "Which languages are available for the patient-facing experience?",
+    "options": ["German", "French", "Italian", "English", "Other"]
+  },
+  "aggregation": {
+    "label": "Can the solution aggregate patient information from multiple clinical/source systems?",
+    "options": ["Yes", "No", "Partially"]
+  },
+  "writeBack": {
+    "label": "Can patient-entered or device-generated data be written back into the clinical system as structured, reusable data?",
+    "options": ["Yes", "Partially / for selected data types", "No"]
+  },
+  "patientIndependent": {
+    "label": "Can the patient-facing solution be purchased and operated independently of the vendor’s hospital-wide CIS?",
+    "options": ["Yes", "No", "Other"]
+  },
+  "parties": {
+    "label": "Which parties are typically required for implementation?",
+    "options": [
+      "Solution vendor",
+      "Hospital IT",
+      "Hospital clinical/process team",
+      "Existing CIS vendor",
+      "External integration partner",
+      "Other"
+    ]
+  },
+  "rollout": {
+    "label": "Which rollout approaches are supported?",
+    "options": [
+      "Big-bang migration and rollout",
+      "Phased / incremental migration and rollout",
+      "Parallel operation of legacy and new solution during transition",
+      "Other"
+    ]
+  },
+  "migration": {
+    "label": "How is migration from an existing system / legacy solution typically handled?",
+    "options": [
+      "Vendor-led migration project using standard tools plus hospital-specific mapping",
+      "Migration generally requires substantial custom development / conversion",
+      "Migration is typically performed by an external integration / migration partner",
+      "Only selected historical data is normally migrated; remaining data stays in an archive / legacy viewer",
+      "Other"
+    ]
+  },
+  "goLive": {
+    "label": "Which change-management and go-live services are available during implementation?",
+    "options": [
+      "End-user training",
+      "Train-the-trainer / super-user programme",
+      "Test / training environment",
+      "Workflow validation with clinical users before go-live",
+      "Dress rehearsal / go-live simulation",
+      "On-site / floor-walking support during go-live",
+      "Downtime / contingency planning",
+      "Post-go-live optimisation / adoption support",
+      "Other"
+    ]
+  },
+  "requirements": {
+    "label": "What is typically required to implement the solution in an existing hospital IT environment?",
+    "options": [
+      "Standard configuration only",
+      "Integration with CIS/HIS",
+      "Integration with patient administration/ADT",
+      "Integration with hospital identity/SSO",
+      "Integration with other clinical systems",
+      "Data migration/import",
+      "Hospital-specific interface development",
+      "Vendor-specific customization/development",
+      "Installation of local infrastructure/components",
+      "Clinical workflow/process configuration",
+      "Other"
+    ]
+  }
+}

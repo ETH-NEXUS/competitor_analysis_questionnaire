@@ -1,0 +1,26 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hospital IT — Questionnaire analysis</title>
+  <link rel="stylesheet" href="{% static 'core/analysis.css' %}">
+  <script defer src="{% static 'core/analysis.js' %}"></script>
+</head>
+<body>
+<header><div><p class="eyebrow">HOSPITAL IT · SUPERUSER</p><h1>Questionnaire analysis</h1></div><a href="{% url 'admin:index' %}">Back to administration</a></header>
+<main>
+  <section class="toolbar" aria-label="Analysis filters">
+    <label>Company / provider<select id="provider"><option value="">All providers</option></select></label>
+    <label>Solution scope<select id="scope"><option value="">All scopes</option></select></label>
+    <a class="button" id="export" href="{% url 'questionnaire-analysis-csv' %}">Export CSV</a>
+  </section>
+  <p id="summary" role="status"></p>
+  <p class="muted">Counts represent submissions, not unique companies. Multi-select answers can count in several bars. Hover, focus or tap a slice or bar to see the providers. Filters also apply to the CSV export.</p>
+  <nav class="tabs" aria-label="Analysis views"><button id="charts-tab" aria-pressed="true">Question charts</button><button id="providers-tab" aria-pressed="false">Provider answers</button></nav>
+  <section id="charts" aria-label="Question charts"></section>
+  <section id="providers" aria-label="Provider answers" hidden></section>
+</main>
+{{ analysis_data|json_script:"analysis-data" }}
+</body>
+</html>

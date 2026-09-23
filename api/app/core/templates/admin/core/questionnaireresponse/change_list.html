@@ -1,0 +1,25 @@
+{% extends "admin/change_list.html" %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    #changelist .results { overflow-x: auto; max-height: 72vh; }
+    #result_list th, #result_list td { min-width: 230px; max-width: 320px; white-space: pre-line; vertical-align: top; overflow-wrap: anywhere; }
+    #result_list thead th { position: sticky; top: 0; z-index: 2; background: var(--darkened-bg); }
+    #result_list thead th .text { white-space: normal; }
+    #result_list .column-provider_name, #result_list .field-provider_name { position: sticky; left: 0; min-width: 180px; max-width: 180px; background: var(--body-bg); z-index: 1; }
+    #result_list .column-solution_scope, #result_list .field-solution_scope { min-width: 100px; max-width: 100px; }
+    #result_list thead .column-provider_name { z-index: 3; background: var(--darkened-bg); }
+    #result_list abbr { text-decoration: none; cursor: help; }
+    .comparison-note { padding: 12px 0; color: var(--body-quiet-color); }
+    .answer-filter-form { padding: 0 15px 15px; }
+    .answer-filter-form label { display: block; margin: 10px 0 5px; }
+    .answer-filter-form select, .answer-filter-form input { box-sizing: border-box; max-width: 100%; width: 100%; }
+    .answer-filter-form button { margin-top: 10px; cursor: pointer; }
+  </style>
+{% endblock %}
+
+{% block content_title %}
+  <h1>Questionnaire responses</h1>
+  <p class="comparison-note">One row per respondent and solution. Company and solution scope are followed by one column per question. Scroll across to compare answers; click a company to read its full response.</p>
+{% endblock %}

@@ -16,12 +16,13 @@ Including another URLconf
 """
 
 from django.conf import settings
-from django.contrib import admin
 from django.urls import include, path
 from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
 from core import views
+from core.admin import questionnaire_admin_site
+from core.analysis import analysis, export_csv
 from core.viewsets import (
     AccessAdminViewSet,
     AccessAuthenticatedViewSet,
@@ -30,10 +31,14 @@ from core.viewsets import (
     AccessPublicViewSet,
     AuthorViewSet,
     BookViewSet,
+    QuestionnaireResponseViewSet,
 )
 
 
 router = DefaultRouter()
+router.register(
+    "questionnaire-responses", QuestionnaireResponseViewSet, basename="questionnaire-response"
+)
 router.register("authors", AuthorViewSet, basename="author")
 router.register("books", BookViewSet, basename="book")
 router.register("access/public", AccessPublicViewSet, basename="access-public")
@@ -43,7 +48,9 @@ router.register("access/editor", AccessEditorViewSet, basename="access-editor")
 router.register("access/editor-books", AccessEditorBooksViewSet, basename="access-editor-books")
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("admin/analysis/", analysis, name="questionnaire-analysis"),
+    path("admin/analysis/export.csv", export_csv, name="questionnaire-analysis-csv"),
+    path("admin/", questionnaire_admin_site.urls),
     path("api/v1/health/", views.health, name="health"),
     path("api/v1/auth/csrf/", views.csrf, name="csrf"),
     path("api/v1/auth/", include("dj_rest_auth.urls")),

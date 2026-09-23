@@ -18,7 +18,7 @@ const fetchCsrfToken = async (): Promise<string> => {
   return csrfPromise
 }
 
-export const customFetch = async <T>(url: string, options: RequestInit): Promise<T> => {
+export const customFetch = async <T>(url: string, options: RequestInit, csrfRetried = false): Promise<T> => {
   const method = (options.method ?? 'GET').toUpperCase()
   const headers = new Headers(options.headers)
 
@@ -30,9 +30,9 @@ export const customFetch = async <T>(url: string, options: RequestInit): Promise
   const response = await fetch(url, { ...options, credentials: 'include', headers })
 
   // Auto-retry once on CSRF failure (e.g. after login/logout changed the session)
-  if (response.status === 403 && UNSAFE_METHODS.has(method) && csrfToken) {
+  if (response.status === 403 && UNSAFE_METHODS.has(method) && csrfToken && !csrfRetried) {
     csrfToken = null
-    return customFetch<T>(url, options)
+    return customFetch<T>(url, options, true)
   }
 
   if (!response.ok) throw response

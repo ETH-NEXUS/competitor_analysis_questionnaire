@@ -1038,6 +1038,53 @@
                 }
             }
         },
+        "/api/v1/questionnaire-responses/": {
+            "post": {
+                "operationId": "questionnaire_responses_create",
+                "description": "Public submissions; existing responses are accessible only through the admin.",
+                "tags": [
+                    "questionnaire-responses"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QuestionnaireResponse"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QuestionnaireResponse"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QuestionnaireResponse"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QuestionnaireResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/schema/": {
             "get": {
                 "operationId": "schema_retrieve",
@@ -1051,115 +1098,6 @@
                             "enum": [
                                 "json",
                                 "yaml"
-                            ]
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "lang",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "af",
-                                "ar",
-                                "ar-dz",
-                                "ast",
-                                "az",
-                                "be",
-                                "bg",
-                                "bn",
-                                "br",
-                                "bs",
-                                "ca",
-                                "ckb",
-                                "cs",
-                                "cy",
-                                "da",
-                                "de",
-                                "dsb",
-                                "el",
-                                "en",
-                                "en-au",
-                                "en-gb",
-                                "eo",
-                                "es",
-                                "es-ar",
-                                "es-co",
-                                "es-mx",
-                                "es-ni",
-                                "es-ve",
-                                "et",
-                                "eu",
-                                "fa",
-                                "fi",
-                                "fr",
-                                "fy",
-                                "ga",
-                                "gd",
-                                "gl",
-                                "he",
-                                "hi",
-                                "hr",
-                                "hsb",
-                                "ht",
-                                "hu",
-                                "hy",
-                                "ia",
-                                "id",
-                                "ig",
-                                "io",
-                                "is",
-                                "it",
-                                "ja",
-                                "ka",
-                                "kab",
-                                "kk",
-                                "km",
-                                "kn",
-                                "ko",
-                                "ky",
-                                "lb",
-                                "lt",
-                                "lv",
-                                "mk",
-                                "ml",
-                                "mn",
-                                "mr",
-                                "ms",
-                                "my",
-                                "nb",
-                                "ne",
-                                "nl",
-                                "nn",
-                                "os",
-                                "pa",
-                                "pl",
-                                "pt",
-                                "pt-br",
-                                "ro",
-                                "ru",
-                                "sk",
-                                "sl",
-                                "sq",
-                                "sr",
-                                "sr-latn",
-                                "sv",
-                                "sw",
-                                "ta",
-                                "te",
-                                "tg",
-                                "th",
-                                "tk",
-                                "tr",
-                                "tt",
-                                "udm",
-                                "ug",
-                                "uk",
-                                "ur",
-                                "uz",
-                                "vi",
-                                "zh-hans",
-                                "zh-hant"
                             ]
                         }
                     }
@@ -1248,8 +1186,16 @@
                         "type": "string"
                     },
                     "email": {
-                        "type": "string",
-                        "format": "email"
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "email"
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
                     },
                     "password": {
                         "type": "string"
@@ -1453,6 +1399,141 @@
                         "maxLength": 150
                     }
                 }
+            },
+            "QuestionnaireAnswer": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "maxLength": 2000
+                    },
+                    "selected": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 20
+                        },
+                        "maxItems": 100
+                    },
+                    "text": {
+                        "type": "string",
+                        "maxLength": 20000
+                    },
+                    "details": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 20000
+                        }
+                    },
+                    "rows": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string",
+                                "maxLength": 20000
+                            }
+                        }
+                    },
+                    "readable_answer": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 100000
+                        },
+                        "maxItems": 100
+                    }
+                },
+                "required": [
+                    "details",
+                    "question",
+                    "readable_answer",
+                    "rows",
+                    "selected",
+                    "text"
+                ]
+            },
+            "QuestionnaireResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "submission_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "writeOnly": true
+                    },
+                    "respondent_name": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "maxLength": 200
+                    },
+                    "respondent_email": {
+                        "type": "string",
+                        "format": "email",
+                        "writeOnly": true,
+                        "maxLength": 254
+                    },
+                    "provider_name": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "title": "Company",
+                        "maxLength": 200
+                    },
+                    "solution_name": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "maxLength": 200
+                    },
+                    "hospital_wide_cis": {
+                        "type": "boolean",
+                        "writeOnly": true,
+                        "title": "A. Hospital-wide clinical information system"
+                    },
+                    "patient_administration": {
+                        "type": "boolean",
+                        "writeOnly": true,
+                        "title": "B. Patient administration / hospital management"
+                    },
+                    "specialized_clinical": {
+                        "type": "boolean",
+                        "writeOnly": true,
+                        "title": "C. Specialized clinical solution / modules"
+                    },
+                    "data_interoperability": {
+                        "type": "boolean",
+                        "writeOnly": true,
+                        "title": "D. Data / interoperability solution"
+                    },
+                    "patient_facing": {
+                        "type": "boolean",
+                        "writeOnly": true,
+                        "title": "E. Patient-facing solution"
+                    },
+                    "answers": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/QuestionnaireAnswer"
+                        },
+                        "writeOnly": true
+                    },
+                    "submitted_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "answers",
+                    "id",
+                    "provider_name",
+                    "respondent_email",
+                    "submission_id",
+                    "submitted_at"
+                ]
             },
             "RestAuthDetail": {
                 "type": "object",

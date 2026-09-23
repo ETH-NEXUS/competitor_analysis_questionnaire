@@ -1,96 +1,56 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
-/* Markdown content styling */
-.markdown-content h1 {
-  @apply mt-4 mb-4 border-b border-gray-300 pb-2 text-2xl font-bold dark:border-gray-700;
+.questionnaire-shell {
+  min-height: 100vh;
+  background: var(--ui-bg-muted);
 }
 
-.markdown-content h2 {
-  @apply mt-4 mb-3 border-b border-gray-200 pb-1 text-xl font-bold dark:border-gray-800;
+.step-button {
+  @apply text-muted hover:bg-default flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2;
 }
 
-.markdown-content h3 {
-  @apply mt-3 mb-2 text-lg font-bold;
+.step-active {
+  @apply bg-default text-highlighted font-semibold shadow-sm;
 }
 
-.markdown-content h4 {
-  @apply mt-3 mb-2 text-base font-bold;
+.step-number {
+  @apply border-default flex size-7 shrink-0 items-center justify-center rounded-full border text-xs;
 }
 
-.markdown-content p {
-  @apply my-2 leading-relaxed;
+.step-active .step-number {
+  @apply border-teal-700 bg-teal-700 text-white;
 }
 
-.markdown-content strong {
-  @apply font-bold text-gray-900 dark:text-gray-100;
+.questionnaire-progress {
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ui-border);
+  accent-color: #0f766e;
 }
 
-.markdown-content em {
-  @apply text-gray-700 italic dark:text-gray-300;
+.questionnaire-progress::-webkit-progress-bar {
+  background: var(--ui-border);
+}
+.questionnaire-progress::-webkit-progress-value {
+  background: #0f766e;
+  border-radius: 999px;
+}
+.questionnaire-progress::-moz-progress-bar {
+  background: #0f766e;
+  border-radius: 999px;
 }
 
-.markdown-content del,
-.markdown-content s {
-  @apply text-gray-500 line-through;
+.question-field {
+  @apply border-default min-w-0 border-b py-7 first:pt-0 last:border-b-0 last:pb-0;
 }
 
-.markdown-content a {
-  @apply text-primary-600 dark:text-primary-400 underline underline-offset-2;
+.question-label {
+  @apply text-highlighted float-left mb-4 w-full text-base leading-relaxed font-medium;
 }
 
-.markdown-content a:hover {
-  @apply decoration-2;
-}
-
-.markdown-content code {
-  @apply text-primary-700 dark:text-primary-300 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm dark:bg-gray-800;
-}
-
-.markdown-content pre {
-  @apply my-4 overflow-x-auto rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-100 shadow-lg dark:border-gray-800 dark:bg-gray-950;
-}
-
-.markdown-content pre code {
-  @apply bg-transparent p-0 text-inherit;
-}
-
-.markdown-content blockquote {
-  @apply border-primary-500 my-4 border-l-4 bg-gray-50 py-2 pl-4 text-gray-700 italic dark:bg-gray-900 dark:text-gray-300;
-}
-
-.markdown-content ul {
-  @apply my-3 ml-6 list-disc;
-}
-
-.markdown-content ol {
-  @apply my-3 ml-6 list-decimal;
-}
-
-.markdown-content li {
-  @apply my-1 leading-relaxed;
-}
-
-.markdown-content table {
-  @apply my-4 w-full border-collapse;
-}
-
-.markdown-content thead {
-  @apply border-b-2 border-gray-300 dark:border-gray-700;
-}
-
-.markdown-content th {
-  @apply bg-gray-100 px-4 py-2 text-left font-bold dark:bg-gray-800;
-}
-
-.markdown-content td {
-  @apply border-t border-gray-200 px-4 py-2 dark:border-gray-800;
-}
-
-.markdown-content hr {
-  @apply my-6 border-gray-300 dark:border-gray-700;
-}
-
-.markdown-content img {
-  @apply my-4 max-w-full rounded-lg shadow-md;
+.question-label + * {
+  clear: both;
 }

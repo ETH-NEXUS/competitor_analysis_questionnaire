@@ -1,0 +1,466 @@
+{
+  "apiAccess": {
+    "label": "To what extent can third-party systems access solution data and functionality through documented APIs without vendor-specific development?",
+    "options": [
+      "Broad access to clinical data and functionality through documented APIs",
+      "Broad access to clinical data, but APIs cover only selected functionality",
+      "APIs are available for selected data/use cases only",
+      "Integrations generally require vendor-specific interfaces/development",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "apiTypes": {
+    "label": "Which types of documented APIs does the solution provide?",
+    "options": [
+      "Standards-based REST APIs (e.g. HL7 FHIR)",
+      "openEHR API",
+      "Proprietary REST APIs",
+      "Other documented APIs",
+      "No general-purpose documented API"
+    ],
+    "kind": "multi"
+  },
+  "standards": {
+    "label": "Which healthcare interoperability standards/profiles are supported in production?",
+    "options": [
+      "HL7 FHIR",
+      "HL7 v2",
+      "IHE XDS / XCA",
+      "DICOM / DICOMweb",
+      "HL7 CDA / Swiss CDA profiles",
+      "Other"
+    ],
+    "detailLabels": {
+      "0": "HL7 FHIR: Please specify version",
+      "1": "HL7 v2: Please specify supported message types"
+    },
+    "kind": "multi"
+  },
+  "deployment": {
+    "label": "Which deployment models are available for your solution?",
+    "options": [
+      "Customer on-premise",
+      "Private cloud",
+      "Public cloud",
+      "Vendor-hosted/SaaS",
+      "Hybrid deployment",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "structure": {
+    "label": "To what extent is clinical information stored as structured data?",
+    "options": [
+      "Predominantly unstructured/free text",
+      "Mix of structured and unstructured data",
+      "Predominantly structured data"
+    ],
+    "kind": "single"
+  },
+  "coding": {
+    "label": "Which standards are used to represent and encode clinical information?",
+    "options": [
+      "SNOMED CT",
+      "LOINC",
+      "ICD-10 / ICD-11",
+      "ATC",
+      "UCUM",
+      "openEHR",
+      "Other",
+      "Proprietary model/coding only"
+    ],
+    "kind": "multi"
+  },
+  "archive": {
+    "label": "How are clinical documents and images retained for long-term access?",
+    "options": [
+      "Stored within the solution / solution-specific repository",
+      "Stored in an external archive controlled by the vendor",
+      "Stored in a vendor-neutral archive/repository",
+      "Combination of the above",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "export": {
+    "label": "Can the customer export the complete longitudinal clinical record in a structured format that can be imported and reused by another system?",
+    "options": [
+      "Yes, complete export in standardized/vendor-neutral formats",
+      "Yes, complete export, but partly in proprietary formats",
+      "Partial export only",
+      "Export requires vendor-specific migration/conversion services",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "exportDetails": {
+    "label": "Which data cannot be exported in a standardized/vendor-neutral format or requires vendor-specific migration/conversion? Describe data types, formats and dependencies.",
+    "kind": "text"
+  },
+  "security": {
+    "label": "Which security capabilities are supported by the system?",
+    "options": [
+      "Encryption of data at rest",
+      "Encryption of data in transit",
+      "Role-based access control (RBAC)",
+      "Emergency access / break-glass with audit trail",
+      "Fine-grained access controls for clinical data",
+      "Multi-factor authentication (MFA)",
+      "Single sign-on / hospital identity management integration",
+      "Comprehensive audit logging of access to patient data",
+      "Monitoring/alerting for unauthorized or suspicious access",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "switzerland": {
+    "label": "Can customers require that all patient data, including backups and disaster-recovery copies, remains exclusively within Switzerland?",
+    "options": [
+      "Yes",
+      "Yes, but subject to specific deployment/hosting model",
+      "No"
+    ],
+    "kind": "single"
+  },
+  "roadmap": {
+    "label": "How are customers formally involved in product roadmap and prioritisation?",
+    "options": [
+      "No formal customer involvement",
+      "Customer feedback / feature requests",
+      "Customer advisory board / user group",
+      "Customers participate in formal prioritisation processes",
+      "Customers have formal decision/voting rights over selected roadmap priorities",
+      "Joint development / co-development with customers",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "configuration": {
+    "label": "How can the solution be configured or adapted to customer-specific requirements?",
+    "options": [
+      "Most configurations/adaptations can be performed independently by trained hospital administrators using built-in configuration tools",
+      "Hospital administrators can perform standard configurations",
+      "Hospital-specific adaptations generally require vendor software development",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "transition": {
+    "label": "What provisions are available to support transition to another solution at contract termination?",
+    "options": [
+      "Contractually defined exit/transition process",
+      "Continued system access during an agreed transition period",
+      "Vendor support for transition/migration",
+      "Transfer of relevant documentation/configuration",
+      "Defined deletion/return of customer data after transition",
+      "No formal exit provisions",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "rights": {
+    "label": "Who retains rights to customer-created or jointly developed clinical configurations and content (e.g. templates, forms, workflows, terminology mappings)?",
+    "options": [
+      "Customer retains rights and can export/reuse them independently of the solution",
+      "Rights are shared between customer and vendor",
+      "Customer can use them within the solution but cannot freely reuse them elsewhere",
+      "Vendor retains primary rights/control",
+      "Depends on type of configuration/content",
+      "Not applicable: no customer-created or jointly developed content",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "pricing": {
+    "label": "How is the solution licence/subscription fee calculated?",
+    "options": [
+      "Per named user",
+      "Per concurrent user",
+      "Per module / functionality",
+      "Per hospital/site",
+      "Enterprise licence",
+      "Subscription / SaaS",
+      "Usage-/volume-based pricing",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "costs": {
+    "label": "Which of the following are included in the standard licence/subscription and which are charged separately?",
+    "options": [
+      "Initial implementation",
+      "Configuration",
+      "Data migration",
+      "Interfaces / integrations",
+      "Training / implementation training",
+      "Hosting / infrastructure",
+      "Standard support",
+      "Software updates",
+      "Major version upgrades",
+      "Vendor-provided configuration / customization",
+      "Custom development"
+    ],
+    "kind": "costs"
+  },
+  "term": {
+    "label": "What is the standard initial contract term?",
+    "options": [
+      "≤1 year",
+      ">1–3 years",
+      ">3–5 years",
+      ">5 years",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "exitCosts": {
+    "label": "Which costs may arise when terminating the contract or switching to another solution?",
+    "options": [
+      "No specific termination/exit fee",
+      "Data extraction/export fee",
+      "Vendor support for migration is charged separately",
+      "Continued access/read-only access is charged separately",
+      "Decommissioning/archiving fees",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "reporting": {
+    "label": "How can clinical data be accessed for reporting and analysis?",
+    "options": [
+      "Built-in reporting only",
+      "Vendor-provided analytics platform / data warehouse",
+      "SQL/query access",
+      "Data warehouse",
+      "APIs",
+      "Real-time/event streaming",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "research": {
+    "label": "What capabilities are provided to support research use of clinical data?",
+    "options": [
+      "Cohort identification / builder",
+      "OMOP CDM",
+      "De-identification/pseudonymisation tools",
+      "Research APIs/data extraction",
+      "Standardized data exchange with clinical registries",
+      "Standardized data exchange with research infrastructures",
+      "Other",
+      "None"
+    ],
+    "kind": "multi"
+  },
+  "secondary": {
+    "label": "Does the solution provide functionality for governing secondary use of clinical data?",
+    "options": [
+      "Patient consent management",
+      "Purpose/data-use restrictions",
+      "Role/project-based data access",
+      "Audit trail of secondary data use",
+      "Other",
+      "None"
+    ],
+    "kind": "multi"
+  },
+  "clinicalCapabilities": {
+    "label": "Which clinical functional areas are covered by your solution?",
+    "options": [
+      "Clinical documentation",
+      "Medication management",
+      "Nursing documentation / workflows",
+      "Scheduling / resource planning",
+      "Ward management",
+      "Clinical decision support",
+      "Coding & billing",
+      "Laboratory",
+      "Radiology / imaging",
+      "Anaesthesia",
+      "PDMS"
+    ],
+    "kind": "capabilities"
+  },
+  "specialties": {
+    "label": "For which specialties do you offer dedicated modules? Select each specialty you support and describe the module(s).",
+    "options": [
+      "Emergency",
+      "Surgery",
+      "Orthopaedics",
+      "Cardiology",
+      "Neurology",
+      "Oncology",
+      "Psychiatry",
+      "Obstetrics / gynecology",
+      "Pediatrics",
+      "Rehabilitation",
+      "Other (specify in the description)"
+    ],
+    "kind": "capabilities"
+  },
+  "documentation": {
+    "label": "Which capabilities are available to reduce documentation burden?",
+    "options": [
+      "Ambient AI",
+      "Speech-to-text / dictation",
+      "Auto-population from existing data",
+      "Summarisation",
+      "Coding assistance",
+      "Reusable text/macros",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "dataCapabilities": {
+    "label": "Which capabilities does your solution provide?",
+    "options": [
+      "Clinical data repository / longitudinal health record",
+      "Integration engine",
+      "FHIR server",
+      "API management",
+      "Master patient index / identity management",
+      "Terminology services",
+      "Data transformation / mapping",
+      "Messaging / event broker",
+      "Workflow / orchestration",
+      "Application development / low-code environment",
+      "Data warehouse / analytics platform",
+      "Vendor-neutral archive",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "architecture": {
+    "label": "Briefly describe the primary role of the solution within a hospital IT architecture.",
+    "kind": "text"
+  },
+  "dataIndependent": {
+    "label": "Can the solution be purchased and operated independently of the customer’s hospital-wide CIS?",
+    "options": [
+      "Yes",
+      "No",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "patientFunctions": {
+    "label": "Which functions are available directly to patients through the portal / app?",
+    "options": [
+      "View and manage appointments",
+      "Appointment reminders / notifications",
+      "Secure messaging with care teams",
+      "View and download results / reports",
+      "View medication list",
+      "Complete forms / pre-registration",
+      "Complete questionnaires / PROMs",
+      "Submit patient-generated health data",
+      "Connect wearables / home monitoring devices",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "languages": {
+    "label": "Which languages are available for the patient-facing experience?",
+    "options": [
+      "German",
+      "French",
+      "Italian",
+      "English",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "aggregation": {
+    "label": "Can the solution aggregate patient information from multiple clinical/source systems?",
+    "options": [
+      "Yes",
+      "No",
+      "Partially"
+    ],
+    "kind": "single"
+  },
+  "writeBack": {
+    "label": "Can patient-entered or device-generated data be written back into the clinical system as structured, reusable data?",
+    "options": [
+      "Yes",
+      "Partially / for selected data types",
+      "No"
+    ],
+    "kind": "single"
+  },
+  "patientIndependent": {
+    "label": "Can the patient-facing solution be purchased and operated independently of the vendor’s hospital-wide CIS?",
+    "options": [
+      "Yes",
+      "No",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "parties": {
+    "label": "Which parties are typically required for implementation?",
+    "options": [
+      "Solution vendor",
+      "Hospital IT",
+      "Hospital clinical/process team",
+      "Existing CIS vendor",
+      "External integration partner",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "rollout": {
+    "label": "Which rollout approaches are supported?",
+    "options": [
+      "Big-bang migration and rollout",
+      "Phased / incremental migration and rollout",
+      "Parallel operation of legacy and new solution during transition",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "migration": {
+    "label": "How is migration from an existing system / legacy solution typically handled?",
+    "options": [
+      "Vendor-led migration project using standard tools plus hospital-specific mapping",
+      "Migration generally requires substantial custom development / conversion",
+      "Migration is typically performed by an external integration / migration partner",
+      "Only selected historical data is normally migrated; remaining data stays in an archive / legacy viewer",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "goLive": {
+    "label": "Which change-management and go-live services are available during implementation?",
+    "options": [
+      "End-user training",
+      "Train-the-trainer / super-user programme",
+      "Test / training environment",
+      "Workflow validation with clinical users before go-live",
+      "Dress rehearsal / go-live simulation",
+      "On-site / floor-walking support during go-live",
+      "Downtime / contingency planning",
+      "Post-go-live optimisation / adoption support",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "requirements": {
+    "label": "What is typically required to implement the solution in an existing hospital IT environment?",
+    "options": [
+      "Standard configuration only",
+      "Integration with CIS/HIS",
+      "Integration with patient administration/ADT",
+      "Integration with hospital identity/SSO",
+      "Integration with other clinical systems",
+      "Data migration/import",
+      "Hospital-specific interface development",
+      "Vendor-specific customization/development",
+      "Installation of local infrastructure/components",
+      "Clinical workflow/process configuration",
+      "Other"
+    ],
+    "kind": "multi"
+  }
+}

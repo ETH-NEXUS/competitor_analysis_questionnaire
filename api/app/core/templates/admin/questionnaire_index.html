@@ -1,0 +1,7 @@
+{% extends "admin/index.html" %}
+{% block content %}
+{% if user.is_superuser %}
+<div style="margin-bottom:24px"><a href="{% url 'questionnaire-analysis' %}" class="button">View questionnaire analysis &amp; export CSV</a></div>
+{% endif %}
+{{ block.super }}
+{% endblock %}

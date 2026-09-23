@@ -1,0 +1,18 @@
+<details data-filter-title="{{ title }}" open>
+  <summary>By {{ title }}</summary>
+  <form method="get" class="answer-filter-form">
+    {% for key, value in spec.preserved_parameters %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    <label for="answer-question">Question</label>
+    <select name="question" id="answer-question">
+      <option value="">Choose a question</option>
+      {% for field, label in spec.lookup_choices %}
+        <option value="{{ field }}" {% if field == spec.value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <label for="answer-contains">Answer contains</label>
+    <input type="search" id="answer-contains" name="answer" value="{{ spec.answer_value }}">
+    <button type="submit">Apply answer filter</button>
+  </form>
+</details>

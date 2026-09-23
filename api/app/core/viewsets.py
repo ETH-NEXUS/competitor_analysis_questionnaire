@@ -1,13 +1,27 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from guardian.shortcuts import assign_perm, get_objects_for_user
-from rest_framework import permissions, status, viewsets
+from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Author, Book
+from .models import Author, Book, QuestionnaireResponse
 from .permissions import IsEditor, Perms
-from .serializers import AccessMessageSerializer, AuthorSerializer, BookSerializer
+from .serializers import (
+    AccessMessageSerializer,
+    AuthorSerializer,
+    BookSerializer,
+    QuestionnaireResponseSerializer,
+)
+
+
+class QuestionnaireResponseViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    """Public submissions; existing responses are accessible only through the admin."""
+
+    queryset = QuestionnaireResponse.objects.all()
+    serializer_class = QuestionnaireResponseSerializer
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ["post", "options"]
 
 
 class AuthorViewSet(viewsets.ModelViewSet):
