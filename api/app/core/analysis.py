@@ -69,7 +69,7 @@ def analysis(request):
 def analysis_asset(filename, content_type):
     """Serve dashboard assets through the same authenticated admin route."""
     return HttpResponse(
-        (Path(__file__).parent / "static" / "core" / filename).read_bytes(),
+        (Path(__file__).parent / "analysis_assets" / filename).read_bytes(),
         content_type=content_type,
     )
 
