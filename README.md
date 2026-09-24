@@ -165,6 +165,9 @@ Use `.env.TEMPLATE` as the complete configuration reference:
 
 Visit `/admin/analysis/` (also linked from the admin home). Only authenticated,
 active superusers can view responses or download `/admin/analysis/export.csv`.
+The analysis page also serves its CSS and JavaScript from protected `/admin/analysis/`
+URLs, so the production proxy does not need a separate static-file rule for
+this page.
 The dashboard includes question charts with provider names on hover/focus/tap,
 provider response details, and provider/scope filters shared with CSV export.
 Counts are per submission. Free-text questions show response coverage; matrix

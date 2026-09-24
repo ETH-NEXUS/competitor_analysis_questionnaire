@@ -22,7 +22,7 @@ from rest_framework.routers import DefaultRouter
 
 from core import views
 from core.admin import questionnaire_admin_site
-from core.analysis import analysis, export_csv
+from core.analysis import analysis, analysis_css, analysis_js, export_csv
 from core.viewsets import (
     AccessAdminViewSet,
     AccessAuthenticatedViewSet,
@@ -49,6 +49,8 @@ router.register("access/editor-books", AccessEditorBooksViewSet, basename="acces
 
 urlpatterns = [
     path("admin/analysis/", analysis, name="questionnaire-analysis"),
+    path("admin/analysis/style.css", analysis_css, name="questionnaire-analysis-css"),
+    path("admin/analysis/app.js", analysis_js, name="questionnaire-analysis-js"),
     path("admin/analysis/export.csv", export_csv, name="questionnaire-analysis-csv"),
     path("admin/", questionnaire_admin_site.urls),
     path("api/v1/health/", views.health, name="health"),

@@ -1,11 +1,10 @@
-{% load static %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hospital IT — Questionnaire analysis</title>
-  <link rel="stylesheet" href="{% static 'core/analysis.css' %}">
-  <script defer src="{% static 'core/analysis.js' %}"></script>
+  <link rel="stylesheet" href="{% url 'questionnaire-analysis-css' %}">
+  <script defer src="{% url 'questionnaire-analysis-js' %}"></script>
 </head>
 <body>
 <header><div><p class="eyebrow">HOSPITAL IT · SUPERUSER</p><h1>Questionnaire analysis</h1></div><a href="{% url 'admin:index' %}">Back to administration</a></header>

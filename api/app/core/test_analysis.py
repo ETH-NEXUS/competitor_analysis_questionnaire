@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
 from django.test import RequestFactory, TestCase
 
-from .analysis import analysis, export_csv
+from .analysis import analysis, analysis_css, analysis_js, export_csv
 from .models import QuestionnaireResponse
 
 
@@ -31,7 +31,7 @@ class AnalysisTests(TestCase):
         return request
 
     def test_both_routes_require_superuser(self):
-        for view in (analysis, export_csv):
+        for view in (analysis, analysis_css, analysis_js, export_csv):
             self.assertEqual(
                 view(self.request("/admin/analysis/", authenticated=False)).status_code, 302
             )
@@ -42,7 +42,19 @@ class AnalysisTests(TestCase):
         response = analysis(self.request("/admin/analysis/"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "analysis-data")
+        self.assertContains(response, '/admin/analysis/style.css')
+        self.assertContains(response, '/admin/analysis/app.js')
         self.assertIn("no-store", response["Cache-Control"])
+
+    def test_dashboard_assets_load_without_static_file_routing(self):
+        css = analysis_css(self.request("/admin/analysis/style.css"))
+        js = analysis_js(self.request("/admin/analysis/app.js"))
+        self.assertEqual(css.status_code, 200)
+        self.assertEqual(js.status_code, 200)
+        self.assertTrue(css["Content-Type"].startswith("text/css"))
+        self.assertTrue(js["Content-Type"].startswith("text/javascript"))
+        self.assertIn(b".pie-layout", css.content)
+        self.assertIn(b"function addPie", js.content)
 
     def test_csv_preserves_multiline_answers_and_escapes_formulas(self):
         response = export_csv(self.request("/admin/analysis/export.csv"))

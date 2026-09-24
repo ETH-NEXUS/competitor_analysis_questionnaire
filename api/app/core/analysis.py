@@ -66,6 +66,24 @@ def analysis(request):
     return render(request, "core/analysis.html", {"analysis_data": data})
 
 
+def analysis_asset(filename, content_type):
+    """Serve dashboard assets through the same authenticated admin route."""
+    return HttpResponse(
+        (Path(__file__).parent / "static" / "core" / filename).read_bytes(),
+        content_type=content_type,
+    )
+
+
+@superuser_only
+def analysis_css(request):  # noqa: ARG001 - authentication handled by decorator
+    return analysis_asset("analysis.css", "text/css")
+
+
+@superuser_only
+def analysis_js(request):  # noqa: ARG001 - authentication handled by decorator
+    return analysis_asset("analysis.js", "text/javascript")
+
+
 def csv_cell(value):
     value = str(value) if value is not None else "Not asked"
     # Prevent spreadsheet applications from executing user-provided formulas.
