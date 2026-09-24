@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 PORT=${DJANGO_PORT:-5000}
 
 python manage.py collectstatic --noinput
