@@ -67,6 +67,7 @@ services:
       # - "${SMNRP_HTTPS_HOST_PORT:-443}:443"
     networks:
       - smnrpx
+      - default
     env_file: .env
     restart: unless-stopped
     depends_on:
