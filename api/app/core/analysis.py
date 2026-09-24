@@ -88,7 +88,7 @@ def export_csv(request):
             "Respondent email",
             "Submitted",
             "Response ID",
-            *(label for _, label in QUESTION_COLUMNS.values()),
+            *(f"Q{index}. {label}" for index, (_, label) in enumerate(QUESTION_COLUMNS.values(), 1)),
         ]
     )
     for row in responses(request):

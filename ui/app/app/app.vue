@@ -283,7 +283,7 @@ onMounted(() => {
                     </div>
                   </template>
                   <div v-for="question in section.questions" :key="question.id" class="question-field">
-                    <h3 class="text-sm font-medium">{{ question.label }}</h3>
+                    <h3 class="text-sm font-medium">Q{{ question.number }}. {{ question.label }}</h3>
                     <p v-if="!isAnswered(question, store.answerFor(question.id))" class="text-warning mt-2 text-xs">
                       Incomplete answer
                     </p>

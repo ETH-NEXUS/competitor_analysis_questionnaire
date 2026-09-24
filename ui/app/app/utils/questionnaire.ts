@@ -5,6 +5,7 @@ export type Scope = 'A' | 'B' | 'C' | 'D' | 'E'
 export type QuestionKind = 'single' | 'multi' | 'text' | 'costs' | 'capabilities'
 export interface Question {
   id: string
+  number: number
   kind: QuestionKind
   label: string
   choices: string[]
@@ -28,7 +29,7 @@ export interface Answer {
 }
 export const scopes: Scope[] = ['A', 'B', 'C', 'D', 'E']
 const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
-  questions: Omit<Question, 'label' | 'choices'>[]
+  questions: Omit<Question, 'label' | 'choices' | 'number'>[]
 })[] = [
   {
     id: 'interoperability',
@@ -176,6 +177,7 @@ export const sections: QuestionSection[] = sectionDefinitions.map((section) => (
   title: sectionTitles[section.id]!,
   questions: section.questions.map((question) => ({
     ...question,
+    number: sectionDefinitions.flatMap((item) => item.questions).findIndex((item) => item.id === question.id) + 1,
     label: questionText[question.id]!.label,
     choices: questionText[question.id]!.options || [],
     detailLabels: questionText[question.id]!.detailLabels,

@@ -49,7 +49,7 @@ function row(key: string, field: string, value: string) {
 
 <template>
   <fieldset class="question-field">
-    <legend class="question-label">{{ question.label }}</legend>
+    <legend class="question-label">Q{{ question.number }}. {{ question.label }}</legend>
     <p v-if="hints[question.kind]" class="text-muted mb-5 text-sm">{{ hints[question.kind] }}</p>
     <URadioGroup
       v-if="question.kind === 'single'"
