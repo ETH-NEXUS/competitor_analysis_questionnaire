@@ -63,7 +63,7 @@ services:
       # - /etc/pki/tls/certs/DCcerts2023/ldm.nexus.ethz.ch.chain.crt.pem:/etc/letsencrypt/live/ldm.nexus.ethz.ch/fullchain.pem:ro
       # - /etc/pki/tls/private/key2023/ldm.nexus.ethz.ch.privkey.pem:/etc/letsencrypt/live/ldm.nexus.ethz.ch/privkey.pem:ro
     ports:
-      - "${SMNRP_HTTP_HOST_PORT:-8088}:80"
+      - "${SMNRP_HTTP_HOST_PORT:-8088}"
       # - "${SMNRP_HTTPS_HOST_PORT:-443}:443"
     networks:
       - smnrpx
