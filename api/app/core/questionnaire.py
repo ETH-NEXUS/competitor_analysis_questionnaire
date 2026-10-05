@@ -65,7 +65,7 @@ QUESTION_COLUMNS = {
 }
 
 LEGACY_QUESTION_IDS = frozenset(
-    {"structure", "coding", "reporting", "documentation", "aggregation", "parties", "specialties", "externalIntegration", "clinicalDataManagement"}
+    {"structure", "coding", "reporting", "documentation", "aggregation", "parties", "specialties", "externalIntegration", "clinicalDataManagement", "architecture"}
 )
 
 VERSION_5_QUESTION_IDS = frozenset(
@@ -98,11 +98,17 @@ def introduced_version(question_id):
 
 SCOPE_FIELDS = {
     "A": "hospital_wide_cis",
-    "B": "patient_administration",
-    "C": "specialized_clinical",
-    "D": "data_interoperability",
-    "E": "patient_facing",
+    "B": "specialized_clinical",
+    "C": "data_interoperability",
+    "D": "patient_facing",
 }
+
+
+def scope_codes(response):
+    codes = [code for code, field in SCOPE_FIELDS.items() if getattr(response, field)]
+    if response.patient_administration:
+        codes.append("Legacy patient administration")
+    return codes
 
 
 def answer_text(answer):
@@ -114,7 +120,7 @@ def answer_text(answer):
         return answer["text"]
     if any(
         answer.get(key)
-        for key in ("selected", "details", "followups", "testing_events", "rows", "offerings")
+        for key in ("selected", "details", "followups", "testing_events", "certification_details", "rows", "offerings")
     ):
         # Preserve all details if an older submission lacks display text.
         return json.dumps(answer, ensure_ascii=False)

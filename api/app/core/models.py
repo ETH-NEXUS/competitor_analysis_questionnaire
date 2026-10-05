@@ -39,16 +39,16 @@ class QuestionnaireResponse(models.Model):
         "A. Hospital-wide clinical information system", default=False
     )
     patient_administration = models.BooleanField(
-        "B. Patient administration / hospital management", default=False
+        "Legacy patient administration / hospital management", default=False
     )
     specialized_clinical = models.BooleanField(
-        "C. Specialized clinical solution / modules", default=False
+        "B. Specialized clinical solution / modules", default=False
     )
     data_interoperability = models.BooleanField(
-        "D. Data / interoperability solution", default=False
+        "C. Data / interoperability solution", default=False
     )
-    patient_facing = models.BooleanField("E. Patient-facing solution", default=False)
-    questionnaire_version = models.PositiveSmallIntegerField(default=11, editable=False)
+    patient_facing = models.BooleanField("D. Patient-facing solution", default=False)
+    questionnaire_version = models.PositiveSmallIntegerField(default=12, editable=False)
     answer_data = models.JSONField(default=dict, blank=True, editable=False)
     api_access = response_answer_field("1.1 API access")
     api_types = response_answer_field("1.1 Documented API types")

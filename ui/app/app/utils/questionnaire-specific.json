@@ -58,27 +58,28 @@
     ]
   },
   "dataCapabilities": {
-    "label": "Which capabilities does your solution provide?",
+    "label": "Which role(s) does the solution perform within a hospital IT architecture? Select all that apply.",
     "options": [
       "Clinical data repository / longitudinal health record",
       "Integration engine",
       "FHIR server",
-      "API management",
+      "API management / gateway",
       "Master patient index / identity management",
-      "Terminology services",
+      "Terminology service",
       "Data transformation / mapping",
       "Messaging / event broker",
       "Workflow / orchestration",
-      "Application development / low-code environment",
+      "Application development / low-code platform",
       "Data warehouse / analytics platform",
       "Vendor-neutral archive",
-      "Other"
+      "Healthcare data exchange / connectivity network",
+      "Other – specify"
     ]
   },
   "dataExchangeHandling": {
     "label": "How does the solution handle data exchanged between connected systems?",
     "options": [
-      "Pass-through / routing only",
+      "Message/data routing or pass-through",
       "Transformation / mapping",
       "Temporary storage / queueing",
       "Persistent storage",
@@ -217,19 +218,10 @@
     ]
   },
   "requirements": {
-    "label": "What is typically required to implement the solution in an existing hospital IT environment?",
+    "label": "Can the solution typically be implemented using standard configuration without integration, migration or customer-specific development?",
     "options": [
-      "Standard configuration only",
-      "Integration with CIS/HIS",
-      "Integration with patient administration/ADT",
-      "Integration with hospital identity/SSO",
-      "Integration with other clinical systems",
-      "Data migration/import",
-      "Hospital-specific interface development",
-      "Vendor-specific customization/development",
-      "Installation of local infrastructure/components",
-      "Clinical workflow/process configuration",
-      "Other"
+      "Yes",
+      "No"
     ]
   }
 }

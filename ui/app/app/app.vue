@@ -71,7 +71,7 @@ async function submit() {
 function exportResponse() {
   return {
     questionnaire: 'Hospital IT Vendor Questionnaire',
-    version: 11,
+    version: 12,
     exportedAt: new Date().toISOString(),
     complete: complete.value,
     responseReference: store.submittedId,
@@ -289,7 +289,7 @@ onMounted(() => {
                     :question="question"
                     :answer="store.answerFor(question.id)"
                     :is-cis="store.selectedScopes.includes('A')"
-                    :is-specialist="store.selectedScopes.includes('C')"
+                    :is-specialist="store.selectedScopes.includes('B')"
                     :can-integrate="store.selectedScopes.includes('A')"
                     :solution-name="store.identity.solutionName"
                     @update="store.answers[question.id] = $event"

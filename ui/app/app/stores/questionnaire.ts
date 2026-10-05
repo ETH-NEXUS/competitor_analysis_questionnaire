@@ -21,8 +21,9 @@ import {
   type TestingEvent,
 } from '~/utils/questionnaire'
 
-const draftKey = 'hospital-it-questionnaire-v11'
+const draftKey = 'hospital-it-questionnaire-v12'
 const previousDraftKeys = [
+  'hospital-it-questionnaire-v11',
   'hospital-it-questionnaire-v10',
   'hospital-it-questionnaire-v9',
   'hospital-it-questionnaire-v8',
@@ -85,7 +86,12 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
               (question.id !== 'documentationMethods' ||
                 documentationKinds.value.has('core') ||
                 documentationKinds.value.has('function')) &&
-              (question.id !== 'exportDetails' || answerFor('dataRetention').selected.includes('1')) &&
+              (question.id !== 'archive' ||
+                ['documents', 'record'].some((value) =>
+                  (answerFor('dataRetention').followups.retained || []).includes(value),
+                )) &&
+              ((question.id !== 'export' && question.id !== 'exportDetails') ||
+                (answerFor('dataRetention').followups.retained || []).includes('record')) &&
               (!question.when ||
                 answerFor(question.when.question).selected.some((value) => question.when!.selected.includes(value))),
           )
@@ -103,7 +109,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
                 ? {
                     ...question,
                     label: selectedScopes.value.includes('A')
-                      ? selectedScopes.value.includes('C')
+                      ? selectedScopes.value.includes('B')
                         ? question.label
                         : 'Describe your core CIS coverage and external integrations.'
                       : 'Describe your specialized functions and the areas they cover.',
@@ -130,7 +136,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       ...answer,
       offerings: answer.offerings.filter((offering) =>
         offering.kind === 'function'
-          ? selectedScopes.value.includes('C') || selectedScopes.value.includes('A')
+          ? selectedScopes.value.includes('B') || selectedScopes.value.includes('A')
           : offering.kind === 'integration'
             ? selectedScopes.value.includes('A')
             : selectedScopes.value.includes('A'),
@@ -147,7 +153,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       localStorage.setItem(
         draftKey,
         JSON.stringify({
-          version: 11,
+          version: 12,
           scopes: selectedScopes.value,
           answers: answers.value,
           identity: identity.value,
@@ -168,7 +174,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     if (!raw) return false
     const draft = JSON.parse(raw)
     if (
-      ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(draft.version) ||
+      ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(draft.version) ||
       !Array.isArray(draft.scopes) ||
       !draft.answers ||
       typeof draft.answers !== 'object'
@@ -197,6 +203,10 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
                 ),
                 name: typeof item.name === 'string' ? item.name : '',
                 description: typeof item.description === 'string' ? item.description : '',
+                purposes: Array.isArray(item.purposes)
+                  ? item.purposes.filter((purpose): purpose is string => typeof purpose === 'string')
+                  : [],
+                purpose_other: typeof item.purpose_other === 'string' ? item.purpose_other : '',
                 source: item.kind === 'integration' || item.source === 'partner' ? 'partner' : 'native',
                 developer: typeof item.developer === 'string' ? item.developer : '',
                 functions: Array.isArray(item.functions)
@@ -218,6 +228,8 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
                   reused_data: Array.isArray(item.workflow?.reused_data)
                     ? item.workflow.reused_data.filter((value): value is string => typeof value === 'string')
                     : [],
+                  other_reused_data:
+                    typeof item.workflow?.other_reused_data === 'string' ? item.workflow.other_reused_data : '',
                   write_back: typeof item.workflow?.write_back === 'string' ? item.workflow.write_back : '',
                   separate_app: typeof item.workflow?.separate_app === 'string' ? item.workflow.separate_app : '',
                   patient_context:
@@ -229,6 +241,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       }
       const migratedSelected = value.selected.map((item: unknown) => {
         if (typeof item !== 'string') return item
+        if (draft.version < 12 && question.id === 'dataCapabilities' && item === '12') return '13'
         if (draft.version < 10) {
           if (question.id === 'configuration') return item === '2' ? '3' : item === '3' ? '4' : item
           if (question.id === 'patientFunctions') return item === '9' ? '14' : item
@@ -244,6 +257,33 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       answer.selected = [
         ...new Set<string>(migratedSelected.filter((item: unknown) => typeof item === 'string')),
       ].filter((item) => /^\d+$/.test(item) && Number(item) < question.choices.length)
+      if (draft.version < 12 && question.id === 'dataRetention') {
+        const oldSelected = value.selected as string[]
+        const retained = [
+          oldSelected.includes('0') ? 'documents' : '',
+          oldSelected.includes('1') ? 'record' : '',
+          oldSelected.includes('2') ? 'other' : '',
+        ].filter(Boolean)
+        answer.selected =
+          oldSelected.includes('1') || oldSelected.includes('2')
+            ? ['0']
+            : oldSelected.includes('0')
+              ? ['1']
+              : oldSelected.includes('3')
+                ? ['2']
+                : oldSelected.includes('4')
+                  ? ['3']
+                  : []
+        if (answer.selected[0] === '1') answer.details['1'] = 'Individual clinical documents or diagnostic images'
+        answer.followups.retained = retained
+      }
+      if (draft.version < 12 && question.id === 'requirements') {
+        const oldSelected = value.selected as string[]
+        answer.selected = oldSelected.some((item) => item !== '0') ? ['1'] : oldSelected.includes('0') ? ['0'] : []
+        answer.followups['1'] = oldSelected
+          .filter((item) => /^\d+$/.test(item) && Number(item) >= 1 && Number(item) <= 10)
+          .map((item) => String(Number(item) - 1))
+      }
       if (question.kind === 'single') answer.selected = answer.selected.slice(0, 1)
       answer.text = value.text
       if (draft.version < 10 && question.id === 'writeBack' && value.selected.includes('0'))
@@ -258,6 +298,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           if (question.id === 'patientIndependent' && i === 3) sourceIndex = 2
         }
         if (draft.version < 11) sourceIndex = v11SourceIndex(question.id, i)
+        if (draft.version < 12 && question.id === 'dataCapabilities' && i === 13) sourceIndex = 12
         if (draft.version < 8) {
           if (question.id === 'costs' && i >= 1) sourceIndex = i + 1
           if (question.id === 'thirdPartyIntegration' && i === 8) sourceIndex = 9
@@ -299,6 +340,13 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           ]
         }
       }
+      for (const key of ['fhir_other', 'hl7v2_other', 'requirements_other']) {
+        if (typeof value.details[key] === 'string') answer.details[key] = value.details[key]
+      }
+      if (draft.version < 12 && question.id === 'requirements' && typeof value.details['10'] === 'string')
+        answer.details.requirements_other = value.details['10']
+      if (draft.version < 12 && question.id === 'dataRetention' && answer.selected[0] === '1')
+        answer.details['1'] = 'Individual clinical documents or diagnostic images'
       if (Array.isArray(value.other_items)) {
         answer.other_items = value.other_items.filter((item: unknown) => typeof item === 'string').slice(0, 100)
       } else {
@@ -330,6 +378,43 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           answer.followups['0'] = ['R2', 'R3', 'R4', 'R4B', 'R5'].includes(legacy) ? [legacy] : ['Other']
           if (answer.followups['0'].includes('Other')) answer.details.fhir_other = legacy
         }
+        const savedV2 = value.followups?.['1']
+        if (Array.isArray(savedV2))
+          answer.followups['1'] = [...new Set(savedV2.filter((item: unknown) => typeof item === 'string'))]
+        else if (answer.details['1']?.trim()) {
+          const legacy = answer.details['1'].trim()
+          const known = ['ADT', 'ORM', 'ORU', 'OML', 'MDM', 'SIU', 'DFT', 'BAR', 'RDE', 'RAS', 'VXU']
+          const matched = known.filter((item) => new RegExp(`\\b${item}\\b`, 'i').test(legacy))
+          answer.followups['1'] = matched.length ? matched : ['Other']
+          if (!matched.length) answer.details.hl7v2_other = legacy
+        }
+      }
+      if (question.id === 'dataRetention' && draft.version >= 12 && Array.isArray(value.followups?.retained))
+        answer.followups.retained = value.followups.retained.filter((item: unknown) =>
+          ['documents', 'record', 'other'].includes(String(item)),
+        )
+      if (question.id === 'requirements' && draft.version >= 12 && Array.isArray(value.followups?.['1']))
+        answer.followups['1'] = value.followups['1'].filter((item: unknown) => /^\d$/.test(String(item)))
+      if (
+        question.id === 'certifications' &&
+        value.certification_details &&
+        typeof value.certification_details === 'object'
+      ) {
+        for (const [index, entry] of Object.entries(
+          value.certification_details as Record<string, Record<string, unknown>>,
+        )) {
+          if (!/^[0-6]$/.test(index) || !entry || typeof entry !== 'object') continue
+          answer.certification_details[index] = {
+            name: typeof entry.name === 'string' ? entry.name : '',
+            scopes: Array.isArray(entry.scopes)
+              ? entry.scopes.filter((item): item is string =>
+                  ['organization', 'solution', 'other'].includes(String(item)),
+                )
+              : [],
+            scope_other: typeof entry.scope_other === 'string' ? entry.scope_other : '',
+            valid_until: typeof entry.valid_until === 'string' ? entry.valid_until : '',
+          }
+        }
       }
       if (question.id === 'interoperabilityTesting' && answer.selected.includes('0')) {
         answer.testing_events = Array.isArray(value.testing_events)
@@ -358,13 +443,24 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
         return Boolean(question && restored[id] && isAnswered(question, restored[id]))
       }
       const retained = [
-        hasAnswer('archive') ? '0' : '',
-        hasAnswer('export') || hasAnswer('exportDetails') ? '1' : '',
-        hasAnswer('switzerland') ? '2' : '',
+        hasAnswer('archive') ? 'documents' : '',
+        hasAnswer('export') || hasAnswer('exportDetails') ? 'record' : '',
+        hasAnswer('switzerland') ? 'other' : '',
       ].filter(Boolean)
-      if (retained.length) restored.dataRetention = { ...emptyAnswer(), selected: retained }
+      if (retained.length)
+        restored.dataRetention = {
+          ...emptyAnswer(),
+          selected: ['0'],
+          followups: { retained },
+        }
     }
-    selectedScopes.value = scopes.filter((scope) => draft.scopes.includes(scope))
+    const savedScopes =
+      draft.version < 12
+        ? draft.scopes
+            .map((scope: string) => (({ A: 'A', C: 'B', D: 'C', E: 'D' }) as Record<string, Scope>)[scope])
+            .filter(Boolean)
+        : draft.scopes
+    selectedScopes.value = scopes.filter((scope) => savedScopes.includes(scope))
     answers.value = restored
     for (const field of Object.keys(identity.value) as (keyof typeof identity.value)[]) {
       if (typeof draft.identity?.[field] === 'string') identity.value[field] = draft.identity[field]
@@ -398,9 +494,9 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
         provider_name: identity.value.providerName.trim(),
         solution_name: identity.value.solutionName.trim(),
         hospital_wide_cis: selectedScopes.value.includes('A'),
-        specialized_clinical: selectedScopes.value.includes('C'),
-        data_interoperability: selectedScopes.value.includes('D'),
-        patient_facing: selectedScopes.value.includes('E'),
+        specialized_clinical: selectedScopes.value.includes('B'),
+        data_interoperability: selectedScopes.value.includes('C'),
+        patient_facing: selectedScopes.value.includes('D'),
         answers: Object.fromEntries(
           questions.value.map((question) => [
             question.id,

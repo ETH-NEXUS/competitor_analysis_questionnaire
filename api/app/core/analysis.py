@@ -14,12 +14,12 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from .models import OtherAnswerGrouping, QuestionnaireResponse, VendorInvitation
-from .questionnaire import LEGACY_QUESTION_IDS, QUESTION_COLUMNS, SCOPE_FIELDS, introduced_version
+from .questionnaire import LEGACY_QUESTION_IDS, QUESTION_COLUMNS, SCOPE_FIELDS, introduced_version, scope_codes
 
 
 MAX_OTHER_ANSWER_LENGTH = 2000
 MAX_OTHER_GROUP_LENGTH = 200
-CURRENT_QUESTIONNAIRE_VERSION = 11
+CURRENT_QUESTIONNAIRE_VERSION = 12
 
 
 def superuser_only(view):
@@ -88,7 +88,7 @@ def analysis(request):
                 "email": row.respondent_email,
                 "submitted": row.submitted_at.isoformat(),
                 "version": row.questionnaire_version,
-                "scopes": [code for code, field in SCOPE_FIELDS.items() if getattr(row, field)],
+                "scopes": scope_codes(row),
                 "answers": {
                     key: getattr(row, field) for key, (field, _) in QUESTION_COLUMNS.items()
                 },
@@ -104,7 +104,7 @@ def analysis(request):
                 "email": row.respondent_email,
                 "submitted": row.submitted_at.isoformat(),
                 "version": row.questionnaire_version,
-                "scopes": [code for code, field in SCOPE_FIELDS.items() if getattr(row, field)],
+                "scopes": scope_codes(row),
             }
             for row in QuestionnaireResponse.objects.all()
         ],
@@ -328,7 +328,7 @@ def export_csv(request):
                 csv_cell(value)
                 for value in [
                     row.provider_name,
-                    ", ".join(code for code, field in SCOPE_FIELDS.items() if getattr(row, field)),
+                    ", ".join(scope_codes(row)),
                     row.solution_name,
                     row.respondent_email,
                     row.submitted_at.isoformat(),

@@ -63,7 +63,7 @@ class AnalysisTests(TestCase):
         )
         questions = {item["id"]: item for item in payload["questions"]}
         self.assertEqual(payload["viewer_id"], 1)
-        self.assertEqual(payload["current_version"], 11)
+        self.assertEqual(payload["current_version"], 12)
         self.assertNotIn("externalIntegration", questions)
         self.assertNotIn("clinicalDataManagement", questions)
         self.assertEqual(questions["migration"]["kind"], "multi")
@@ -87,7 +87,7 @@ class AnalysisTests(TestCase):
         })
         self.assertTrue(serializer.is_valid(), serializer.errors)
         saved = serializer.save()
-        self.assertEqual(saved.questionnaire_version, 11)
+        self.assertEqual(saved.questionnaire_version, 12)
         self.assertEqual(saved.answer_data["migration"]["selected"], ["0", "3"])
 
     def test_fhir_releases_and_multiple_testing_events_are_stored_structurally(self):
@@ -111,6 +111,39 @@ class AnalysisTests(TestCase):
         self.assertEqual(response.answer_data["standards"]["followups"]["0"], ["R4", "R4B", "Other"])
         self.assertEqual(len(response.answer_data["interoperabilityTesting"]["testing_events"]), 2)
         self.assertIn("Connectathon 2025", response.interoperability_testing)
+
+    def test_v12_structured_followups_are_saved(self):
+        base = {"question": "Question", "selected": [], "text": "", "details": {}, "rows": {}, "readable_answer": []}
+        serializer = QuestionnaireResponseSerializer(data={
+            "submission_id": "15665b1a-d76e-4a96-b3f0-7dc571f970b7",
+            "respondent_email": "structured@example.com",
+            "provider_name": "Structured Provider",
+            "solution_name": "Test Solution",
+            "data_interoperability": True,
+            "answers": {
+                "standards": {**base, "selected": ["1"], "followups": {"1": ["ADT", "ORU"]}, "readable_answer": ["HL7 v2", "ADT", "ORU"]},
+                "dataRetention": {**base, "selected": ["1"], "details": {"1": "Diagnostic images"}, "followups": {"retained": ["documents"]}, "readable_answer": ["Yes, but only specific data/documents", "Diagnostic images"]},
+                "requirements": {**base, "selected": ["1"], "followups": {"1": ["0", "4"]}, "readable_answer": ["No", "Integration with CIS/HIS", "Data migration/import"]},
+            },
+        })
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        saved = serializer.save()
+        self.assertEqual(saved.questionnaire_version, 12)
+        self.assertEqual(saved.answer_data["standards"]["followups"]["1"], ["ADT", "ORU"])
+        self.assertEqual(saved.answer_data["dataRetention"]["followups"]["retained"], ["documents"])
+        self.assertEqual(saved.answer_data["requirements"]["followups"]["1"], ["0", "4"])
+
+    def test_hl7_not_sure_cannot_be_combined_with_message_types(self):
+        base = {"question": "Standards", "selected": ["1"], "text": "", "details": {}, "rows": {}, "readable_answer": ["HL7 v2"]}
+        serializer = QuestionnaireResponseSerializer(data={
+            "submission_id": "faed35c2-cf83-4f05-9745-a8f0e9fa958a",
+            "respondent_email": "invalid@example.com",
+            "provider_name": "Invalid Provider",
+            "solution_name": "Test Solution",
+            "data_interoperability": True,
+            "answers": {"standards": {**base, "followups": {"1": ["ADT", "Not sure"]}}},
+        })
+        self.assertFalse(serializer.is_valid())
 
     def test_incomplete_testing_event_is_rejected(self):
         serializer = QuestionnaireResponseSerializer(data={
@@ -232,7 +265,7 @@ class AnalysisTests(TestCase):
             self.assertEqual(
                 len(list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"))))), 1
             )
-        response = export_csv(self.request("/admin/analysis/export.csv?scope=D"))
+        response = export_csv(self.request("/admin/analysis/export.csv?scope=C"))
         self.assertEqual(
             len(list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"))))), 2
         )
@@ -328,7 +361,7 @@ class AnalysisTests(TestCase):
             data_interoperability=True,
             api_access="No documented APIs are available",
         )
-        response = export_csv(self.request("/admin/analysis/export.csv?scope=D&mode=latest_provider"))
+        response = export_csv(self.request("/admin/analysis/export.csv?scope=C&mode=latest_provider"))
         rows = list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"))))
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[1][0], "' =Test   Provider ")
@@ -400,7 +433,7 @@ class AnalysisTests(TestCase):
         valid = QuestionnaireResponseSerializer(data={**data, "solution_name": "Exchange Hub"})
         self.assertTrue(valid.is_valid(), valid.errors)
         saved = valid.save()
-        self.assertEqual(saved.questionnaire_version, 11)
+        self.assertEqual(saved.questionnaire_version, 12)
         self.assertEqual(saved.solution_name, "Exchange Hub")
         self.assertEqual(saved.data_exchange_handling, "Transformation / mapping\nTemporary storage / queueing")
         self.assertEqual(
@@ -483,7 +516,7 @@ class AnalysisTests(TestCase):
         self.assertEqual(saved.clinical_data_management, "Yes")
         self.assertEqual(saved.structured_information_types, "Diagnoses\nMedications")
         self.assertEqual(saved.data_structure, "Earlier answer")
-        self.assertEqual(saved.questionnaire_version, 11)
+        self.assertEqual(saved.questionnaire_version, 12)
 
     def test_new_interoperability_and_certification_answers_are_saved(self):
         serializer = QuestionnaireResponseSerializer(
@@ -501,7 +534,11 @@ class AnalysisTests(TestCase):
                     },
                     "certifications": {
                         "question": "Certifications",
-                        "selected": ["0", "5"], "text": "ISO/IEC 27001, hosting operations, valid until 2028",
+                        "selected": ["0", "5"], "text": "",
+                        "certification_details": {
+                            "0": {"name": "ISO/IEC 27001", "scopes": ["organization"], "valid_until": "2028"},
+                            "5": {"name": "Clinical assessment", "scopes": ["solution"], "valid_until": "2028"},
+                        },
                         "details": {}, "rows": {},
                         "readable_answer": [
                             "ISO/IEC 27001",
@@ -514,10 +551,10 @@ class AnalysisTests(TestCase):
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
         saved = serializer.save()
-        self.assertEqual(saved.questionnaire_version, 11)
+        self.assertEqual(saved.questionnaire_version, 12)
         self.assertEqual(saved.interoperability_testing, "Yes – please specify: Projectathon 2026")
         self.assertIn("ISO/IEC 27001", saved.certifications)
-        self.assertIn("valid until 2028", saved.certification_details)
+        self.assertIn('"valid_until": "2028"', saved.certification_details)
 
     def test_multiple_products_are_saved_for_one_functional_area(self):
         serializer = QuestionnaireResponseSerializer(
@@ -628,7 +665,7 @@ class AnalysisTests(TestCase):
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
         saved = serializer.save()
-        self.assertEqual(saved.questionnaire_version, 11)
+        self.assertEqual(saved.questionnaire_version, 12)
         self.assertEqual(
             saved.answer_data["clinicalCapabilities"]["offerings"][1]["developer"],
             "Oncology Startup",
@@ -687,7 +724,7 @@ class AnalysisTests(TestCase):
         saved = serializer.save()
         self.assertEqual(
             saved.answer_data["clinicalCapabilities"]["offerings"][0]["workflow"],
-            function["workflow"],
+            {**function["workflow"], "other_reused_data": ""},
         )
 
     def test_product_names_can_be_grouped_for_analysis(self):

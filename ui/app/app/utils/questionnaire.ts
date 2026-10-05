@@ -1,7 +1,7 @@
 import coreQuestions from './questionnaire-core.json'
 import specificQuestions from './questionnaire-specific.json'
 
-export type Scope = 'A' | 'C' | 'D' | 'E'
+export type Scope = 'A' | 'B' | 'C' | 'D'
 export type QuestionKind = 'single' | 'multi' | 'text' | 'costs' | 'capabilities' | 'offerings'
 export interface Question {
   id: string
@@ -30,6 +30,7 @@ export interface Answer {
   details: Record<string, string>
   followups: Record<string, string[]>
   testing_events: TestingEvent[]
+  certification_details: Record<string, CertificationDetail>
   rows: Record<string, Record<string, string>>
   other_items: string[]
   products: Record<string, Product[]>
@@ -43,10 +44,18 @@ export interface TestingEvent {
   outcome: string
   outcome_other: string
 }
+export interface CertificationDetail {
+  name: string
+  scopes: string[]
+  scope_other: string
+  valid_until: string
+}
 export interface ClinicalOffering {
   kind: 'core' | 'integration' | 'function'
   name: string
   description: string
+  purposes: string[]
+  purpose_other: string
   source: 'native' | 'partner'
   developer: string
   functions: string[]
@@ -59,6 +68,7 @@ export interface ClinicalOffering {
 }
 export interface ClinicalWorkflow {
   reused_data: string[]
+  other_reused_data: string
   write_back: string
   separate_app: string
   patient_context: string
@@ -70,7 +80,7 @@ export interface Product {
   source: '' | '0' | '1'
   standalone: boolean
 }
-export const scopes: Scope[] = ['A', 'C', 'D', 'E']
+export const scopes: Scope[] = ['A', 'B', 'C', 'D']
 const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
   questions: Omit<Question, 'label' | 'choices' | 'number'>[]
 })[] = [
@@ -80,7 +90,7 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
     questions: [
       { id: 'apiAccess', kind: 'single', details: [4] },
       { id: 'apiTypes', kind: 'multi', details: [3], exclusive: [4] },
-      { id: 'standards', kind: 'multi', details: [1, 5], exclusive: [6] },
+      { id: 'standards', kind: 'multi', details: [5], exclusive: [6] },
       { id: 'deployment', kind: 'multi', details: [5] },
       { id: 'interoperabilityTesting', kind: 'single' },
     ],
@@ -88,7 +98,7 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
   {
     id: 'profile',
     stage: 1,
-    questions: [{ id: 'dataRetention', kind: 'multi', exclusive: [3, 4] }],
+    questions: [{ id: 'dataRetention', kind: 'single', details: [1] }],
   },
   {
     id: 'security',
@@ -152,7 +162,7 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
       {
         id: 'appIntegrationStandards',
         kind: 'multi',
-        scopes: ['A', 'C', 'D', 'E'],
+        scopes: ['A', 'B', 'C', 'D'],
         details: [4],
         exclusive: [5],
       },
@@ -165,41 +175,46 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
       {
         id: 'structuredTypes',
         kind: 'multi',
-        scopes: ['A', 'C', 'D', 'E'],
+        scopes: ['A', 'B', 'C', 'D'],
         details: [10],
         exclusive: [11],
+        when: { question: 'dataRetention', selected: ['0', '1'] },
       },
       {
         id: 'terminologies',
         kind: 'multi',
-        scopes: ['A', 'C', 'D', 'E'],
+        scopes: ['A', 'B', 'C', 'D'],
         details: [6],
         exclusive: [5, 7],
       },
       {
         id: 'clinicalModels',
         kind: 'multi',
-        scopes: ['A', 'C', 'D', 'E'],
+        scopes: ['A', 'B', 'C', 'D'],
         details: [4],
         exclusive: [5],
+        when: { question: 'dataRetention', selected: ['0', '1'] },
       },
       {
         id: 'reportingMethods',
         kind: 'multi',
         details: [6],
         exclusive: [7],
+        when: { question: 'dataRetention', selected: ['0', '1'] },
       },
       {
         id: 'research',
         kind: 'multi',
         details: [6],
         exclusive: [7],
+        when: { question: 'dataRetention', selected: ['0', '1'] },
       },
       {
         id: 'secondary',
         kind: 'multi',
         details: [4],
         exclusive: [5],
+        when: { question: 'dataRetention', selected: ['0', '1'] },
       },
     ],
   },
@@ -208,15 +223,15 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
     stage: 2,
     questions: [
       { id: 'archive', kind: 'single', details: [4], when: { question: 'dataRetention', selected: ['0', '1'] } },
-      { id: 'export', kind: 'single', details: [4], when: { question: 'dataRetention', selected: ['1'] } },
+      { id: 'export', kind: 'single', details: [4], when: { question: 'dataRetention', selected: ['0', '1'] } },
       { id: 'exportDetails', kind: 'text', when: { question: 'export', selected: ['2', '3', '4'] } },
-      { id: 'switzerland', kind: 'single', when: { question: 'dataRetention', selected: ['0', '1', '2'] } },
+      { id: 'switzerland', kind: 'single', when: { question: 'dataRetention', selected: ['0', '1'] } },
     ],
   },
   {
     id: 'clinical',
     stage: 2,
-    scopes: ['A', 'C'],
+    scopes: ['A', 'B'],
     questions: [
       { id: 'clinicalCapabilities', kind: 'offerings' },
       { id: 'documentationMethods', kind: 'multi', details: [7], exclusive: [8] },
@@ -225,18 +240,17 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
   {
     id: 'data',
     stage: 2,
-    scopes: ['D'],
+    scopes: ['C'],
     questions: [
-      { id: 'dataCapabilities', kind: 'multi', details: [12] },
-      { id: 'dataExchangeHandling', kind: 'multi', details: [8], exclusive: [0] },
-      { id: 'architecture', kind: 'text' },
+      { id: 'dataCapabilities', kind: 'multi', details: [13] },
+      { id: 'dataExchangeHandling', kind: 'multi', details: [8] },
       { id: 'dataIndependent', kind: 'single', details: [2] },
     ],
   },
   {
     id: 'patient',
     stage: 2,
-    scopes: ['E'],
+    scopes: ['D'],
     questions: [
       { id: 'patientFunctions', kind: 'multi', details: [14] },
       { id: 'languages', kind: 'multi', details: [4] },
@@ -260,8 +274,8 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
   {
     id: 'integration',
     stage: 2,
-    scopes: ['C', 'D', 'E'],
-    questions: [{ id: 'requirements', kind: 'multi', details: [10] }],
+    scopes: ['B', 'C', 'D'],
+    questions: [{ id: 'requirements', kind: 'single' }],
   },
 ]
 
@@ -309,9 +323,10 @@ export const scopeDescriptions = [
 ]
 export const costOptions = [
   'Included',
-  'One-time additional cost',
-  'Recurring additional cost',
-  'Depends on scope / contract',
+  'One-time additional',
+  'Recurring additional',
+  'Depends on scope/contract',
+  'Not applicable',
 ]
 export const sourceOptions = ['Native — developed by your company', 'Partner — third-party product']
 export const clinicalFunctionOptions = specificQuestions.clinicalCapabilities.options
@@ -322,10 +337,68 @@ export const workflowReuseOptions = [
   { label: 'Patient details', value: 'patient' },
   { label: 'Medication data', value: 'medication' },
   { label: 'Laboratory results', value: 'lab' },
+  { label: 'Other', value: 'other' },
   { label: 'None of these', value: 'none' },
   { label: 'Not sure', value: 'unknown' },
 ]
 export const fhirReleases = ['R2', 'R3', 'R4', 'R4B', 'R5', 'Other']
+export const hl7v2MessageTypes = [
+  { value: 'ADT', label: 'ADT – Admission, discharge, transfer' },
+  { value: 'ORM', label: 'ORM – Orders' },
+  { value: 'ORU', label: 'ORU – Observation/results' },
+  { value: 'OML', label: 'OML – Laboratory orders' },
+  { value: 'MDM', label: 'MDM – Medical document management' },
+  { value: 'SIU', label: 'SIU – Scheduling' },
+  { value: 'DFT', label: 'DFT – Financial transactions' },
+  { value: 'BAR', label: 'BAR – Billing/account records' },
+  { value: 'RDE', label: 'RDE – Pharmacy/treatment encoded order' },
+  { value: 'RAS', label: 'RAS – Pharmacy/treatment administration' },
+  { value: 'VXU', label: 'VXU – Vaccination update' },
+  { value: 'Other', label: 'Other – please specify' },
+  { value: 'Not sure', label: 'Not sure' },
+]
+export const retainedPatientDataOptions = [
+  { value: 'documents', label: 'Individual clinical documents or diagnostic images' },
+  { value: 'record', label: 'An ongoing clinical record across encounters or over time' },
+  { value: 'other', label: 'Other patient/clinical data' },
+]
+export const certificationScopeOptions = [
+  { value: 'organization', label: 'Organization' },
+  { value: 'solution', label: 'Solution or product' },
+  { value: 'other', label: 'Other' },
+]
+export const integrationPurposeOptions = [
+  'Laboratory / LIS',
+  'Radiology / RIS / PACS / imaging',
+  'Medication / pharmacy',
+  'Medical devices / PDMS / device integration',
+  'Pathology',
+  'Oncology / chemotherapy',
+  'Scheduling / resource planning',
+  'Patient administration / billing',
+  'Patient portal / patient app',
+  'Clinical documentation / speech / ambient AI',
+  'Clinical decision support / medical knowledge',
+  'Communication / collaboration',
+  'Data / interoperability platform',
+  'Analytics / reporting / research',
+  'Identity / authentication / SSO',
+  'External registries / EPD or other healthcare networks',
+  'Other specialized clinical application',
+  'Other',
+]
+export const implementationRequirementOptions = [
+  'Integration with CIS/HIS',
+  'Integration with patient administration/ADT',
+  'Identity/SSO integration',
+  'Other clinical-system integrations',
+  'Data migration/import',
+  'Hospital-specific interface development',
+  'Vendor-specific customization/development',
+  'Local infrastructure/components',
+  'Clinical workflow/process configuration',
+  'Other',
+]
 export const testingEventOptions = ['Digital Health Projectathon', 'IHE Connectathon', 'Other']
 export const testingOutcomeOptions = ['Successful', 'Partially successful', 'Unsuccessful', 'No formal result', 'Other']
 export const workflowChoiceOptions = {
@@ -370,6 +443,7 @@ export function emptyAnswer(): Answer {
     details: {},
     followups: {},
     testing_events: [],
+    certification_details: {},
     rows: {},
     other_items: [],
     products: {},
@@ -381,11 +455,17 @@ export function emptyTestingEvent(): TestingEvent {
   return { event: '', event_other: '', year: '', profiles: '', outcome: '', outcome_other: '' }
 }
 
+export function emptyCertificationDetail(): CertificationDetail {
+  return { name: '', scopes: [], scope_other: '', valid_until: '' }
+}
+
 export function emptyOffering(kind: ClinicalOffering['kind'] = 'function', name = ''): ClinicalOffering {
   return {
     kind,
     name,
     description: '',
+    purposes: [],
+    purpose_other: '',
     source: kind === 'integration' ? 'partner' : 'native',
     developer: '',
     functions: [],
@@ -401,6 +481,7 @@ export function emptyOffering(kind: ClinicalOffering['kind'] = 'function', name 
 export function emptyClinicalWorkflow(): ClinicalWorkflow {
   return {
     reused_data: [],
+    other_reused_data: '',
     write_back: '',
     separate_app: '',
     patient_context: '',
@@ -497,6 +578,9 @@ export function isAnswered(question: Question, answer: Answer): boolean {
         Boolean(
           offering.name.trim() &&
           (offering.kind === 'core' || offering.description.trim()) &&
+          (offering.kind !== 'integration' ||
+            (offering.purposes.length > 0 &&
+              (!offering.purposes.includes('Other') || offering.purpose_other.trim()))) &&
           (offering.source === 'native' || offering.developer.trim()) &&
           (offering.functions.length ||
             offering.other_functions.some((item) => item.trim()) ||
@@ -505,6 +589,7 @@ export function isAnswered(question: Question, answer: Answer): boolean {
             offering.all_specialties) &&
           (offering.kind === 'core' ||
             (offering.workflow.reused_data.length &&
+              (!offering.workflow.reused_data.includes('other') || offering.workflow.other_reused_data.trim()) &&
               offering.workflow.write_back &&
               offering.workflow.separate_app &&
               offering.workflow.patient_context &&
@@ -519,6 +604,29 @@ export function isAnswered(question: Question, answer: Answer): boolean {
   if (question.id === 'standards' && answer.selected.includes('0')) {
     const releases = answer.followups['0'] || []
     if (!releases.length || (releases.includes('Other') && !answer.details.fhir_other?.trim())) return false
+  }
+  if (question.id === 'standards' && answer.selected.includes('1')) {
+    const messages = answer.followups['1'] || []
+    if (!messages.length || (messages.includes('Other') && !answer.details.hl7v2_other?.trim())) return false
+  }
+  if (question.id === 'dataRetention' && ['0', '1'].includes(answer.selected[0] || '')) {
+    if (!(answer.followups.retained || []).length) return false
+  }
+  if (question.id === 'certifications') {
+    for (const index of answer.selected.filter((item) => Number(item) < 7)) {
+      const entry = answer.certification_details[index]
+      if (
+        !entry?.scopes.length ||
+        (entry.scopes.includes('other') && !entry.scope_other.trim()) ||
+        (Number(index) >= 5 && !entry.name.trim()) ||
+        (entry.valid_until && (!/^\d{4}$/.test(entry.valid_until) || Number(entry.valid_until) < 1900))
+      )
+        return false
+    }
+  }
+  if (question.id === 'requirements' && answer.selected.includes('1')) {
+    const required = answer.followups['1'] || []
+    if (!required.length || (required.includes('9') && !answer.details.requirements_other?.trim())) return false
   }
   if (question.id === 'interoperabilityTesting' && answer.selected.includes('0')) {
     if (
@@ -571,7 +679,7 @@ export function activeAnswer(question: Question, answer: Answer): Answer {
   const otherItems = question.kind === 'single' ? answer.other_items.slice(0, 1) : answer.other_items
   return {
     selected: [...answer.selected],
-    text: answer.text,
+    text: question.id === 'certifications' ? '' : answer.text,
     details: Object.fromEntries(
       Object.entries(answer.details).filter(
         ([key]) =>
@@ -579,13 +687,29 @@ export function activeAnswer(question: Question, answer: Answer): Answer {
           (question.id === 'standards' &&
             key === 'fhir_other' &&
             answer.selected.includes('0') &&
-            answer.followups['0']?.includes('Other')),
+            answer.followups['0']?.includes('Other')) ||
+          (question.id === 'standards' &&
+            key === 'hl7v2_other' &&
+            answer.selected.includes('1') &&
+            answer.followups['1']?.includes('Other')) ||
+          (question.id === 'requirements' &&
+            key === 'requirements_other' &&
+            answer.selected.includes('1') &&
+            answer.followups['1']?.includes('9')),
       ),
     ),
     followups:
-      question.id === 'standards' && answer.selected.includes('0')
-        ? { '0': [...new Set(answer.followups['0'] || [])] }
-        : {},
+      question.id === 'standards'
+        ? Object.fromEntries(
+            ['0', '1']
+              .filter((key) => answer.selected.includes(key))
+              .map((key) => [key, [...new Set(answer.followups[key] || [])]]),
+          )
+        : question.id === 'dataRetention' && ['0', '1'].includes(answer.selected[0] || '')
+          ? { retained: [...new Set(answer.followups.retained || [])] }
+          : question.id === 'requirements' && answer.selected.includes('1')
+            ? { '1': [...new Set(answer.followups['1'] || [])] }
+            : {},
     testing_events:
       question.id === 'interoperabilityTesting' && answer.selected.includes('0')
         ? answer.testing_events.map((event) => ({
@@ -596,6 +720,25 @@ export function activeAnswer(question: Question, answer: Answer): Answer {
             outcome_other: event.outcome === 'Other' ? event.outcome_other.trim() : '',
           }))
         : [],
+    certification_details:
+      question.id === 'certifications'
+        ? Object.fromEntries(
+            answer.selected
+              .filter((item) => Number(item) < 7)
+              .map((index) => {
+                const entry = answer.certification_details[index] || emptyCertificationDetail()
+                return [
+                  index,
+                  {
+                    name: Number(index) >= 5 ? entry.name.trim() : '',
+                    scopes: [...new Set(entry.scopes)],
+                    scope_other: entry.scopes.includes('other') ? entry.scope_other.trim() : '',
+                    valid_until: entry.valid_until.trim(),
+                  },
+                ]
+              }),
+          )
+        : {},
     other_items: otherIsSelected(question, answer) ? otherItems.map((item) => item.trim()).filter(Boolean) : [],
     offerings:
       question.kind === 'offerings'
@@ -605,12 +748,25 @@ export function activeAnswer(question: Question, answer: Answer): Answer {
             description: offering.description.trim(),
             source: offering.kind === 'integration' ? 'partner' : 'native',
             developer: offering.kind === 'integration' ? offering.developer.trim() : '',
+            purposes: offering.kind === 'integration' ? [...new Set(offering.purposes)] : [],
+            purpose_other:
+              offering.kind === 'integration' && offering.purposes.includes('Other')
+                ? offering.purpose_other.trim()
+                : '',
             functions: [...new Set(offering.functions)],
             specialties: [...new Set(offering.specialties)],
             other_functions: offering.other_functions.map((item) => item.trim()).filter(Boolean),
             other_specialties: offering.other_specialties.map((item) => item.trim()).filter(Boolean),
             standalone: offering.kind === 'function' && offering.standalone,
-            workflow: offering.kind === 'core' ? emptyClinicalWorkflow() : offering.workflow,
+            workflow:
+              offering.kind === 'core'
+                ? emptyClinicalWorkflow()
+                : {
+                    ...offering.workflow,
+                    other_reused_data: offering.workflow.reused_data.includes('other')
+                      ? offering.workflow.other_reused_data.trim()
+                      : '',
+                  },
           }))
         : [],
     rows: Object.fromEntries(
@@ -667,9 +823,13 @@ export function answerLines(question: Question, answer: Answer): string[] {
       const workflow = offering.workflow
       const workflowText =
         offering.kind !== 'core'
-          ? `; CIS data reused: ${workflow.reused_data.map((value) => workflowReuseOptions.find((item) => item.value === value)?.label || value).join(', ') || 'Not answered'}; CIS write-back: ${workflowChoiceOptions.write_back.find((item) => item.value === workflow.write_back)?.label || 'Not answered'}; Separate application: ${workflowChoiceOptions.separate_app.find((item) => item.value === workflow.separate_app)?.label || 'Not answered'}; Patient context: ${workflowChoiceOptions.patient_context.find((item) => item.value === workflow.patient_context)?.label || 'Not answered'}; Manual workflow steps: ${workflow.manual_steps || 'Not answered'}`
+          ? `; CIS data reused: ${workflow.reused_data.map((value) => (value === 'other' ? `Other: ${workflow.other_reused_data || 'Not answered'}` : workflowReuseOptions.find((item) => item.value === value)?.label || value)).join(', ') || 'Not answered'}; CIS write-back: ${workflowChoiceOptions.write_back.find((item) => item.value === workflow.write_back)?.label || 'Not answered'}; Separate application: ${workflowChoiceOptions.separate_app.find((item) => item.value === workflow.separate_app)?.label || 'Not answered'}; Patient context: ${workflowChoiceOptions.patient_context.find((item) => item.value === workflow.patient_context)?.label || 'Not answered'}; Manual workflow steps: ${workflow.manual_steps || 'Not answered'}`
           : ''
-      return `${title}: ${offering.name || 'Not answered'}; ${offering.source === 'partner' ? `Third-party company: ${offering.developer || 'Not answered'}` : 'Developed by your company'}${offering.kind === 'core' ? '' : `; What it does: ${offering.description || 'Not answered'}`}; Areas: ${tags.join(', ') || 'Not answered'}${offering.kind === 'function' ? `; Standalone purchase: ${offering.standalone ? 'Yes' : 'No'}` : ''}${workflowText}`
+      const purposes =
+        offering.kind === 'integration'
+          ? `; Type/purpose: ${offering.purposes.map((value) => (value === 'Other' ? `Other: ${offering.purpose_other || 'Not answered'}` : value)).join(', ') || 'Not answered'}`
+          : ''
+      return `${title}: ${offering.name || 'Not answered'}; ${offering.source === 'partner' ? `Third-party company: ${offering.developer || 'Not answered'}` : 'Developed by your company'}${offering.kind === 'core' ? '' : `; What it does: ${offering.description || 'Not answered'}`}${purposes}; Areas: ${tags.join(', ') || 'Not answered'}${offering.kind === 'function' ? `; Standalone purchase: ${offering.standalone ? 'Yes' : 'No'}` : ''}${workflowText}`
     })
   if (question.kind === 'text') return answer.text.trim() ? [answer.text] : []
   const options = question.choices
@@ -717,6 +877,35 @@ export function answerLines(question: Question, answer: Answer): string[] {
       release === 'Other' && answer.details.fhir_other ? `Other: ${answer.details.fhir_other}` : release,
     )
     if (releases.length) selectedLines.push(`Primary FHIR release used in production: ${releases.join(', ')}`)
+  }
+  if (question.id === 'standards' && answer.selected.includes('1')) {
+    const messages = (answer.followups['1'] || []).map((value) =>
+      value === 'Other' ? `Other: ${answer.details.hl7v2_other || 'Not answered'}` : value,
+    )
+    if (messages.length) selectedLines.push(`HL7 v2 message types: ${messages.join(', ')}`)
+  }
+  if (question.id === 'dataRetention' && ['0', '1'].includes(answer.selected[0] || '')) {
+    const retained = (answer.followups.retained || []).map(
+      (value) => retainedPatientDataOptions.find((item) => item.value === value)?.label || value,
+    )
+    if (retained.length) selectedLines.push(`Persistently stored: ${retained.join(', ')}`)
+  }
+  if (question.id === 'certifications') {
+    for (const index of answer.selected.filter((item) => Number(item) < 7)) {
+      const entry = answer.certification_details[index]
+      if (!entry) continue
+      selectedLines.push(
+        `${options[Number(index)]}${entry.name ? `: ${entry.name}` : ''}; Scope: ${entry.scopes.map((value) => (value === 'other' ? `Other: ${entry.scope_other}` : certificationScopeOptions.find((item) => item.value === value)?.label || value)).join(', ') || 'Not answered'}; Valid until: ${entry.valid_until || 'Not specified'}`,
+      )
+    }
+  }
+  if (question.id === 'requirements' && answer.selected.includes('1')) {
+    const needed = (answer.followups['1'] || []).map((index) =>
+      index === '9'
+        ? `Other: ${answer.details.requirements_other || 'Not answered'}`
+        : implementationRequirementOptions[Number(index)] || index,
+    )
+    if (needed.length) selectedLines.push(`What is typically required: ${needed.join(', ')}`)
   }
   if (question.id === 'interoperabilityTesting' && answer.selected.includes('0')) {
     for (const event of answer.testing_events)

@@ -80,9 +80,7 @@
       "Other",
       "None / no healthcare interoperability standards supported"
     ],
-    "detailLabels": {
-      "1": "HL7 v2: Please specify supported message types"
-    }
+    "detailLabels": {}
   },
   "deployment": {
     "label": "Which deployment models are available for your solution?",
@@ -100,14 +98,14 @@
     "options": ["Yes – please specify", "No", "Not applicable"]
   },
   "dataRetention": {
-    "label": "Which patient information does this solution itself retain?",
+    "label": "Does the solution persistently store patient/clinical data?",
     "options": [
-      "Individual clinical documents or diagnostic images",
-      "An ongoing patient record across encounters or over time",
-      "Other patient data in the solution's storage or backups",
-      "None of these",
+      "Yes",
+      "Yes, but only specific data/documents – please specify",
+      "No – data is only transmitted/processed temporarily",
       "Not sure"
-    ]
+    ],
+    "detailLabels": {"1": "Please specify which data/documents are stored"}
   },
   "structure": {
     "label": "To what extent is clinical information stored as structured data?",
@@ -211,7 +209,6 @@
   },
   "certifications": {
     "label": "Which certifications, attestations or regulatory conformity assessments currently apply to your organization or solution?",
-    "optionalTextLabel": "Optional: Please specify certificate/assessment name, scope and validity.",
     "options": [
       "ISO/IEC 27001",
       "ISO 9001",

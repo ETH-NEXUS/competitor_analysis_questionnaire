@@ -1203,6 +1203,44 @@
                     "title"
                 ]
             },
+            "CertificationDetail": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
+                    },
+                    "scopes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ScopesEnum"
+                        },
+                        "maxItems": 3
+                    },
+                    "scope_other": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
+                    },
+                    "valid_until": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "default": "",
+                                "pattern": "^(?:|\\d{4})$"
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "scopes"
+                ]
+            },
             "ClinicalOffering": {
                 "type": "object",
                 "properties": {
@@ -1216,6 +1254,19 @@
                     "description": {
                         "type": "string",
                         "maxLength": 2000
+                    },
+                    "purposes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 200
+                        },
+                        "maxItems": 18
+                    },
+                    "purpose_other": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
                     },
                     "source": {
                         "$ref": "#/components/schemas/ClinicalOfferingSourceEnum"
@@ -1296,7 +1347,12 @@
                         "items": {
                             "$ref": "#/components/schemas/ReusedDataEnum"
                         },
-                        "maxItems": 5
+                        "maxItems": 6
+                    },
+                    "other_reused_data": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
                     },
                     "write_back": {
                         "default": "",
@@ -1689,7 +1745,7 @@
                                 "type": "string",
                                 "maxLength": 200
                             },
-                            "maxItems": 6
+                            "maxItems": 20
                         }
                     },
                     "testing_events": {
@@ -1698,6 +1754,12 @@
                             "$ref": "#/components/schemas/InteroperabilityTestEvent"
                         },
                         "maxItems": 30
+                    },
+                    "certification_details": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/CertificationDetail"
+                        }
                     },
                     "other_items": {
                         "type": "array",
@@ -1834,17 +1896,17 @@
                     "specialized_clinical": {
                         "type": "boolean",
                         "writeOnly": true,
-                        "title": "C. Specialized clinical solution / modules"
+                        "title": "B. Specialized clinical solution / modules"
                     },
                     "data_interoperability": {
                         "type": "boolean",
                         "writeOnly": true,
-                        "title": "D. Data / interoperability solution"
+                        "title": "C. Data / interoperability solution"
                     },
                     "patient_facing": {
                         "type": "boolean",
                         "writeOnly": true,
-                        "title": "E. Patient-facing solution"
+                        "title": "D. Patient-facing solution"
                     },
                     "answers": {
                         "type": "object",
@@ -1886,11 +1948,21 @@
                     "patient",
                     "medication",
                     "lab",
+                    "other",
                     "none",
                     "unknown"
                 ],
                 "type": "string",
-                "description": "* `patient` - patient\n* `medication` - medication\n* `lab` - lab\n* `none` - none\n* `unknown` - unknown"
+                "description": "* `patient` - patient\n* `medication` - medication\n* `lab` - lab\n* `other` - other\n* `none` - none\n* `unknown` - unknown"
+            },
+            "ScopesEnum": {
+                "enum": [
+                    "organization",
+                    "solution",
+                    "other"
+                ],
+                "type": "string",
+                "description": "* `organization` - organization\n* `solution` - solution\n* `other` - other"
             },
             "SeparateAppEnum": {
                 "enum": [

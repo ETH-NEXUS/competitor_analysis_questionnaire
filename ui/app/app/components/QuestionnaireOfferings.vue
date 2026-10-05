@@ -3,6 +3,7 @@ import {
   clinicalFunctionOptions,
   clinicalSpecialtyOptions,
   emptyOffering,
+  integrationPurposeOptions,
   workflowChoiceOptions,
   workflowReuseOptions,
   type Answer,
@@ -70,6 +71,10 @@ function remove(index: number) {
 function toggle(index: number, field: 'functions' | 'specialties', value: string, checked: boolean) {
   const items = props.answer.offerings[index]![field]
   change(index, { [field]: checked ? [...new Set([...items, value])] : items.filter((item) => item !== value) })
+}
+function togglePurpose(index: number, value: string, checked: boolean) {
+  const current = props.answer.offerings[index]!.purposes
+  change(index, { purposes: checked ? [...new Set([...current, value])] : current.filter((item) => item !== value) })
 }
 function changeWorkflow(index: number, field: keyof ClinicalOffering['workflow'], value: string | string[]) {
   const offering = props.answer.offerings[index]!
@@ -176,6 +181,28 @@ async function customEnter(event: KeyboardEvent, index: number, field: 'other_fu
             />
           </UFormField>
         </div>
+        <fieldset v-if="offering.kind === 'integration'" class="border-default mt-5 space-y-3 border-t pt-5">
+          <legend class="text-sm font-semibold">
+            Type/purpose of integrated external solution – select all that apply
+          </legend>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <UCheckbox
+              v-for="purpose in integrationPurposeOptions"
+              :key="purpose"
+              :label="purpose"
+              :model-value="offering.purposes.includes(purpose)"
+              @update:model-value="togglePurpose(index, purpose, $event === true)"
+            />
+          </div>
+          <UFormField v-if="offering.purposes.includes('Other')" label="Other purpose">
+            <UInput
+              :model-value="offering.purpose_other"
+              :maxlength="200"
+              class="w-full"
+              @update:model-value="change(index, { purpose_other: String($event) })"
+            />
+          </UFormField>
+        </fieldset>
         <div class="mt-5 grid gap-5 lg:grid-cols-2">
           <fieldset>
             <legend class="mb-3 text-sm font-semibold">
@@ -305,6 +332,18 @@ async function customEnter(event: KeyboardEvent, index: number, field: 'other_fu
                 @update:model-value="toggleReuse(index, option.value, $event === true)"
               />
             </div>
+            <UFormField
+              v-if="offering.workflow.reused_data.includes('other')"
+              label="Other CIS data reused"
+              class="mt-3"
+            >
+              <UInput
+                :model-value="offering.workflow.other_reused_data"
+                :maxlength="200"
+                class="w-full"
+                @update:model-value="changeWorkflow(index, 'other_reused_data', String($event))"
+              />
+            </UFormField>
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
             <UFormField label="Is information written back to the CIS?">

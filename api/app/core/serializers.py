@@ -45,11 +45,12 @@ class QuestionnaireProductSerializer(serializers.Serializer):
 
 class ClinicalWorkflowSerializer(serializers.Serializer):
     reused_data = serializers.ListField(
-        child=serializers.ChoiceField(choices=("patient", "medication", "lab", "none", "unknown")),
-        max_length=5,
+        child=serializers.ChoiceField(choices=("patient", "medication", "lab", "other", "none", "unknown")),
+        max_length=6,
         required=False,
         default=list,
     )
+    other_reused_data = serializers.CharField(allow_blank=True, max_length=200, required=False, default="")
     write_back = serializers.ChoiceField(
         choices=("", "automatic", "user_action", "manual", "none", "unknown"),
         required=False,
@@ -76,11 +77,18 @@ class ClinicalWorkflowSerializer(serializers.Serializer):
             )
         return value
 
+    def validate(self, attrs):
+        if "other" in attrs["reused_data"] and not attrs["other_reused_data"].strip():
+            raise serializers.ValidationError({"other_reused_data": "Specify the other CIS data reused."})
+        return attrs
+
 
 class ClinicalOfferingSerializer(serializers.Serializer):
     kind = serializers.ChoiceField(choices=("core", "integration", "function"))
     name = serializers.CharField(allow_blank=True, max_length=200)
     description = serializers.CharField(allow_blank=True, max_length=2000)
+    purposes = serializers.ListField(child=serializers.CharField(max_length=200), max_length=18, required=False, default=list)
+    purpose_other = serializers.CharField(allow_blank=True, max_length=200, required=False, default="")
     source = serializers.ChoiceField(choices=("native", "partner"))
     developer = serializers.CharField(allow_blank=True, max_length=200)
     functions = serializers.ListField(child=serializers.CharField(max_length=200), max_length=30)
@@ -94,6 +102,30 @@ class ClinicalOfferingSerializer(serializers.Serializer):
     all_specialties = serializers.BooleanField()
     standalone = serializers.BooleanField()
     workflow = ClinicalWorkflowSerializer(required=False)
+
+    def validate(self, attrs):
+        if attrs["kind"] == "integration" and "Other" in attrs["purposes"] and not attrs["purpose_other"].strip():
+            raise serializers.ValidationError({"purpose_other": "Specify the other integration purpose."})
+        return attrs
+
+
+class CertificationDetailSerializer(serializers.Serializer):
+    name = serializers.CharField(allow_blank=True, max_length=200, required=False, default="")
+    scopes = serializers.ListField(
+        child=serializers.ChoiceField(choices=("organization", "solution", "other")),
+        max_length=3,
+    )
+    scope_other = serializers.CharField(allow_blank=True, max_length=200, required=False, default="")
+    valid_until = serializers.RegexField(regex=r"^(?:|\d{4})$", allow_blank=True, required=False, default="")
+
+    def validate(self, attrs):
+        if not attrs["scopes"]:
+            raise serializers.ValidationError({"scopes": "Select at least one scope."})
+        if "other" in attrs["scopes"] and not attrs["scope_other"].strip():
+            raise serializers.ValidationError({"scope_other": "Specify the other scope."})
+        if attrs["valid_until"] and int(attrs["valid_until"]) < MIN_INTEROPERABILITY_TEST_YEAR:
+            raise serializers.ValidationError({"valid_until": "Enter a valid year."})
+        return attrs
 
 
 class InteroperabilityTestEventSerializer(serializers.Serializer):
@@ -140,12 +172,15 @@ class QuestionnaireAnswerSerializer(serializers.Serializer):
     text = serializers.CharField(allow_blank=True, max_length=20000)
     details = serializers.DictField(child=serializers.CharField(allow_blank=True, max_length=20000))
     followups = serializers.DictField(
-        child=serializers.ListField(child=serializers.CharField(max_length=200), max_length=6),
+        child=serializers.ListField(child=serializers.CharField(max_length=200), max_length=20),
         required=False,
         default=dict,
     )
     testing_events = serializers.ListField(
         child=InteroperabilityTestEventSerializer(), max_length=30, required=False, default=list
+    )
+    certification_details = serializers.DictField(
+        child=CertificationDetailSerializer(), required=False, default=dict
     )
     other_items = serializers.ListField(
         child=serializers.CharField(allow_blank=False, max_length=2000),
@@ -169,25 +204,71 @@ class QuestionnaireAnswerSerializer(serializers.Serializer):
     )
 
 
-def validate_fhir_followup(question_id, answer):
-    if not answer.get("followups"):
+HL7_V2_MESSAGE_TYPES = {"ADT", "ORM", "ORU", "OML", "MDM", "SIU", "DFT", "BAR", "RDE", "RAS", "VXU", "Other", "Not sure"}
+RETAINED_DATA_TYPES = {"documents", "record", "other"}
+IMPLEMENTATION_REQUIREMENTS = {str(index) for index in range(10)}
+
+
+def validate_followups(question_id, answer):
+    selected = answer.get("selected", [])
+    followups = answer.get("followups", {})
+    details = answer.get("details", {})
+    if question_id == "standards":
+        if set(followups) - {"0", "1"}:
+            raise serializers.ValidationError({"answers": "Invalid interoperability follow-up."})
+        for key, choices, other_key in (
+            ("0", {"R2", "R3", "R4", "R4B", "R5", "Other"}, "fhir_other"),
+            ("1", HL7_V2_MESSAGE_TYPES, "hl7v2_other"),
+        ):
+            values = followups.get(key, [])
+            if key in selected and not values:
+                raise serializers.ValidationError({"answers": "Select the supported release or message types."})
+            if key not in selected and values or len(values) != len(set(values)) or set(values) - choices:
+                raise serializers.ValidationError({"answers": "Invalid interoperability follow-up selection."})
+            if "Other" in values and not details.get(other_key, "").strip():
+                raise serializers.ValidationError({"answers": "Specify the Other interoperability answer."})
+        v2 = followups.get("1", [])
+        if "Not sure" in v2 and len(v2) > 1:
+            raise serializers.ValidationError({"answers": "Not sure cannot be combined with message types."})
+    elif question_id == "dataRetention":
+        retained = followups.get("retained", [])
+        if set(followups) - {"retained"} or set(retained) - RETAINED_DATA_TYPES or len(retained) != len(set(retained)):
+            raise serializers.ValidationError({"answers": "Invalid stored-data selection."})
+        if (selected and selected[0] in {"0", "1"}) != bool(retained):
+            raise serializers.ValidationError({"answers": "Describe the data stored when persistent storage is selected."})
+        if selected == ["1"] and not details.get("1", "").strip():
+            raise serializers.ValidationError({"answers": "Specify the data or documents stored."})
+    elif question_id == "requirements":
+        required = followups.get("1", [])
+        if set(followups) - {"1"} or set(required) - IMPLEMENTATION_REQUIREMENTS or len(required) != len(set(required)):
+            raise serializers.ValidationError({"answers": "Invalid implementation requirement selection."})
+        if (selected == ["1"]) != bool(required):
+            raise serializers.ValidationError({"answers": "Select what is required when standard configuration is not sufficient."})
+        if "9" in required and not details.get("requirements_other", "").strip():
+            raise serializers.ValidationError({"answers": "Specify the other implementation requirement."})
+    elif followups:
+        raise serializers.ValidationError({"answers": "Follow-up answers are attached to the wrong question."})
+
+
+def validate_certification_details(question_id, answer):
+    entries = answer.get("certification_details", {})
+    if question_id != "certifications":
+        if entries:
+            raise serializers.ValidationError({"answers": "Certification details belong in Q8."})
         return
-    releases = answer["followups"].get("0", [])
-    if (
-        question_id != "standards"
-        or set(answer["followups"]) != {"0"}
-        or "0" not in answer.get("selected", [])
-        or len(releases) != len(set(releases))
-        or any(item not in {"R2", "R3", "R4", "R4B", "R5", "Other"} for item in releases)
-    ):
-        raise serializers.ValidationError({"answers": "Invalid FHIR release selection."})
-    if "Other" in releases and not answer.get("details", {}).get("fhir_other", "").strip():
-        raise serializers.ValidationError({"answers": "Specify the Other FHIR release."})
+    selected = set(answer.get("selected", []))
+    expected = {index for index in selected if index in {str(item) for item in range(7)}}
+    if set(entries) != expected:
+        raise serializers.ValidationError({"answers": "Provide details for each selected certification."})
+    for index, entry in entries.items():
+        if int(index) >= 5 and not entry["name"].strip():
+            raise serializers.ValidationError({"answers": "Specify the other certification or assessment name."})
 
 
 def validate_answer_details(answers, schema):
     for question_id, answer in answers.items():
-        validate_fhir_followup(question_id, answer)
+        validate_followups(question_id, answer)
+        validate_certification_details(question_id, answer)
         if answer.get("testing_events") and (
             question_id != "interoperabilityTesting" or "0" not in answer.get("selected", [])
         ):
@@ -267,7 +348,8 @@ class QuestionnaireResponseSerializer(serializers.ModelSerializer):
                 for question_id, answer in answers.items()
             }
         )
-        validated_data["certification_details"] = answers.get("certifications", {}).get("text", "")
+        certification_details = answers.get("certifications", {}).get("certification_details", {})
+        validated_data["certification_details"] = json.dumps(certification_details, ensure_ascii=False) if certification_details else ""
         validated_data["answer_data"] = answers
         response, _created = QuestionnaireResponse.objects.get_or_create(
             submission_id=submission_id,

@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import {
   costOptions,
+  certificationScopeOptions,
+  emptyCertificationDetail,
   emptyProduct,
   emptyTestingEvent,
   fhirReleases,
+  hl7v2MessageTypes,
+  implementationRequirementOptions,
   otherIndex,
   otherIsSelected,
   productsFor,
+  retainedPatientDataOptions,
   sourceOptions,
   testingEventOptions,
   testingOutcomeOptions,
   type Answer,
+  type CertificationDetail,
   type Product,
   type Question,
   type TestingEvent,
@@ -70,6 +76,33 @@ function updateFhirRelease(release: string, checked: boolean) {
   const current = props.answer.followups['0'] || []
   const selected = checked ? [...new Set([...current, release])] : current.filter((item) => item !== release)
   emit('update', { ...props.answer, followups: { ...props.answer.followups, '0': selected } })
+}
+function updateFollowup(key: string, value: string, checked: boolean, exclusive: string[] = []) {
+  const current = props.answer.followups[key] || []
+  const selected = checked
+    ? exclusive.includes(value)
+      ? [value]
+      : [...new Set([...current.filter((item) => !exclusive.includes(item)), value])]
+    : current.filter((item) => item !== value)
+  emit('update', { ...props.answer, followups: { ...props.answer.followups, [key]: selected } })
+}
+function certificationEntry(index: number): CertificationDetail {
+  return props.answer.certification_details[String(index)] || emptyCertificationDetail()
+}
+function updateCertification(index: number, patch: Partial<CertificationDetail>) {
+  emit('update', {
+    ...props.answer,
+    certification_details: {
+      ...props.answer.certification_details,
+      [index]: { ...certificationEntry(index), ...patch },
+    },
+  })
+}
+function toggleCertificationScope(index: number, scope: string, checked: boolean) {
+  const current = certificationEntry(index).scopes
+  updateCertification(index, {
+    scopes: checked ? [...new Set([...current, scope])] : current.filter((item) => item !== scope),
+  })
 }
 function updateTestingEvent(index: number, field: keyof TestingEvent, value: string) {
   const testing_events = [...props.answer.testing_events]
@@ -334,6 +367,121 @@ function removeProduct(key: string, index: number) {
           :maxlength="200"
           class="w-full"
           @update:model-value="detail('fhir_other', String($event))"
+        />
+      </UFormField>
+    </div>
+    <div
+      v-if="question.id === 'standards' && answer.selected.includes('1')"
+      class="border-default mt-5 space-y-3 rounded-xl border p-4"
+    >
+      <p class="text-sm font-semibold">HL7 v2 – Which message types does your solution support?</p>
+      <p class="text-muted text-sm">Select all that apply.</p>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <UCheckbox
+          v-for="item in hl7v2MessageTypes"
+          :key="item.value"
+          :label="item.label"
+          :model-value="(answer.followups['1'] || []).includes(item.value)"
+          @update:model-value="updateFollowup('1', item.value, $event === true, ['Not sure'])"
+        />
+      </div>
+      <UFormField v-if="answer.followups['1']?.includes('Other')" label="Other HL7 v2 message type">
+        <UInput
+          :model-value="answer.details.hl7v2_other || ''"
+          :maxlength="200"
+          class="w-full"
+          @update:model-value="detail('hl7v2_other', String($event))"
+        />
+      </UFormField>
+    </div>
+    <div
+      v-if="question.id === 'dataRetention' && (answer.selected.includes('0') || answer.selected.includes('1'))"
+      class="border-default mt-5 space-y-3 rounded-xl border p-4"
+    >
+      <p class="text-sm font-semibold">Which patient/clinical information is persistently stored?</p>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <UCheckbox
+          v-for="item in retainedPatientDataOptions"
+          :key="item.value"
+          :label="item.label"
+          :model-value="(answer.followups.retained || []).includes(item.value)"
+          @update:model-value="updateFollowup('retained', item.value, $event === true)"
+        />
+      </div>
+    </div>
+    <div
+      v-if="question.id === 'certifications' && answer.selected.some((item) => Number(item) < 7)"
+      class="mt-5 space-y-4"
+    >
+      <h4 class="text-sm font-semibold">Certification / assessment details</h4>
+      <div
+        v-for="index in answer.selected.filter((item) => Number(item) < 7)"
+        :key="index"
+        class="border-default space-y-3 rounded-xl border p-4"
+      >
+        <p class="font-medium">{{ question.choices[Number(index)] }}</p>
+        <UFormField v-if="Number(index) >= 5" label="Certificate / assessment name">
+          <UInput
+            :model-value="certificationEntry(Number(index)).name"
+            :maxlength="200"
+            class="w-full"
+            @update:model-value="updateCertification(Number(index), { name: String($event) })"
+          />
+        </UFormField>
+        <fieldset>
+          <legend class="mb-2 text-sm font-medium">Scope</legend>
+          <div class="flex flex-wrap gap-x-5 gap-y-2">
+            <UCheckbox
+              v-for="scopeOption in certificationScopeOptions"
+              :key="scopeOption.value"
+              :label="scopeOption.label"
+              :model-value="certificationEntry(Number(index)).scopes.includes(scopeOption.value)"
+              @update:model-value="toggleCertificationScope(Number(index), scopeOption.value, $event === true)"
+            />
+          </div>
+        </fieldset>
+        <UFormField v-if="certificationEntry(Number(index)).scopes.includes('other')" label="Other scope">
+          <UInput
+            :model-value="certificationEntry(Number(index)).scope_other"
+            :maxlength="200"
+            class="w-full"
+            @update:model-value="updateCertification(Number(index), { scope_other: String($event) })"
+          />
+        </UFormField>
+        <UFormField label="Valid until (year, if applicable)">
+          <UInput
+            :model-value="certificationEntry(Number(index)).valid_until"
+            type="number"
+            min="1900"
+            max="2100"
+            placeholder="YYYY"
+            class="w-full"
+            @update:model-value="updateCertification(Number(index), { valid_until: String($event) })"
+          />
+        </UFormField>
+      </div>
+    </div>
+    <div
+      v-if="question.id === 'requirements' && answer.selected.includes('1')"
+      class="border-default mt-5 space-y-3 rounded-xl border p-4"
+    >
+      <p class="text-sm font-semibold">What is typically required?</p>
+      <p class="text-muted text-sm">Select all that apply.</p>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <UCheckbox
+          v-for="(item, index) in implementationRequirementOptions"
+          :key="item"
+          :label="item"
+          :model-value="(answer.followups['1'] || []).includes(String(index))"
+          @update:model-value="updateFollowup('1', String(index), $event === true)"
+        />
+      </div>
+      <UFormField v-if="answer.followups['1']?.includes('9')" label="Other requirement">
+        <UInput
+          :model-value="answer.details.requirements_other || ''"
+          :maxlength="2000"
+          class="w-full"
+          @update:model-value="detail('requirements_other', String($event))"
         />
       </UFormField>
     </div>

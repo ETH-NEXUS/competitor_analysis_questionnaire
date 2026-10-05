@@ -86,9 +86,7 @@
       "Other",
       "None / no healthcare interoperability standards supported"
     ],
-    "detailLabels": {
-      "1": "HL7 v2: Please specify supported message types"
-    },
+    "detailLabels": {},
     "kind": "multi"
   },
   "deployment": {
@@ -113,15 +111,17 @@
     "kind": "single"
   },
   "dataRetention": {
-    "label": "Which patient information does this solution itself retain?",
+    "label": "Does the solution persistently store patient/clinical data?",
     "options": [
-      "Individual clinical documents or diagnostic images",
-      "An ongoing patient record across encounters or over time",
-      "Other patient data in the solution's storage or backups",
-      "None of these",
+      "Yes",
+      "Yes, but only specific data/documents – please specify",
+      "No – data is only transmitted/processed temporarily",
       "Not sure"
     ],
-    "kind": "multi"
+    "detailLabels": {
+      "1": "Please specify which data/documents are stored"
+    },
+    "kind": "single"
   },
   "structure": {
     "label": "To what extent is clinical information stored as structured data?",
@@ -234,7 +234,6 @@
   },
   "certifications": {
     "label": "Which certifications, attestations or regulatory conformity assessments currently apply to your organization or solution?",
-    "optionalTextLabel": "Optional: Please specify certificate/assessment name, scope and validity.",
     "options": [
       "ISO/IEC 27001",
       "ISO 9001",
@@ -488,28 +487,29 @@
     "kind": "multi"
   },
   "dataCapabilities": {
-    "label": "Which capabilities does your solution provide?",
+    "label": "Which role(s) does the solution perform within a hospital IT architecture? Select all that apply.",
     "options": [
       "Clinical data repository / longitudinal health record",
       "Integration engine",
       "FHIR server",
-      "API management",
+      "API management / gateway",
       "Master patient index / identity management",
-      "Terminology services",
+      "Terminology service",
       "Data transformation / mapping",
       "Messaging / event broker",
       "Workflow / orchestration",
-      "Application development / low-code environment",
+      "Application development / low-code platform",
       "Data warehouse / analytics platform",
       "Vendor-neutral archive",
-      "Other"
+      "Healthcare data exchange / connectivity network",
+      "Other – specify"
     ],
     "kind": "multi"
   },
   "dataExchangeHandling": {
     "label": "How does the solution handle data exchanged between connected systems?",
     "options": [
-      "Pass-through / routing only",
+      "Message/data routing or pass-through",
       "Transformation / mapping",
       "Temporary storage / queueing",
       "Persistent storage",
@@ -520,10 +520,6 @@
       "Other"
     ],
     "kind": "multi"
-  },
-  "architecture": {
-    "label": "Briefly describe the primary role of the solution within a hospital IT architecture.",
-    "kind": "text"
   },
   "dataIndependent": {
     "label": "Can the solution be purchased and operated independently of the customer’s hospital-wide CIS?",
@@ -682,20 +678,11 @@
     "kind": "multi"
   },
   "requirements": {
-    "label": "What is typically required to implement the solution in an existing hospital IT environment?",
+    "label": "Can the solution typically be implemented using standard configuration without integration, migration or customer-specific development?",
     "options": [
-      "Standard configuration only",
-      "Integration with CIS/HIS",
-      "Integration with patient administration/ADT",
-      "Integration with hospital identity/SSO",
-      "Integration with other clinical systems",
-      "Data migration/import",
-      "Hospital-specific interface development",
-      "Vendor-specific customization/development",
-      "Installation of local infrastructure/components",
-      "Clinical workflow/process configuration",
-      "Other"
+      "Yes",
+      "No"
     ],
-    "kind": "multi"
+    "kind": "single"
   }
 }
