@@ -4,6 +4,7 @@ const store = useQuestionnaireStore()
 const fields = {
   respondentEmail: 'Your email address',
   providerName: 'Company / provider name',
+  solutionName: 'Solution / product name',
 }
 </script>
 
@@ -41,6 +42,21 @@ const fields = {
           v-model="store.identity.providerName"
           name="provider_name"
           autocomplete="organization"
+          required
+          :maxlength="200"
+          class="w-full"
+        />
+      </UFormField>
+      <UFormField
+        label="Solution / product name"
+        required
+        :error="showErrors ? store.identityErrors.solutionName : undefined"
+        class="sm:col-span-2"
+      >
+        <UInput
+          v-model="store.identity.solutionName"
+          name="solution_name"
+          autocomplete="off"
           required
           :maxlength="200"
           class="w-full"

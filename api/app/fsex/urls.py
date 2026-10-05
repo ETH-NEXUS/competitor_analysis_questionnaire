@@ -22,7 +22,8 @@ from rest_framework.routers import DefaultRouter
 
 from core import views
 from core.admin import questionnaire_admin_site
-from core.analysis import analysis, analysis_css, analysis_js, export_csv
+from core.analysis import analysis, analysis_css, analysis_js, delete_submissions, export_csv, save_other_grouping, save_vendor_outreach
+from core.questionnaire_pdf import export_questionnaire_pdf
 from core.viewsets import (
     AccessAdminViewSet,
     AccessAuthenticatedViewSet,
@@ -52,8 +53,12 @@ urlpatterns = [
     path("admin/analysis/style.css", analysis_css, name="questionnaire-analysis-css"),
     path("admin/analysis/app.js", analysis_js, name="questionnaire-analysis-js"),
     path("admin/analysis/export.csv", export_csv, name="questionnaire-analysis-csv"),
+    path("admin/analysis/group/", save_other_grouping, name="questionnaire-analysis-group"),
+    path("admin/analysis/vendors/", save_vendor_outreach, name="questionnaire-analysis-vendors"),
+    path("admin/analysis/delete/", delete_submissions, name="questionnaire-analysis-delete"),
     path("admin/", questionnaire_admin_site.urls),
     path("api/v1/health/", views.health, name="health"),
+    path("api/v1/questionnaire-pdf/", export_questionnaire_pdf, name="questionnaire-pdf"),
     path("api/v1/auth/csrf/", views.csrf, name="csrf"),
     path("api/v1/auth/", include("dj_rest_auth.urls")),
     path("api/v1/", include(router.urls)),

@@ -7,19 +7,31 @@
   <script defer src="{% url 'questionnaire-analysis-js' %}"></script>
 </head>
 <body>
-<header><div><p class="eyebrow">HOSPITAL IT · SUPERUSER</p><h1>Questionnaire analysis</h1></div><a href="{% url 'admin:index' %}">Back to administration</a></header>
+<header><div><p class="eyebrow">HOSPITAL IT · SUPERUSER</p><h1>Questionnaire analysis</h1></div><nav><a href="{% url 'admin:core_questionnaireresponse_changelist' %}">Django submissions</a><a href="{% url 'admin:index' %}">Administration</a></nav></header>
 <main>
-  <section class="toolbar" aria-label="Analysis filters">
-    <label>Company / provider<select id="provider"><option value="">All providers</option></select></label>
-    <label>Solution scope<select id="scope"><option value="">All scopes</option></select></label>
-    <a class="button" id="export" href="{% url 'questionnaire-analysis-csv' %}">Export CSV</a>
-  </section>
-  <p id="summary" role="status"></p>
-  <p class="muted">Counts represent submissions, not unique companies. Multi-select answers can count in several bars. Hover, focus or tap a slice or bar to see the providers. Filters also apply to the CSV export.</p>
-  <nav class="tabs" aria-label="Analysis views"><button id="charts-tab" aria-pressed="true">Question charts</button><button id="providers-tab" aria-pressed="false">Provider answers</button></nav>
-  <section id="charts" aria-label="Question charts"></section>
+  <form id="grouping-security" hidden>{% csrf_token %}</form>
+  <div id="detail-controls" hidden>
+    <section class="toolbar" aria-label="Analysis filters">
+      <label>Company / provider<select id="provider"><option value="">All providers</option></select></label>
+      <label>Solution scope<select id="scope"><option value="">All scopes</option></select></label>
+      <label>Response view<select id="mode"><option value="all">All submissions</option><option value="latest_provider">Latest submission per provider</option></select></label>
+      <a class="button" id="export" href="{% url 'questionnaire-analysis-csv' %}">Export CSV</a>
+    </section>
+    <div id="summary" role="status" class="summary-grid"></div>
+    <p class="muted">Analysis and CSV include the current questionnaire version. The Submissions tab includes all versions. For multi-select questions, each answered submission appears once per selected feature.</p>
+  </div>
+  <nav class="tabs" aria-label="Analysis views"><button id="presentation-tab" aria-pressed="true">Presentation figures</button><button id="outreach-tab" aria-pressed="false">Vendor outreach</button><button id="products-tab" aria-pressed="false">Product comparison</button><button id="charts-tab" aria-pressed="false">Question tables</button><button id="providers-tab" aria-pressed="false">Provider answers</button><button id="submissions-tab" aria-pressed="false">Submissions</button></nav>
+  <section id="presentation" aria-label="Presentation figures"></section>
+  <section id="outreach" aria-label="Vendor outreach" hidden></section>
+  <section id="products" aria-label="Product comparison" hidden></section>
+  <section id="charts" aria-label="Question charts" hidden></section>
   <section id="providers" aria-label="Provider answers" hidden></section>
+  <section id="submissions" aria-label="Submissions" hidden></section>
 </main>
+<div id="grouping-url" data-url="{% url 'questionnaire-analysis-group' %}" hidden></div>
+<div id="vendor-url" data-url="{% url 'questionnaire-analysis-vendors' %}" hidden></div>
+<div id="delete-url" data-url="{% url 'questionnaire-analysis-delete' %}" hidden></div>
+<dialog id="delete-confirmation" aria-labelledby="delete-title"><h2 id="delete-title">Delete selected submissions?</h2><p id="delete-summary"></p><p>This permanently removes the selected answers from the database and analysis.</p><div class="dialog-actions"><button id="cancel-delete" type="button">Cancel</button><button id="confirm-delete" type="button" class="danger-button">Delete submissions</button></div><p id="delete-error" role="alert"></p></dialog>
 {{ analysis_data|json_script:"analysis-data" }}
 </body>
 </html>

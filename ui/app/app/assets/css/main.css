@@ -47,6 +47,27 @@
   @apply border-default min-w-0 border-b py-7 first:pt-0 last:border-b-0 last:pb-0;
 }
 
+.question-highlight {
+  margin-inline: -0.75rem;
+  padding-inline: 0.75rem;
+  border-radius: 0.75rem;
+  background: #ecfdf5;
+  box-shadow: 0 0 0 3px #0f766e;
+  scroll-margin-block: 6rem;
+}
+
+.review-question-link {
+  color: #0f766e;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.review-question-link:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 3px;
+}
+
 .question-label {
   @apply text-highlighted float-left mb-4 w-full text-base leading-relaxed font-medium;
 }

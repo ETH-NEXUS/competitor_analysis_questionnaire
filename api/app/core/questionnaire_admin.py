@@ -2,7 +2,12 @@
 
 from django.contrib import admin
 
-from .questionnaire import QUESTION_COLUMNS, SCOPE_FIELDS
+from .questionnaire import LEGACY_QUESTION_IDS, QUESTION_COLUMNS, SCOPE_FIELDS
+
+
+CURRENT_QUESTION_COLUMNS = {
+    key: value for key, value in QUESTION_COLUMNS.items() if key not in LEGACY_QUESTION_IDS
+}
 
 
 def answer_column(field, label):
@@ -17,7 +22,9 @@ def answer_column(field, label):
     return display
 
 
-ANSWER_COLUMNS = tuple(answer_column(field, label) for field, label in QUESTION_COLUMNS.values())
+ANSWER_COLUMNS = tuple(
+    answer_column(field, label) for field, label in CURRENT_QUESTION_COLUMNS.values()
+)
 
 
 class SolutionScopeFilter(admin.SimpleListFilter):
@@ -52,13 +59,13 @@ class QuestionAnswerFilter(admin.SimpleListFilter):
         super().__init__(request, params, model, model_admin)
 
     def lookups(self, _request, _model_admin):
-        return list(QUESTION_COLUMNS.values())
+        return list(CURRENT_QUESTION_COLUMNS.values())
 
     def expected_parameters(self):
         return ["question", "answer"]
 
     def queryset(self, _request, queryset):
         field = self.value()
-        if field in dict(QUESTION_COLUMNS.values()) and self.answer_value.strip():
+        if field in dict(CURRENT_QUESTION_COLUMNS.values()) and self.answer_value.strip():
             return queryset.filter(**{f"{field}__icontains": self.answer_value.strip()})
         return queryset

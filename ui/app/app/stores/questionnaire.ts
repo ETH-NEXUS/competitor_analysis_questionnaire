@@ -2,15 +2,34 @@ import { questionnaireResponsesCreate } from '~/api/generated/questionnaire-resp
 import {
   activeAnswer,
   answerLines,
+  costOptions,
   emptyAnswer,
+  emptyOffering,
+  emptyClinicalWorkflow,
+  emptyProduct,
   isAnswered,
+  legacyClinicalOfferings,
+  otherIndex,
   scopes,
   sections,
   type Answer,
+  type ClinicalOffering,
+  type Product,
   type Scope,
 } from '~/utils/questionnaire'
 
-const draftKey = 'hospital-it-questionnaire-v1'
+const draftKey = 'hospital-it-questionnaire-v10'
+const previousDraftKeys = [
+  'hospital-it-questionnaire-v9',
+  'hospital-it-questionnaire-v8',
+  'hospital-it-questionnaire-v7',
+  'hospital-it-questionnaire-v6',
+  'hospital-it-questionnaire-v5',
+  'hospital-it-questionnaire-v4',
+  'hospital-it-questionnaire-v3',
+  'hospital-it-questionnaire-v2',
+  'hospital-it-questionnaire-v1',
+]
 
 export const useQuestionnaireStore = defineStore('questionnaire', () => {
   const selectedScopes = ref<Scope[]>([])
@@ -20,6 +39,8 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
   const submissionId = ref('')
   const submittedId = ref<number | null>(null)
   const isSubmitting = ref(false)
+  const draftStorageError = ref(false)
+  let autosaveStarted = false
   const identityErrors = computed(() => ({
     respondentEmail:
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity.value.respondentEmail.trim()) &&
@@ -30,23 +51,75 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       identity.value.providerName.trim().length > 0 && identity.value.providerName.trim().length <= 200
         ? undefined
         : 'Enter a company / provider name (up to 200 characters).',
+    solutionName:
+      identity.value.solutionName.trim().length > 0 && identity.value.solutionName.trim().length <= 200
+        ? undefined
+        : 'Enter one solution / product name (up to 200 characters).',
   }))
   const identityValid = computed(() => !Object.values(identityErrors.value).some(Boolean))
+  const documentationKinds = computed(
+    () =>
+      new Set(
+        answerForDisplay('clinicalCapabilities')
+          .offerings.filter((offering) =>
+            [...offering.functions, ...offering.other_functions].some(
+              (item) => item.trim().toLowerCase() === 'clinical documentation',
+            ),
+          )
+          .map((offering) => offering.kind),
+      ),
+  )
   const applicableSections = computed(() =>
     sections
-      .filter((section) => !section.scopes || section.scopes.some((scope) => selectedScopes.value.includes(scope)))
+      .filter(
+        (section) =>
+          (!section.scopes || section.scopes.some((scope) => selectedScopes.value.includes(scope))) &&
+          (section.id !== 'cisEcosystem' || answerFor('externalIntegration').selected.includes('0')),
+      )
       .map((section) => ({
         ...section,
-        questions: section.questions.filter(
-          (question) =>
-            !question.when ||
-            answerFor(question.when.question).selected.some((value) => question.when!.selected.includes(value)),
-        ),
-      })),
+        questions: section.questions
+          .filter(
+            (question) =>
+              (!question.scopes || question.scopes.some((scope) => selectedScopes.value.includes(scope))) &&
+              (question.id !== 'documentationMethods' ||
+                documentationKinds.value.has('core') ||
+                documentationKinds.value.has('function')) &&
+              (question.id !== 'exportDetails' || answerFor('dataRetention').selected.includes('1')) &&
+              (!question.when ||
+                answerFor(question.when.question).selected.some((value) => question.when!.selected.includes(value))),
+          )
+          .map((question) =>
+            question.id === 'documentationMethods'
+              ? {
+                  ...question,
+                  label: documentationKinds.value.has('core')
+                    ? documentationKinds.value.has('function')
+                      ? 'Which capabilities in your core CIS and specialized functions reduce documentation burden?'
+                      : 'Which capabilities in your core CIS reduce documentation burden?'
+                    : 'Which capabilities in your specialized functions reduce documentation burden?',
+                }
+              : question.id === 'clinicalCapabilities'
+                ? {
+                    ...question,
+                    label: selectedScopes.value.includes('A')
+                      ? selectedScopes.value.includes('C')
+                        ? answerFor('externalIntegration').selected.includes('0')
+                          ? question.label
+                          : 'Describe your core CIS coverage and specialized functions.'
+                        : answerFor('externalIntegration').selected.includes('0')
+                          ? 'Describe your core CIS coverage and external integrations.'
+                          : 'Describe your core CIS coverage.'
+                      : 'Describe your specialized functions and the areas they cover.',
+                  }
+                : question,
+          ),
+      }))
+      .filter((section) => section.questions.length > 0),
   )
   const questions = computed(() => applicableSections.value.flatMap((section) => section.questions))
   const completed = computed(
-    () => questions.value.filter((question) => isAnswered(question, answerFor(question.id))).length,
+    () => questions.value.filter((question) => isAnswered(question, answerForDisplay(question.id))).length,
   )
   const total = computed(() => questions.value.length + 2)
   const done = computed(() => completed.value + Number(selectedScopes.value.length > 0) + Number(identityValid.value))
@@ -54,23 +127,244 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
   function answerFor(id: string): Answer {
     return answers.value[id] || emptyAnswer()
   }
+  function answerForDisplay(id: string): Answer {
+    const answer = answerFor(id)
+    if (id !== 'clinicalCapabilities') return answer
+    return {
+      ...answer,
+      offerings: answer.offerings.filter((offering) =>
+        offering.kind === 'function'
+          ? selectedScopes.value.includes('C') || selectedScopes.value.includes('A')
+          : offering.kind === 'integration'
+            ? selectedScopes.value.includes('A') && answerFor('externalIntegration').selected.includes('0')
+            : selectedScopes.value.includes('A'),
+      ),
+    }
+  }
   function toggleScope(scope: Scope, checked: boolean) {
     selectedScopes.value = checked
       ? [...new Set([...selectedScopes.value, scope])]
       : selectedScopes.value.filter((item) => item !== scope)
   }
-  function save() {
-    localStorage.setItem(
-      draftKey,
-      JSON.stringify({
-        version: 1,
-        scopes: selectedScopes.value,
-        answers: answers.value,
-        identity: identity.value,
-        submissionId: submissionId.value,
-        submittedId: submittedId.value,
-      }),
-    )
+  function saveDraft() {
+    try {
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          version: 10,
+          scopes: selectedScopes.value,
+          answers: answers.value,
+          identity: identity.value,
+          stage: stage.value,
+          submissionId: submissionId.value,
+          submittedId: submittedId.value,
+        }),
+      )
+      previousDraftKeys.forEach((key) => localStorage.removeItem(key))
+      draftStorageError.value = false
+    } catch {
+      draftStorageError.value = true
+    }
+  }
+  function restoreDraft(): boolean {
+    const raw =
+      localStorage.getItem(draftKey) || previousDraftKeys.map((key) => localStorage.getItem(key)).find(Boolean)
+    if (!raw) return false
+    const draft = JSON.parse(raw)
+    if (
+      ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(draft.version) ||
+      !Array.isArray(draft.scopes) ||
+      !draft.answers ||
+      typeof draft.answers !== 'object'
+    ) {
+      throw new Error('Invalid questionnaire draft')
+    }
+    const restored: Record<string, Answer> = {}
+    for (const question of sections.flatMap((section) => section.questions)) {
+      const value = draft.answers[question.id]
+      if (!value) continue
+      if (!Array.isArray(value.selected) || typeof value.text !== 'string' || !value.details || !value.rows)
+        throw new Error('Invalid answer')
+      const answer = emptyAnswer()
+      if (question.kind === 'offerings') {
+        answer.offerings = Array.isArray(value.offerings)
+          ? value.offerings
+              .slice(0, 100)
+              .filter((item: unknown) => item && typeof item === 'object')
+              .map((item: Partial<ClinicalOffering>) => ({
+                ...emptyOffering(
+                  item.kind === 'core'
+                    ? 'core'
+                    : item.kind === 'integration' || item.source === 'partner'
+                      ? 'integration'
+                      : 'function',
+                ),
+                name: typeof item.name === 'string' ? item.name : '',
+                description: typeof item.description === 'string' ? item.description : '',
+                source: item.kind === 'integration' || item.source === 'partner' ? 'partner' : 'native',
+                developer: typeof item.developer === 'string' ? item.developer : '',
+                functions: Array.isArray(item.functions)
+                  ? item.functions.filter((tag): tag is string => typeof tag === 'string')
+                  : [],
+                specialties: Array.isArray(item.specialties)
+                  ? item.specialties.filter((tag): tag is string => typeof tag === 'string')
+                  : [],
+                other_functions: Array.isArray(item.other_functions)
+                  ? item.other_functions.filter((tag): tag is string => typeof tag === 'string')
+                  : [],
+                other_specialties: Array.isArray(item.other_specialties)
+                  ? item.other_specialties.filter((tag): tag is string => typeof tag === 'string')
+                  : [],
+                all_specialties: item.all_specialties === true,
+                standalone: item.standalone === true,
+                workflow: {
+                  ...emptyClinicalWorkflow(),
+                  reused_data: Array.isArray(item.workflow?.reused_data)
+                    ? item.workflow.reused_data.filter((value): value is string => typeof value === 'string')
+                    : [],
+                  write_back: typeof item.workflow?.write_back === 'string' ? item.workflow.write_back : '',
+                  separate_app: typeof item.workflow?.separate_app === 'string' ? item.workflow.separate_app : '',
+                  patient_context:
+                    typeof item.workflow?.patient_context === 'string' ? item.workflow.patient_context : '',
+                  manual_steps: typeof item.workflow?.manual_steps === 'string' ? item.workflow.manual_steps : '',
+                },
+              }))
+          : legacyClinicalOfferings(draft.answers)
+      }
+      const migratedSelected = value.selected.map((item: unknown) => {
+        if (typeof item !== 'string') return item
+        if (draft.version < 10) {
+          if (question.id === 'configuration') return item === '2' ? '3' : item === '3' ? '4' : item
+          if (question.id === 'patientFunctions') return item === '9' ? '14' : item
+          if (question.id === 'writeBack') return item === '0' ? '' : item === '1' ? '2' : item === '2' ? '4' : item
+          if (question.id === 'patientIndependent') return item === '1' ? '' : item === '2' ? '3' : item
+        }
+        if (draft.version >= 8) return item
+        if (question.id === 'thirdPartyIntegration') return item === '8' ? '' : item === '9' ? '8' : item
+        if (question.id === 'thirdPartyApproval') return item === '5' ? '' : item === '6' ? '5' : item
+        return item
+      })
+      answer.selected = [
+        ...new Set<string>(migratedSelected.filter((item: unknown) => typeof item === 'string')),
+      ].filter((item) => /^\d+$/.test(item) && Number(item) < question.choices.length)
+      if (question.kind === 'single') answer.selected = answer.selected.slice(0, 1)
+      answer.text = value.text
+      if (draft.version < 10 && question.id === 'writeBack' && value.selected.includes('0'))
+        answer.details.legacy = 'Previous answer: Yes. Please choose whether this is automatic or follows review.'
+      if (draft.version < 10 && question.id === 'patientIndependent' && value.selected.includes('1'))
+        answer.details.legacy = 'Previous answer: No. Please choose which CIS or platform is required.'
+      for (let i = 0; i < question.choices.length; i++) {
+        let sourceIndex = i
+        if (draft.version < 10) {
+          if (question.id === 'configuration' && i === 4) sourceIndex = 3
+          if (question.id === 'patientFunctions' && i === 14) sourceIndex = 9
+          if (question.id === 'patientIndependent' && i === 3) sourceIndex = 2
+        }
+        if (draft.version < 8) {
+          if (question.id === 'costs' && i >= 1) sourceIndex = i + 1
+          if (question.id === 'thirdPartyIntegration' && i === 8) sourceIndex = 9
+          if (question.id === 'thirdPartyApproval' && i === 5) sourceIndex = 6
+        }
+        if (typeof value.details[sourceIndex] === 'string') answer.details[i] = value.details[sourceIndex]
+        const oldRow = value.rows[sourceIndex]
+        if (oldRow && typeof oldRow === 'object') {
+          const restoredRow: Record<string, string> = {}
+          for (const field of ['cost', 'billing_unit', 'provided', 'name', 'description', 'source', 'standalone']) {
+            if (typeof oldRow[field] === 'string') restoredRow[field] = oldRow[field]
+          }
+          if (question.kind === 'costs' && !costOptions[Number(restoredRow.cost)]) {
+            delete restoredRow.cost
+            delete restoredRow.billing_unit
+          }
+          answer.rows[i] = restoredRow
+        }
+        const savedProducts = value.products?.[i]
+        if (Array.isArray(savedProducts)) {
+          answer.products[i] = savedProducts.slice(0, 100).map(
+            (item: Record<string, unknown>): Product => ({
+              name: typeof item?.name === 'string' ? item.name : '',
+              description: typeof item?.description === 'string' ? item.description : '',
+              source: item?.source === '0' || item?.source === '1' ? item.source : '',
+              standalone: item?.standalone === true,
+            }),
+          )
+        } else if (question.kind === 'capabilities' && oldRow && (oldRow.name || oldRow.description || oldRow.source)) {
+          answer.products[i] = [
+            {
+              ...emptyProduct(),
+              name: oldRow.name || '',
+              description: oldRow.description || '',
+              source: oldRow.source === '0' || oldRow.source === '1' ? oldRow.source : '',
+              standalone: oldRow.standalone === 'yes',
+            },
+          ]
+        }
+      }
+      if (Array.isArray(value.other_items)) {
+        answer.other_items = value.other_items.filter((item: unknown) => typeof item === 'string').slice(0, 100)
+      } else {
+        const index = otherIndex(question)
+        const legacyOther =
+          index >= 0 && question.kind === 'capabilities' ? answer.rows[index]?.description : answer.details[index]
+        if (legacyOther) answer.other_items = [legacyOther]
+      }
+      if (question.kind === 'single') answer.other_items = answer.other_items.slice(0, 1)
+      restored[question.id] = answer
+    }
+    for (const id of ['structure', 'coding', 'reporting', 'documentation', 'aggregation', 'parties', 'specialties']) {
+      const legacy = draft.answers[id]
+      if (legacy && typeof legacy === 'object') restored[id] = legacy as Answer
+    }
+    if (draft.version < 6) {
+      const selected = (id: string) => restored[id]?.selected || []
+      const hasAnswer = (id: string) => {
+        const question = sections.flatMap((section) => section.questions).find((item) => item.id === id)
+        return Boolean(question && restored[id] && isAnswered(question, restored[id]))
+      }
+      if (selected('thirdPartyIntegration').includes('8') || selected('appIntegrationStandards').includes('5')) {
+        restored.externalIntegration = { ...emptyAnswer(), selected: ['1'] }
+      } else if (
+        hasAnswer('thirdPartyIntegration') ||
+        hasAnswer('appIntegrationStandards') ||
+        selected('apiTypes').some((item) => item !== '4')
+      ) {
+        restored.externalIntegration = { ...emptyAnswer(), selected: ['0'] }
+      }
+      if (
+        ['structuredTypes', 'terminologies', 'clinicalModels', 'research', 'secondary'].some(hasAnswer) ||
+        selected('reportingMethods').some((item) => item !== '7')
+      ) {
+        restored.clinicalDataManagement = { ...emptyAnswer(), selected: ['0'] }
+      } else if (selected('reportingMethods').includes('7')) {
+        restored.clinicalDataManagement = { ...emptyAnswer(), selected: ['1'] }
+      }
+      const retained = [
+        hasAnswer('archive') ? '0' : '',
+        hasAnswer('export') || hasAnswer('exportDetails') ? '1' : '',
+        hasAnswer('switzerland') ? '2' : '',
+      ].filter(Boolean)
+      if (retained.length) restored.dataRetention = { ...emptyAnswer(), selected: retained }
+    }
+    selectedScopes.value = scopes.filter((scope) => draft.scopes.includes(scope))
+    answers.value = restored
+    for (const field of Object.keys(identity.value) as (keyof typeof identity.value)[]) {
+      if (typeof draft.identity?.[field] === 'string') identity.value[field] = draft.identity[field]
+    }
+    if (Number.isInteger(draft.stage) && draft.stage >= 0 && draft.stage <= 3)
+      stage.value = identityValid.value ? draft.stage : 0
+    if (typeof draft.submissionId === 'string' && /^[0-9a-f-]{36}$/i.test(draft.submissionId))
+      submissionId.value = draft.submissionId
+    if (Number.isSafeInteger(draft.submittedId) && draft.submittedId > 0) submittedId.value = draft.submittedId
+    return true
+  }
+  function startAutosave() {
+    if (autosaveStarted) return
+    autosaveStarted = true
+    saveDraft()
+    watch([selectedScopes, answers, identity, stage, submissionId, submittedId], saveDraft, {
+      deep: true,
+      flush: 'sync',
+    })
   }
   async function submit() {
     if (isSubmitting.value || submittedId.value !== null) return
@@ -78,11 +372,6 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     isSubmitting.value = true
     try {
       submissionId.value ||= crypto.randomUUID()
-      try {
-        save()
-      } catch {
-        /* Submission still works when browser storage is unavailable. */
-      }
       const response = await questionnaireResponsesCreate({
         submission_id: submissionId.value,
         respondent_name: identity.value.respondentName.trim(),
@@ -98,70 +387,18 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           questions.value.map((question) => [
             question.id,
             {
-              ...activeAnswer(question, answerFor(question.id)),
+              ...activeAnswer(question, answerForDisplay(question.id)),
               question: question.label,
-              readable_answer: answerLines(question, answerFor(question.id)),
+              readable_answer: answerLines(question, answerForDisplay(question.id)),
             },
           ]),
         ),
       })
       submittedId.value = response.id
-      try {
-        save()
-      } catch {
-        /* The backend receipt remains available for this session. */
-      }
     } finally {
       isSubmitting.value = false
     }
   }
-  function restore(): boolean {
-    const raw = localStorage.getItem(draftKey)
-    if (!raw) return false
-    const draft = JSON.parse(raw)
-    if (draft.version !== 1 || !Array.isArray(draft.scopes) || !draft.answers || typeof draft.answers !== 'object') {
-      throw new Error('Invalid questionnaire draft')
-    }
-    const restored: Record<string, Answer> = {}
-    for (const question of sections.flatMap((section) => section.questions)) {
-      const value = draft.answers[question.id]
-      if (!value) continue
-      if (
-        !Array.isArray(value.selected) ||
-        !value.selected.every((item: unknown) => typeof item === 'string') ||
-        typeof value.text !== 'string' ||
-        !value.details ||
-        !value.rows
-      )
-        throw new Error('Invalid answer')
-      const answer = emptyAnswer()
-      answer.selected = [...new Set<string>(value.selected)].filter(
-        (item) => /^\d+$/.test(item) && Number(item) < question.choices.length,
-      )
-      if (question.kind === 'single') answer.selected = answer.selected.slice(0, 1)
-      answer.text = value.text
-      for (let i = 0; i < question.choices.length; i++) {
-        if (typeof value.details[i] === 'string') answer.details[i] = value.details[i]
-        const row = value.rows[i]
-        if (!row || typeof row !== 'object') continue
-        answer.rows[i] = {}
-        for (const field of ['cost', 'provided', 'name', 'description', 'source', 'standalone']) {
-          if (typeof row[field] === 'string') answer.rows[i][field] = row[field]
-        }
-      }
-      restored[question.id] = answer
-    }
-    selectedScopes.value = scopes.filter((scope) => draft.scopes.includes(scope))
-    answers.value = restored
-    for (const field of Object.keys(identity.value) as (keyof typeof identity.value)[]) {
-      if (typeof draft.identity?.[field] === 'string') identity.value[field] = draft.identity[field]
-    }
-    if (typeof draft.submissionId === 'string' && /^[0-9a-f-]{36}$/i.test(draft.submissionId))
-      submissionId.value = draft.submissionId
-    if (Number.isSafeInteger(draft.submittedId) && draft.submittedId > 0) submittedId.value = draft.submittedId
-    return true
-  }
-
   return {
     selectedScopes,
     identity,
@@ -170,6 +407,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     submissionId,
     submittedId,
     isSubmitting,
+    draftStorageError,
     submit,
     answers,
     stage,
@@ -179,8 +417,9 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     total,
     done,
     answerFor,
+    answerForDisplay,
     toggleScope,
-    save,
-    restore,
+    restoreDraft,
+    startAutosave,
   }
 })

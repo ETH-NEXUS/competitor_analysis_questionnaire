@@ -16,7 +16,7 @@ RUN mkdir -p /vol/backups
 RUN apt-get update --fix-missing
 
 # Install PostgreSQL client
-RUN apt-get install -y postgresql-client
+RUN apt-get install -y postgresql-client fonts-dejavu-core
 
 # Cleanup
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*

@@ -1038,6 +1038,25 @@
                 }
             }
         },
+        "/api/v1/questionnaire-pdf/": {
+            "post": {
+                "operationId": "questionnaire_pdf_create",
+                "tags": [
+                    "questionnaire-pdf"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
         "/api/v1/questionnaire-responses/": {
             "post": {
                 "operationId": "questionnaire_responses_create",
@@ -1158,6 +1177,11 @@
                     "message"
                 ]
             },
+            "BlankEnum": {
+                "enum": [
+                    ""
+                ]
+            },
             "Book": {
                 "type": "object",
                 "properties": {
@@ -1178,6 +1202,150 @@
                     "id",
                     "title"
                 ]
+            },
+            "ClinicalOffering": {
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "$ref": "#/components/schemas/KindEnum"
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 2000
+                    },
+                    "source": {
+                        "$ref": "#/components/schemas/ClinicalOfferingSourceEnum"
+                    },
+                    "developer": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "functions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 200
+                        },
+                        "maxItems": 30
+                    },
+                    "specialties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 200
+                        },
+                        "maxItems": 30
+                    },
+                    "other_functions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 200
+                        },
+                        "maxItems": 30
+                    },
+                    "other_specialties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 200
+                        },
+                        "maxItems": 30
+                    },
+                    "all_specialties": {
+                        "type": "boolean"
+                    },
+                    "standalone": {
+                        "type": "boolean"
+                    },
+                    "workflow": {
+                        "$ref": "#/components/schemas/ClinicalWorkflow"
+                    }
+                },
+                "required": [
+                    "all_specialties",
+                    "description",
+                    "developer",
+                    "functions",
+                    "kind",
+                    "name",
+                    "other_functions",
+                    "other_specialties",
+                    "source",
+                    "specialties",
+                    "standalone"
+                ]
+            },
+            "ClinicalOfferingSourceEnum": {
+                "enum": [
+                    "native",
+                    "partner"
+                ],
+                "type": "string",
+                "description": "* `native` - native\n* `partner` - partner"
+            },
+            "ClinicalWorkflow": {
+                "type": "object",
+                "properties": {
+                    "reused_data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ReusedDataEnum"
+                        },
+                        "maxItems": 5
+                    },
+                    "write_back": {
+                        "default": "",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/WriteBackEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "separate_app": {
+                        "default": "",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/SeparateAppEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "patient_context": {
+                        "default": "",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/PatientContextEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "manual_steps": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 2000
+                    }
+                }
+            },
+            "KindEnum": {
+                "enum": [
+                    "core",
+                    "integration",
+                    "function"
+                ],
+                "type": "string",
+                "description": "* `core` - core\n* `integration` - integration\n* `function` - function"
             },
             "Login": {
                 "type": "object",
@@ -1400,6 +1568,16 @@
                     }
                 }
             },
+            "PatientContextEnum": {
+                "enum": [
+                    "automatic",
+                    "manual",
+                    "none",
+                    "unknown"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `automatic` - automatic\n* `manual` - manual\n* `none` - none\n* `unknown` - unknown"
+            },
             "QuestionnaireAnswer": {
                 "type": "object",
                 "properties": {
@@ -1426,6 +1604,14 @@
                             "maxLength": 20000
                         }
                     },
+                    "other_items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 2000
+                        },
+                        "maxItems": 100
+                    },
                     "rows": {
                         "type": "object",
                         "additionalProperties": {
@@ -1435,6 +1621,23 @@
                                 "maxLength": 20000
                             }
                         }
+                    },
+                    "products": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/components/schemas/QuestionnaireProduct"
+                            },
+                            "maxItems": 100
+                        }
+                    },
+                    "offerings": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ClinicalOffering"
+                        },
+                        "maxItems": 100
                     },
                     "readable_answer": {
                         "type": "array",
@@ -1453,6 +1656,46 @@
                     "selected",
                     "text"
                 ]
+            },
+            "QuestionnaireProduct": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 2000
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 20000
+                    },
+                    "source": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/QuestionnaireProductSourceEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "standalone": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "description",
+                    "name",
+                    "source"
+                ]
+            },
+            "QuestionnaireProductSourceEnum": {
+                "enum": [
+                    "0",
+                    "1"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `0` - 0\n* `1` - 1"
             },
             "QuestionnaireResponse": {
                 "type": "object",
@@ -1531,6 +1774,7 @@
                     "id",
                     "provider_name",
                     "respondent_email",
+                    "solution_name",
                     "submission_id",
                     "submitted_at"
                 ]
@@ -1546,6 +1790,27 @@
                 "required": [
                     "detail"
                 ]
+            },
+            "ReusedDataEnum": {
+                "enum": [
+                    "patient",
+                    "medication",
+                    "lab",
+                    "none",
+                    "unknown"
+                ],
+                "type": "string",
+                "description": "* `patient` - patient\n* `medication` - medication\n* `lab` - lab\n* `none` - none\n* `unknown` - unknown"
+            },
+            "SeparateAppEnum": {
+                "enum": [
+                    "embedded",
+                    "sso",
+                    "separate_login",
+                    "unknown"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `embedded` - embedded\n* `sso` - sso\n* `separate_login` - separate_login\n* `unknown` - unknown"
             },
             "SessionLoginToken": {
                 "type": "object",
@@ -1594,6 +1859,17 @@
                     "pk",
                     "username"
                 ]
+            },
+            "WriteBackEnum": {
+                "enum": [
+                    "automatic",
+                    "user_action",
+                    "manual",
+                    "none",
+                    "unknown"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `automatic` - automatic\n* `user_action` - user_action\n* `manual` - manual\n* `none` - none\n* `unknown` - unknown"
             }
         },
         "securitySchemes": {

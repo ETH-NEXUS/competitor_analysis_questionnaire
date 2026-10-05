@@ -19,10 +19,27 @@ using the fetch client. Its `clean` option removes obsolete generated files.
 The public form calls `/api/v1/questionnaire-responses/` through Nuxt's dev proxy;
 `app/api/mutator/custom-fetch.ts` handles cookies, CSRF and HTTP errors.
 
+The opening screen asks for one solution per response. Email, provider, solution
+name and at least one category are required. A solution may have several categories.
+The form uses responsive layouts for phone and desktop screens.
+
 Question wording and choice lists are ordinary English content in
 `app/utils/questionnaire-core.json` and `questionnaire-specific.json`.
 `questionnaire.ts` defines section ordering, scope rules, answer formatting and
-the conditional export follow-up. UI labels are written directly in components.
+conditional questions. Three short Core answers route external integration,
+clinical data and record-retention follow-ups. Category A alone sees the
+third-party CIS integration question when the core answer confirms external integration,
+with developer and approval follow-ups based on that answer. The structured clinical data questions apply
+to A, C, D and E when clinical information is managed. Scope A uses a core CIS entry and, when integration is supported, repeatable external
+integrations; scope C uses repeatable specialized functions. The clinical entries
+share functional-area and specialty tags. The documentation question appears when
+Clinical documentation is selected. Drafts are saved in local browser storage and
+older clinical draft rows are converted when restored. UI labels are written directly in components.
+Each specialized function and external integration asks about actual CIS data reuse,
+write-back, application switching, patient context and remaining manual steps.
+The core form also asks about Swiss interoperability testing and current certifications.
+The patient-information question distinguishes individual patient files from an ongoing record. The cost question offers an
+optional charging basis for additional costs. Review questions link back to their fields.
 There is no translation module, language routing or locale lookup.
 
 ## Generated files that remain
@@ -36,8 +53,8 @@ Database models live in `api/app/core/models.py`.
 | `generated/questionnaire-responses.ts` | Sends the questionnaire POST request and returns the receipt. | Yes |
 | `model/questionnaireResponse.ts` | Submission fields and response receipt fields. | Yes |
 | `model/questionnaireResponseAnswers.ts` | Dictionary of question IDs to answer objects. | Yes |
-| `model/questionnaireAnswer.ts` | One answer's selections, text, details, matrix rows and readable text. | Yes |
-| `model/questionnaireAnswerDetails.ts` | Dictionary of extra details, such as an Other response. | Yes |
+| `model/questionnaireAnswer.ts` | One answer's selections, text, details, separate Other entries, matrix rows, clinical offerings and readable text. | Yes |
+| `model/questionnaireAnswerDetails.ts` | Dictionary of extra details for predefined choices. | Yes |
 | `model/questionnaireAnswerRows.ts` | Nested dictionaries for costs and capability matrices. | Yes |
 | `model/index.ts` | Re-exports those types so the generated client can import them. | Yes |
 

@@ -1,7 +1,24 @@
 <script setup lang="ts">
-import { costOptions, sourceOptions, type Answer, type Question } from '~/utils/questionnaire'
+import {
+  costOptions,
+  emptyProduct,
+  otherIndex,
+  otherIsSelected,
+  productsFor,
+  sourceOptions,
+  type Answer,
+  type Product,
+  type Question,
+} from '~/utils/questionnaire'
 
-const props = defineProps<{ question: Question; answer: Answer }>()
+const props = defineProps<{
+  question: Question
+  answer: Answer
+  isCis?: boolean
+  isSpecialist?: boolean
+  canIntegrate?: boolean
+  solutionName?: string
+}>()
 const emit = defineEmits<{ update: [answer: Answer] }>()
 const options = computed(() =>
   props.question.choices.map((label, index) => ({
@@ -14,16 +31,13 @@ const selectItems = (labels: string[]) =>
     label,
     value: String(index),
   }))
-const yesNo = [
-  { label: 'Yes', value: 'yes' },
-  { label: 'No', value: 'no' },
-]
 const hints = {
   single: '',
   multi: 'Select all that apply',
   text: 'Free text',
   costs: 'Choose one cost classification for each row',
   capabilities: '',
+  offerings: '',
 }
 function select(value: string, checked: boolean) {
   const exclusive = (props.question.exclusive || []).map(String)
@@ -37,22 +51,81 @@ function select(value: string, checked: boolean) {
 function detail(key: string, value: string) {
   emit('update', { ...props.answer, details: { ...props.answer.details, [key]: value } })
 }
+function updateOther(index: number, value: string) {
+  const other_items = [...props.answer.other_items]
+  other_items[index] = value
+  emit('update', { ...props.answer, other_items })
+}
+function removeOther(index: number) {
+  emit('update', { ...props.answer, other_items: props.answer.other_items.filter((_, item) => item !== index) })
+}
+function addOther() {
+  emit('update', {
+    ...props.answer,
+    other_items: [...(props.answer.other_items.length ? props.answer.other_items : ['']), ''],
+  })
+}
+async function onOtherEnter(event: KeyboardEvent) {
+  if (props.question.kind === 'single' || props.answer.other_items.length >= 100) return
+  const list = (event.target as HTMLElement).closest('[data-other-list]')
+  addOther()
+  await nextTick()
+  const inputs = list?.querySelectorAll<HTMLInputElement>('input')
+  inputs?.item(inputs.length - 1)?.focus()
+}
 function row(key: string, field: string, value: string) {
   const updatedRow = { ...props.answer.rows[key], [field]: value }
-  if (field === 'source' && value !== '0') delete updatedRow.standalone
+  if (field === 'cost' && !['1', '2'].includes(value)) delete updatedRow.billing_unit
   emit('update', {
     ...props.answer,
     rows: { ...props.answer.rows, [key]: updatedRow },
   })
 }
+function displayProducts(key: string): Product[] {
+  const products = productsFor(props.answer, Number(key))
+  return products.length ? products : [emptyProduct()]
+}
+function updateProduct(key: string, index: number, field: keyof Product, value: string | boolean) {
+  const products = [...displayProducts(key)]
+  const updated: Product = { ...products[index]! }
+  if (field === 'source') {
+    updated.source = value === '0' || value === '1' ? value : ''
+    if (updated.source !== '0') updated.standalone = false
+  } else if (field === 'standalone') updated.standalone = value === true
+  else updated[field] = String(value)
+  products[index] = updated
+  emit('update', { ...props.answer, products: { ...props.answer.products, [key]: products } })
+}
+function addProduct(key: string) {
+  emit('update', {
+    ...props.answer,
+    products: { ...props.answer.products, [key]: [...displayProducts(key), emptyProduct()] },
+  })
+}
+function removeProduct(key: string, index: number) {
+  emit('update', {
+    ...props.answer,
+    products: { ...props.answer.products, [key]: displayProducts(key).filter((_, item) => item !== index) },
+  })
+}
 </script>
 
 <template>
-  <fieldset class="question-field">
+  <fieldset class="question-field" tabindex="-1">
     <legend class="question-label">Q{{ question.number }}. {{ question.label }}</legend>
+    <p v-if="question.help" class="text-muted mb-4 text-sm leading-relaxed">{{ question.help }}</p>
     <p v-if="hints[question.kind]" class="text-muted mb-5 text-sm">{{ hints[question.kind] }}</p>
+    <QuestionnaireOfferings
+      v-if="question.kind === 'offerings'"
+      :answer="answer"
+      :is-cis="isCis === true"
+      :is-specialist="isSpecialist === true"
+      :can-integrate="canIntegrate === true"
+      :solution-name="solutionName || ''"
+      @update="emit('update', $event)"
+    />
     <URadioGroup
-      v-if="question.kind === 'single'"
+      v-else-if="question.kind === 'single'"
       :model-value="answer.selected[0]"
       :items="options"
       :aria-label="question.label"
@@ -95,63 +168,110 @@ function row(key: string, field: string, value: string) {
             @update:model-value="row(option.value, 'provided', $event === true ? 'yes' : 'no')"
           />
         </div>
+        <UFormField
+          v-if="question.kind === 'costs' && ['1', '2'].includes(answer.rows[option.value]?.cost || '')"
+          label="Charged per (optional)"
+          description="For example, per interface, site, user or year."
+          class="mt-4"
+        >
+          <UInput
+            :model-value="answer.rows[option.value]?.billing_unit || ''"
+            :maxlength="200"
+            class="w-full"
+            @update:model-value="row(option.value, 'billing_unit', String($event))"
+          />
+        </UFormField>
         <div
           v-if="question.kind === 'capabilities' && answer.rows[option.value]?.provided === 'yes'"
-          class="mt-5 grid gap-4 sm:grid-cols-2"
+          class="mt-5 space-y-4"
         >
-          <UFormField v-if="question.id !== 'specialties'" label="Product / module name">
-            <UInput
-              :model-value="answer.rows[option.value]?.name"
-              class="w-full"
-              @update:model-value="row(option.value, 'name', String($event))"
-            />
-          </UFormField>
-          <UFormField
-            v-if="question.id !== 'specialties'"
-            label="Who develops the product / module?"
-            description="Native means developed by your company. Partner means a third-party product supplied or integrated through a partner."
+          <div
+            v-for="(product, index) in displayProducts(option.value)"
+            :key="index"
+            class="border-default grid gap-4 rounded-lg border p-4 sm:grid-cols-2"
           >
-            <USelect
-              :model-value="answer.rows[option.value]?.source"
-              :items="selectItems(sourceOptions)"
-              class="w-full"
-              placeholder="Select an answer"
-              @update:model-value="row(option.value, 'source', String($event))"
+            <div class="flex items-center justify-between sm:col-span-2">
+              <span class="text-sm font-medium">Product / module {{ index + 1 }}</span>
+              <UButton
+                v-if="displayProducts(option.value).length > 1"
+                type="button"
+                color="neutral"
+                variant="ghost"
+                icon="i-heroicons-trash"
+                :aria-label="`Remove product ${index + 1} for ${option.label}`"
+                @click="removeProduct(option.value, index)"
+              />
+            </div>
+            <UFormField label="Product / module name">
+              <UInput
+                :model-value="product.name"
+                :maxlength="2000"
+                class="w-full"
+                @update:model-value="updateProduct(option.value, index, 'name', String($event))"
+              />
+            </UFormField>
+            <UFormField
+              label="Who develops the product / module?"
+              description="Native means developed by your company. Partner means a third-party product supplied or integrated through a partner."
+            >
+              <USelect
+                :model-value="product.source"
+                :items="selectItems(sourceOptions)"
+                class="w-full"
+                placeholder="Select an answer"
+                @update:model-value="updateProduct(option.value, index, 'source', String($event))"
+              />
+            </UFormField>
+            <UFormField label="Brief description" class="sm:col-span-2">
+              <UTextarea
+                :model-value="product.description"
+                :maxlength="20000"
+                class="w-full"
+                @update:model-value="updateProduct(option.value, index, 'description', String($event))"
+              />
+            </UFormField>
+            <UCheckbox
+              v-if="product.source === '0'"
+              :label="
+                question.id === 'clinicalCapabilities'
+                  ? 'Can be purchased and operated as a standalone solution alongside a third-party CIS'
+                  : 'Can be purchased and operated independently'
+              "
+              :model-value="product.standalone"
+              class="sm:col-span-2"
+              @update:model-value="updateProduct(option.value, index, 'standalone', $event === true)"
             />
-          </UFormField>
-          <UFormField
-            :label="question.id === 'specialties' ? 'Please describe the specialty module(s)' : 'Brief description'"
-            class="sm:col-span-2"
+          </div>
+          <UButton
+            v-if="displayProducts(option.value).length < 100"
+            type="button"
+            color="neutral"
+            variant="outline"
+            icon="i-heroicons-plus"
+            @click="addProduct(option.value)"
           >
-            <UTextarea
-              :model-value="answer.rows[option.value]?.description"
-              class="w-full"
-              @update:model-value="row(option.value, 'description', String($event))"
-            />
-          </UFormField>
-          <UFormField
-            v-if="question.id !== 'specialties' && answer.rows[option.value]?.source === '0'"
-            :label="
-              question.id === 'clinicalCapabilities'
-                ? 'Can be purchased and operated as a standalone solution alongside a third-party CIS'
-                : 'Can be purchased and operated independently'
-            "
-            class="sm:col-span-2"
-          >
-            <USelect
-              :items="yesNo"
-              :model-value="answer.rows[option.value]?.standalone"
-              placeholder="Select an answer"
-              class="w-40"
-              @update:model-value="row(option.value, 'standalone', String($event))"
-            />
-          </UFormField>
+            Add another product / module
+          </UButton>
         </div>
       </div>
     </div>
+    <p v-if="answer.details.legacy && !answer.selected.length" class="text-warning mt-4 text-sm">
+      {{ answer.details.legacy }}
+    </p>
+    <UFormField v-if="question.optionalTextLabel" :label="question.optionalTextLabel" class="mt-5">
+      <UTextarea
+        :model-value="answer.text"
+        :rows="3"
+        class="w-full"
+        :aria-label="question.optionalTextLabel"
+        @update:model-value="emit('update', { ...answer, text: String($event) })"
+      />
+    </UFormField>
     <template v-if="question.kind === 'single' || question.kind === 'multi'">
       <UFormField
-        v-for="index in (question.details || []).filter((i) => answer.selected.includes(String(i)))"
+        v-for="index in (question.details || []).filter(
+          (i) => i !== otherIndex(question) && answer.selected.includes(String(i)),
+        )"
         :key="index"
         :label="question.detailLabels?.[index] || `${options[index]?.label}: Please specify`"
         class="mt-4"
@@ -163,5 +283,41 @@ function row(key: string, field: string, value: string) {
         />
       </UFormField>
     </template>
+    <div v-if="otherIsSelected(question, answer)" data-other-list class="mt-5 space-y-3">
+      <p class="text-sm font-medium">Other answers</p>
+      <div
+        v-for="index in question.kind === 'single' ? 1 : Math.max(1, answer.other_items.length)"
+        :key="index"
+        class="flex items-center gap-2"
+      >
+        <UInput
+          :model-value="answer.other_items[index - 1] || ''"
+          :aria-label="`Other answer ${index} for question ${question.number}`"
+          :maxlength="2000"
+          class="w-full"
+          @update:model-value="updateOther(index - 1, String($event))"
+          @keydown.enter.prevent="onOtherEnter"
+        />
+        <UButton
+          v-if="question.kind !== 'single' && answer.other_items.length > 1"
+          type="button"
+          color="neutral"
+          variant="ghost"
+          icon="i-heroicons-trash"
+          :aria-label="`Remove other answer ${index}`"
+          @click="removeOther(index - 1)"
+        />
+      </div>
+      <UButton
+        v-if="question.kind !== 'single' && answer.other_items.length < 100"
+        type="button"
+        color="neutral"
+        variant="outline"
+        icon="i-heroicons-plus"
+        @click="addOther"
+      >
+        Add another answer
+      </UButton>
+    </div>
   </fieldset>
 </template>

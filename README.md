@@ -36,7 +36,7 @@ its own staff login; no frontend login component is needed.
 | `ui/app/app/app.vue` | Questionnaire navigation, review, download and submission UI. |
 | `ui/app/app/components/QuestionnaireIdentity.vue` | Email and company fields. |
 | `ui/app/app/components/QuestionnaireField.vue` | Choice, text, cost and capability inputs. |
-| `ui/app/app/stores/questionnaire.ts` | Answers, browser drafts, conditional visibility and submission state. |
+| `ui/app/app/stores/questionnaire.ts` | Answers, automatic browser recovery, conditional visibility and submission state. |
 | `ui/app/app/utils/questionnaire.ts` | Section/scope definitions, conditions and answer formatting. |
 | `ui/app/app/utils/questionnaire-core.json` | English core-question wording and choices. |
 | `ui/app/app/utils/questionnaire-specific.json` | English solution-specific wording and choices. |
@@ -58,14 +58,69 @@ backend demo data or authentication configuration was deleted during frontend cl
 
 ## Answers and submissions
 
-- Choice indices are stable saved values. Do not reorder existing choices without
-  migrating browser drafts or updating the draft version/key.
-- Scope selections A–E determine the relevant question groups.
-- The export follow-up appears only for Partial export, Vendor-specific migration
-  or Other. Hidden draft answers are retained locally but excluded from submissions.
-- Email, provider and at least one scope are required. Solution names from older responses are retained but optional. Incomplete
+- Choice indices are stable submitted values. Do not reorder existing choices without
+  reviewing how existing answers are interpreted.
+- Scope selections A–E determine the relevant solution-specific question groups.
+  Three questions in Core identify whether the solution supports external
+  integration, manages clinical information, and retains clinical records or
+  patient data. Their answers reveal only the relevant detailed questions.
+  The CIS third-party ecosystem questions appear for A when the core external-integration
+  answer confirms support; the developer and approval follow-ups then depend on the
+  third-party integration answer.
+- Clinical record export is asked only when the solution retains a longitudinal
+  record. Its follow-up appears for Partial export, Vendor-specific migration
+  or Other. Hidden answers are excluded from submissions.
+- Each selected Other option accepts separate additional entries, except single-choice
+  questions, which accept one. These are stored as structured answer data alongside
+  the readable question columns. Answers are saved automatically in this browser and
+  restored after a refresh, including drafts made with the earlier form version.
+- Scope A opens a core CIS platform entry and, when external integration is supported, lets respondents add
+  external integrations with the third-party company, product and purpose. Scope C opens a
+  specialized function entry and lets respondents add more functions. Each entry
+  can be tagged with functional areas and specialties. The documentation-burden
+  question appears directly
+  below when an entry covers Clinical documentation. Earlier clinical drafts are
+  migrated into this structure when restored.
+- Each scope C function and scope A external integration also records actual workflow integration with the CIS:
+  existing patient, medication and laboratory data reused; write-back; application
+  switching; patient-context transfer; and manual steps.
+  This is separate from Q1, which asks whether the solution exposes documented APIs.
+- The core form asks about Swiss interoperability testing, security certifications and
+  related conformity assessments. Certificate names, scope and validity are optional.
+- The patient-information retention question still appears when clinical-information
+  management is No, because a solution can retain patient files or
+  other patient data without managing an ongoing clinical record. The cost question distinguishes
+  one-time and recurring charges and can record a charging basis per item.
+- On the review screen, each question links to its field and briefly highlights it.
+- In analysis, Q1 appears as a best-to-worst access scale. Administrators can
+  place Other answers into one of its five ranked categories. Grouped Other counts
+  represent answer entries, and free-text questions show the provider with each answer.
+- The analysis compares offerings by functional area, specialty and workflow,
+  shows which CIS providers integrate third-party products, and lets staff group
+  product names and additional category tags without changing submitted answers.
+  The Presentation figures tab maps the assessment slide placeholders to distinct
+  vendor counts, answered denominators, missing answers and source questions.
+  It uses all current-version responses regardless of the detailed-analysis filters.
+  Use the Vendor outreach tab to add vendors and tick invitation sent, reminder
+  sent and explicit declines. Current-version submissions appear automatically
+  when the submitted organization name matches the vendor or an alternate name
+  entered in its details. Unmatched submissions are listed for manual linking.
+  The initial roster contains 38 vendors in five editable categories, with all
+  outreach flags unset.
+  Participation figures use vendors marked as invited; no invitation names are
+  inferred from the sample presentation.
+  A latest-submission-per-provider filter applies to the dashboard and CSV export;
+  chart coverage separates answered, unanswered and inapplicable responses.
+  Multi-answer questions show one provider row per submission, grouped by scope,
+  with feature columns and answer counts. Analysis and CSV show current-version
+  submissions; the dashboard Submissions tab lists every version and lets staff
+  select and delete rows after confirmation.
+- Email, provider, solution name and at least one scope are required. Each response covers one solution; the same solution can have multiple categories. Solution names from older responses remain as submitted. Incomplete
   questionnaire answers are allowed with a warning on the review screen.
 - `POST /api/v1/questionnaire-responses/` saves a response and returns its ID and date.
+- The review and receipt screens can download a styled PDF copy. `POST
+  /api/v1/questionnaire-pdf/` generates it from the current answers without saving
+  another response. JSON download remains available for machine-readable export.
 - A client-generated submission UUID prevents duplicate rows when a request is retried.
 - The public endpoint does not list, retrieve, edit or delete saved responses.
 - In question columns, SQL NULL means not asked; an empty string means unanswered.
@@ -85,7 +140,8 @@ docker compose exec api python manage.py migrate
 docker compose exec api python manage.py createsuperuser
 ```
 
-Nuxt proxies `/api/v1`, `/admin`, `/static` and related paths to the API container.
+Nuxt proxies `/api/v1`, `/static` and related paths to the API container. Django
+serves the administrator dashboard directly at `http://localhost:4000/admin/analysis/`.
 The development schema watcher refreshes `ui/app/openapi/api/openapi.json` and runs
 Orval when the backend schema changes. Generated files are overwritten automatically.
 Both API and UI source directories are mounted for hot reload. Apply migrations
@@ -163,16 +219,23 @@ Use `.env.TEMPLATE` as the complete configuration reference:
 
 ### Superuser analysis
 
-Visit `/admin/analysis/` (also linked from the admin home). Only authenticated,
+Visit `http://localhost:4000/admin/analysis/` (also linked from the admin home). Only authenticated,
 active superusers can view responses or download `/admin/analysis/export.csv`.
 The analysis page also serves its CSS and JavaScript from protected `/admin/analysis/`
 URLs, so the production proxy does not need a separate static-file rule for
 this page.
 The dashboard includes question charts with provider names on hover/focus/tap,
 provider response details, and provider/scope filters shared with CSV export.
-Counts are per submission. Free-text questions show response coverage; matrix
-questions show a chart per row. Null answers mean not asked; empty answers mean
+Counts are per submission. Free-text questions show response coverage; multiple-answer
+questions show provider-by-feature tables. Null answers mean not asked; empty answers mean
 unanswered. CSV keeps one row per submission and escapes spreadsheet formulas.
+Additional Other answers appear below a divider for each relevant question. A
+superuser can assign different wording to the same group name on the analysis page;
+single-choice questions show a pie chart with one Other slice for ungrouped answers
+and a separate slice for each assigned group. Each submission contributes one vote
+to its group. Original wording is
+preserved. Older responses with an Other detail can also be grouped when its text
+can be identified in the stored readable answer.
 
 After editing question wording/options/types, refresh the analysis schema from
 the repository root with `python3 scripts/update_analysis_schema.py` and deploy

@@ -1,6 +1,6 @@
 {
   "clinicalCapabilities": {
-    "label": "Which clinical functional areas are covered by your solution?",
+    "label": "Describe your core CIS coverage, external integrations and specialized functions.",
     "options": [
       "Clinical documentation",
       "Medication management",
@@ -43,6 +43,23 @@
       "Other"
     ]
   },
+  "documentationMethods": {
+    "label": "Which capabilities are available to reduce documentation burden?",
+    "options": [
+      "Reuse/pre-population of existing patient data",
+      "Structured documentation templates",
+      "Specialty-specific documentation templates/workflows",
+      "Voice dictation",
+      "Speech-to-text",
+      "Ambient AI documentation",
+      "Automated extraction/structuring of clinical information",
+      "Automatic generation of letters/reports",
+      "Cross-module reuse of entered information",
+      "Configurable shortcuts/macros/favourites",
+      "Other",
+      "None"
+    ]
+  },
   "dataCapabilities": {
     "label": "Which capabilities does your solution provide?",
     "options": [
@@ -58,6 +75,20 @@
       "Application development / low-code environment",
       "Data warehouse / analytics platform",
       "Vendor-neutral archive",
+      "Other"
+    ]
+  },
+  "dataExchangeHandling": {
+    "label": "How does the solution handle data exchanged between connected systems?",
+    "options": [
+      "Pass-through / routing only",
+      "Transformation / mapping",
+      "Temporary storage / queueing",
+      "Persistent storage",
+      "Patient identity matching",
+      "Consent / access-control enforcement",
+      "Validation / enrichment",
+      "Workflow / orchestration",
       "Other"
     ]
   },
@@ -80,6 +111,11 @@
       "Complete questionnaires / PROMs",
       "Submit patient-generated health data",
       "Connect wearables / home monitoring devices",
+      "View/manage clinical documents",
+      "Upload clinical documents/data",
+      "Manage consent / access permissions",
+      "View access history / audit log",
+      "Manage representatives / proxies",
       "Other"
     ]
   },
@@ -91,13 +127,41 @@
     "label": "Can the solution aggregate patient information from multiple clinical/source systems?",
     "options": ["Yes", "No", "Partially"]
   },
+  "aggregationMethods": {
+    "label": "How can the solution receive or aggregate patient information from multiple clinical/source systems?",
+    "options": [
+      "Through standards-based interfaces/APIs",
+      "Through vendor-specific interfaces/APIs",
+      "From solutions within the vendor’s own product ecosystem",
+      "Combination of standards-based and vendor-specific integration",
+      "Not supported",
+      "Other"
+    ]
+  },
   "writeBack": {
-    "label": "Can patient-entered or device-generated data be written back into the clinical system as structured, reusable data?",
-    "options": ["Yes", "Partially / for selected data types", "No"]
+    "label": "Can patient-entered or device-generated data be made available to connected clinical systems as structured, reusable data?",
+    "options": [
+      "Yes, automatically",
+      "Yes, after review or approval",
+      "Partially or selected data types",
+      "Only as documents or unstructured data",
+      "No"
+    ]
   },
   "patientIndependent": {
-    "label": "Can the patient-facing solution be purchased and operated independently of the vendor’s hospital-wide CIS?",
-    "options": ["Yes", "No", "Other"]
+    "label": "Can the patient-facing solution be purchased and operated independently of a specific hospital-wide CIS?",
+    "options": ["Yes", "No – requires the vendor’s CIS", "No – requires another specific CIS/platform", "Other"]
+  },
+  "patientExchange": {
+    "label": "How is information exchanged between the patient-facing solution and connected clinical systems?",
+    "options": [
+      "Real-time bidirectional structured exchange",
+      "Structured exchange in one direction only",
+      "Document-based exchange",
+      "Manual import/export required",
+      "Depends on the connected clinical system",
+      "Other"
+    ]
   },
   "parties": {
     "label": "Which parties are typically required for implementation?",
@@ -110,12 +174,24 @@
       "Other"
     ]
   },
+  "implementationInvolvement": {
+    "label": "What level of external vendor/implementation-partner involvement is typically required to implement the solution?",
+    "options": [
+      "Can be implemented independently by the customer using standard documentation/tools",
+      "Vendor/implementation-partner support is available but optional",
+      "Vendor or implementation-partner configuration/support is normally required",
+      "Vendor-led implementation is required",
+      "Certified implementation partner is required",
+      "Depends substantially on scope",
+      "Other"
+    ]
+  },
   "rollout": {
     "label": "Which rollout approaches are supported?",
     "options": [
       "Big-bang migration and rollout",
-      "Phased / incremental migration and rollout",
-      "Parallel operation of legacy and new solution during transition",
+      "Phased rollout by department, site or module",
+      "Temporary parallel operation of legacy and new systems during transition",
       "Other"
     ]
   },

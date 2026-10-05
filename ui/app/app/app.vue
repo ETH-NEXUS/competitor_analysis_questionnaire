@@ -1,32 +1,24 @@
 <script setup lang="ts">
 import faviconUrl from '../assets/favicon/favicon.svg?url'
 import nexusLogoUrl from '../assets/logokombi-nexus.png'
-import {
-  activeAnswer,
-  answerLines,
-  isAnswered,
-  scopes,
-  scopeLabels,
-  scopeDescriptions,
-  type QuestionSection,
-} from '~/utils/questionnaire'
+import { fetchQuestionnairePdf } from '~/api/mutator/custom-fetch'
+import { activeAnswer, answerLines, isAnswered, scopes, scopeLabels, scopeDescriptions } from '~/utils/questionnaire'
 
 const store = useQuestionnaireStore()
 const status = ref('')
+const pdfLoading = ref(false)
 const scopeError = ref(false)
+const highlightedQuestionId = ref<string | null>(null)
 const heading = ref<HTMLElement>()
 const stages = ['About you & solution scope', 'Core questions', 'Solution-specific questions', 'Review & submit']
 const visibleSections = computed(() => store.applicableSections.filter((section) => section.stage === store.stage))
+const incompleteQuestions = computed(() =>
+  store.applicableSections
+    .flatMap((section) => section.questions)
+    .filter((question) => !isAnswered(question, store.answerForDisplay(question.id))),
+)
 const complete = computed(() => store.done === store.total)
 const percentage = computed(() => Math.round((store.done / store.total) * 100))
-
-function sectionReason(section: QuestionSection): string {
-  if (!section.scopes) return ''
-  const selected = section.scopes
-    .filter((scope) => store.selectedScopes.includes(scope))
-    .map((scope) => scopeLabels[scopes.indexOf(scope)]!.toLowerCase())
-  return `These questions apply because you indicated that you offer: ${new Intl.ListFormat('en', { type: 'conjunction' }).format(selected)}.`
-}
 
 useHead({
   title: 'Hospital IT Vendor Questionnaire',
@@ -42,10 +34,24 @@ async function goTo(stage: number) {
     return
   }
   scopeError.value = false
+  highlightedQuestionId.value = null
   store.stage = stage
   await nextTick()
   heading.value?.focus()
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+async function goToQuestion(stage: number, id: string) {
+  highlightedQuestionId.value = id
+  store.stage = stage
+  await nextTick()
+  requestAnimationFrame(() => {
+    const field = document.getElementById(`question-${id}`)
+    field?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    field?.focus({ preventScroll: true })
+  })
+  window.setTimeout(() => {
+    if (highlightedQuestionId.value === id) highlightedQuestionId.value = null
+  }, 6000)
 }
 async function submit() {
   if (!store.identityValid || !store.selectedScopes.length) {
@@ -62,35 +68,32 @@ async function submit() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
-function save() {
-  try {
-    store.save()
-    status.value = 'Draft saved in this browser.'
-  } catch {
-    status.value = 'Your draft could not be saved in this browser. Download your answers to keep a copy.'
+function exportResponse() {
+  return {
+    questionnaire: 'Hospital IT Vendor Questionnaire',
+    version: 10,
+    exportedAt: new Date().toISOString(),
+    complete: complete.value,
+    responseReference: store.submittedId,
+    respondent: { ...store.identity },
+    scopes: store.selectedScopes.map((scope) => ({ id: scope, label: scopeLabels[scopes.indexOf(scope)] })),
+    sections: store.applicableSections.map((section) => ({
+      id: section.id,
+      title: section.title,
+      questions: section.questions.map((question) => ({
+        id: question.id,
+        number: question.number,
+        question: question.label,
+        complete: isAnswered(question, store.answerForDisplay(question.id)),
+        answer: activeAnswer(question, store.answerForDisplay(question.id)),
+        readableAnswer: answerLines(question, store.answerForDisplay(question.id)),
+      })),
+    })),
   }
 }
 function download() {
   try {
-    const response = {
-      questionnaire: 'Hospital IT Vendor Questionnaire',
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      complete: complete.value,
-      respondent: { ...store.identity },
-      scopes: store.selectedScopes.map((scope) => ({ id: scope, label: scopeLabels[scopes.indexOf(scope)] })),
-      sections: store.applicableSections.map((section) => ({
-        id: section.id,
-        title: section.title,
-        questions: section.questions.map((question) => ({
-          id: question.id,
-          question: question.label,
-          complete: isAnswered(question, store.answerFor(question.id)),
-          answer: activeAnswer(question, store.answerFor(question.id)),
-          readableAnswer: answerLines(question, store.answerFor(question.id)),
-        })),
-      })),
-    }
+    const response = exportResponse()
     const url = URL.createObjectURL(new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' }))
     const link = document.createElement('a')
     link.href = url
@@ -104,12 +107,33 @@ function download() {
     status.value = 'The download could not be created. Please try again.'
   }
 }
+async function downloadPdf() {
+  if (pdfLoading.value) return
+  pdfLoading.value = true
+  try {
+    const blob = await fetchQuestionnairePdf(exportResponse())
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'hospital-it-questionnaire.pdf'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    status.value = 'Your PDF has been downloaded.'
+  } catch {
+    status.value = 'The PDF could not be created. Please try again.'
+  } finally {
+    pdfLoading.value = false
+  }
+}
 onMounted(() => {
   try {
-    if (store.restore()) status.value = 'Your saved draft has been restored.'
+    if (store.restoreDraft()) status.value = 'Your previous answers have been restored.'
   } catch {
-    status.value = 'The saved draft could not be restored. You can start a new response.'
+    status.value = 'Saved answers could not be restored in this browser.'
   }
+  store.startAutosave()
 })
 </script>
 
@@ -125,15 +149,6 @@ onMounted(() => {
             <span class="text-xl leading-tight font-semibold tracking-tight sm:text-3xl lg:text-4xl">
               Hospital IT Vendor Questionnaire
             </span>
-            <UButton
-              v-if="store.submittedId === null"
-              color="neutral"
-              variant="outline"
-              icon="i-heroicons-bookmark"
-              :disabled="store.isSubmitting"
-              @click="save"
-              >Save draft</UButton
-            >
           </div>
           <img
             :src="nexusLogoUrl"
@@ -174,10 +189,6 @@ onMounted(() => {
                 aria-label="Questionnaire progress"
                 class="questionnaire-progress"
               />
-              <p class="text-muted mt-4 text-xs leading-relaxed">
-                Drafts stay in this browser. When you submit, your contact details and answers are saved for the
-                questionnaire administrators.
-              </p>
             </div>
           </div>
         </aside>
@@ -185,6 +196,13 @@ onMounted(() => {
         <main class="min-w-0">
           <p v-if="status" role="status" class="border-default bg-default mb-5 rounded-xl border p-4 text-sm">
             {{ status }}
+          </p>
+          <p
+            v-if="store.draftStorageError"
+            role="alert"
+            class="border-default bg-default mb-5 rounded-xl border p-4 text-sm"
+          >
+            This browser could not save your progress. Keep this page open until you submit.
           </p>
           <div class="mb-8">
             <h1 ref="heading" tabindex="-1" class="text-3xl font-semibold tracking-tight outline-none sm:text-4xl">
@@ -196,8 +214,18 @@ onMounted(() => {
                     : stages[store.stage]
               }}
             </h1>
+            <p
+              v-if="store.stage === 0 && store.submittedId === null"
+              class="border-default bg-default mt-5 rounded-xl border p-4 leading-relaxed"
+            >
+              Please complete the questionnaire for one solution/product at a time. If your organization offers multiple
+              distinct solutions, please submit them separately. A single solution may be assigned to multiple
+              categories where applicable.
+            </p>
             <p v-if="store.stage === 3 && store.submittedId === null" class="text-muted mt-4 max-w-2xl leading-relaxed">
-              Check your details and answers, then submit your response. You can return to any section to make changes.
+              Check your details and answers, then submit your response.
+              {{ incompleteQuestions.length ? `${incompleteQuestions.length} questions are incomplete.` : '' }}
+              Select any question title to jump to it and make changes.
             </p>
           </div>
 
@@ -208,11 +236,21 @@ onMounted(() => {
               title="Thank you. Your response has been submitted."
               :description="`Your answers have been saved. Response reference: ${store.submittedId}.`"
             />
-            <UButton class="mt-5" color="neutral" variant="outline" icon="i-heroicons-arrow-down-tray" @click="download"
-              >Download answers</UButton
-            >
+            <div class="mt-5 flex flex-wrap gap-3">
+              <UButton type="button" icon="i-heroicons-document-arrow-down" :loading="pdfLoading" @click="downloadPdf"
+                >Download PDF</UButton
+              >
+              <UButton
+                type="button"
+                color="neutral"
+                variant="outline"
+                icon="i-heroicons-arrow-down-tray"
+                @click="download"
+                >Download answers (JSON)</UButton
+              >
+            </div>
           </UCard>
-          <form v-else @submit.prevent="store.stage === 3 ? submit() : goTo(Math.min(store.stage + 1, 3))">
+          <form v-else @submit.prevent>
             <fieldset :disabled="store.isSubmitting" class="min-w-0">
               <div v-if="store.stage === 0">
                 <QuestionnaireIdentity :show-errors="scopeError" />
@@ -242,15 +280,18 @@ onMounted(() => {
                 <UCard v-for="section in visibleSections" :key="section.id">
                   <template #header>
                     <h2 class="text-lg font-semibold">{{ section.title }}</h2>
-                    <p v-if="section.stage === 2 && section.scopes" class="text-muted mt-2 text-sm">
-                      {{ sectionReason(section) }}
-                    </p>
                   </template>
                   <QuestionnaireField
                     v-for="question in section.questions"
+                    :id="`question-${question.id}`"
                     :key="question.id"
+                    :class="{ 'question-highlight': highlightedQuestionId === question.id }"
                     :question="question"
                     :answer="store.answerFor(question.id)"
+                    :is-cis="store.selectedScopes.includes('A')"
+                    :is-specialist="store.selectedScopes.includes('C')"
+                    :can-integrate="store.answerFor('externalIntegration').selected.includes('0')"
+                    :solution-name="store.identity.solutionName"
                     @update="store.answers[question.id] = $event"
                   />
                 </UCard>
@@ -273,29 +314,41 @@ onMounted(() => {
                   <p v-for="scope in store.selectedScopes" :key="scope" class="mb-2 text-sm">
                     {{ scope }}. {{ scopeLabels[scopes.indexOf(scope)] }}
                   </p>
-                  <UButton variant="link" class="mt-3 p-0" @click="goTo(0)">Edit section</UButton>
+                  <UButton type="button" variant="link" class="mt-3 p-0" @click="goTo(0)">Edit section</UButton>
                 </UCard>
                 <UCard v-for="section in store.applicableSections" :key="section.id">
                   <template #header>
                     <div class="flex flex-wrap items-center justify-between gap-3">
                       <h2 class="font-semibold">{{ section.title }}</h2>
-                      <UButton variant="link" @click="goTo(section.stage)">Edit section</UButton>
+                      <UButton type="button" variant="link" @click="goTo(section.stage)">Edit section</UButton>
                     </div>
                   </template>
                   <div v-for="question in section.questions" :key="question.id" class="question-field">
-                    <h3 class="text-sm font-medium">Q{{ question.number }}. {{ question.label }}</h3>
-                    <p v-if="!isAnswered(question, store.answerFor(question.id))" class="text-warning mt-2 text-xs">
+                    <h3 class="text-sm font-medium">
+                      <button
+                        type="button"
+                        class="review-question-link"
+                        :aria-label="`Go to question ${question.number}: ${question.label}`"
+                        @click="goToQuestion(section.stage, question.id)"
+                      >
+                        Q{{ question.number }}. {{ question.label }}
+                      </button>
+                    </h3>
+                    <p
+                      v-if="!isAnswered(question, store.answerForDisplay(question.id))"
+                      class="text-warning mt-2 text-xs"
+                    >
                       Incomplete answer
                     </p>
                     <ul class="text-muted mt-3 space-y-2 text-sm leading-relaxed">
                       <li
-                        v-for="(line, index) in answerLines(question, store.answerFor(question.id))"
+                        v-for="(line, index) in answerLines(question, store.answerForDisplay(question.id))"
                         :key="index"
                         class="whitespace-pre-wrap"
                       >
                         {{ line }}
                       </li>
-                      <li v-if="!answerLines(question, store.answerFor(question.id)).length">Not answered</li>
+                      <li v-if="!answerLines(question, store.answerForDisplay(question.id)).length">Not answered</li>
                     </ul>
                   </div>
                 </UCard>
@@ -303,6 +356,7 @@ onMounted(() => {
 
               <footer class="border-default mt-8 flex items-center justify-between gap-3 border-t pt-6">
                 <UButton
+                  type="button"
                   color="neutral"
                   variant="ghost"
                   :disabled="store.stage === 0"
@@ -310,19 +364,38 @@ onMounted(() => {
                   @click="goTo(store.stage - 1)"
                   >Back</UButton
                 >
-                <UButton v-if="store.stage < 3" type="submit" size="lg" trailing-icon="i-heroicons-arrow-right">{{
-                  store.stage === 2 ? 'Review answers' : 'Continue'
-                }}</UButton>
+                <UButton
+                  v-if="store.stage < 3"
+                  type="button"
+                  size="lg"
+                  trailing-icon="i-heroicons-arrow-right"
+                  @click="goTo(Math.min(store.stage + 1, 3))"
+                  >{{ store.stage === 2 ? 'Review answers' : 'Continue' }}</UButton
+                >
                 <div v-else class="flex flex-wrap justify-end gap-3">
                   <UButton
+                    type="button"
+                    icon="i-heroicons-document-arrow-down"
+                    :loading="pdfLoading"
+                    :disabled="store.isSubmitting"
+                    @click="downloadPdf"
+                    >Download PDF</UButton
+                  >
+                  <UButton
+                    type="button"
                     color="neutral"
                     variant="outline"
                     icon="i-heroicons-arrow-down-tray"
                     :disabled="store.isSubmitting"
                     @click="download"
-                    >{{ complete ? 'Download answers' : 'Download incomplete draft' }}</UButton
+                    >Download answers (JSON)</UButton
                   >
-                  <UButton type="submit" size="lg" icon="i-heroicons-paper-airplane" :loading="store.isSubmitting"
+                  <UButton
+                    type="button"
+                    size="lg"
+                    icon="i-heroicons-paper-airplane"
+                    :loading="store.isSubmitting"
+                    @click="submit"
                     >Submit response</UButton
                   >
                 </div>

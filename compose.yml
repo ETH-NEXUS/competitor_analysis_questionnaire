@@ -49,6 +49,7 @@ services:
         set -e
         mkdir -p /web_root
         pnpm install --frozen-lockfile
+        pnpm generate:api
         pnpm run build
         cp -a /app/.output/public/. /web_root/
 

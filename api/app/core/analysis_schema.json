@@ -1,12 +1,13 @@
 {
   "apiAccess": {
-    "label": "To what extent can third-party systems access solution data and functionality through documented APIs without vendor-specific development?",
+    "label": "To what extent can third-party systems access or exchange data and functionality with the solution through documented, standardized interfaces/APIs without vendor-specific development?",
     "options": [
-      "Broad access to clinical data and functionality through documented APIs",
-      "Broad access to clinical data, but APIs cover only selected functionality",
-      "APIs are available for selected data/use cases only",
-      "Integrations generally require vendor-specific interfaces/development",
-      "Other"
+      "Broad access to or exchange of data and functionality through documented, standardized interfaces/APIs",
+      "Broad access to or exchange of data, but documented interfaces/APIs cover only selected functionality",
+      "Documented interfaces/APIs are available for selected data or use cases only",
+      "Integrations generally require vendor-specific interfaces or development",
+      "Other",
+      "No documented interfaces/APIs are available"
     ],
     "kind": "single"
   },
@@ -21,6 +22,60 @@
     ],
     "kind": "multi"
   },
+  "thirdPartyIntegration": {
+    "label": "How can third-party clinical applications be integrated into the solution?",
+    "options": [
+      "Embedded directly within the CIS user interface",
+      "Launch a third-party application from within the CIS",
+      "Single sign-on",
+      "Patient/user context automatically transferred",
+      "Access to clinical data through documented APIs",
+      "Write-back through documented APIs",
+      "Event/subscription-based integration",
+      "Third-party applications can extend functionality without modification of the CIS core",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "developerIndependence": {
+    "label": "Can independent third-party developers develop and test integrations without direct involvement from the CIS vendor?",
+    "options": [
+      "Yes, independently",
+      "Yes, after registration/approval by the vendor",
+      "Yes, but vendor support/involvement is normally required",
+      "No",
+      "Other"
+    ],
+    "kind": "single"
+  },
+  "developerResources": {
+    "label": "Which resources are available to independent third-party developers?",
+    "options": [
+      "Public API documentation",
+      "Developer portal",
+      "Sandbox/test environment",
+      "Test/synthetic patient data",
+      "SDKs/libraries",
+      "Example applications/reference implementations",
+      "Automated conformance/validation tools",
+      "Certification process for third-party applications",
+      "None",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "appIntegrationStandards": {
+    "label": "Which standards/mechanisms for application integration and authorization are supported?",
+    "options": [
+      "SMART on FHIR",
+      "OAuth 2.0 / OpenID Connect",
+      "FHIR Subscriptions",
+      "CDS Hooks",
+      "Other",
+      "None"
+    ],
+    "kind": "multi"
+  },
   "standards": {
     "label": "Which healthcare interoperability standards/profiles are supported in production?",
     "options": [
@@ -29,7 +84,8 @@
       "IHE XDS / XCA",
       "DICOM / DICOMweb",
       "HL7 CDA / Swiss CDA profiles",
-      "Other"
+      "Other",
+      "None / no healthcare interoperability standards supported"
     ],
     "detailLabels": {
       "0": "HL7 FHIR: Please specify version",
@@ -46,6 +102,47 @@
       "Vendor-hosted/SaaS",
       "Hybrid deployment",
       "Other"
+    ],
+    "kind": "multi"
+  },
+  "interoperabilityTesting": {
+    "label": "Has the solution successfully participated in interoperability testing relevant to the Swiss healthcare ecosystem (e.g. Digital Health Projectathon / IHE Connectathon)?",
+    "options": [
+      "Yes – please specify",
+      "No",
+      "Not applicable"
+    ],
+    "detailLabels": {
+      "0": "Please specify the testing event, year and result"
+    },
+    "kind": "single"
+  },
+  "externalIntegration": {
+    "label": "Can external applications or systems integrate with this solution through an API or another technical interface?",
+    "options": [
+      "Yes",
+      "No",
+      "Not sure"
+    ],
+    "kind": "single"
+  },
+  "clinicalDataManagement": {
+    "label": "Does this solution maintain clinical information for care, clinical workflows or analysis, beyond merely retaining files or backups?",
+    "options": [
+      "Yes",
+      "No",
+      "Not sure"
+    ],
+    "kind": "single"
+  },
+  "dataRetention": {
+    "label": "Which patient information does this solution itself retain?",
+    "options": [
+      "Individual clinical documents or diagnostic images",
+      "An ongoing patient record across encounters or over time",
+      "Other patient data in the solution's storage or backups",
+      "None of these",
+      "Not sure"
     ],
     "kind": "multi"
   },
@@ -69,6 +166,50 @@
       "openEHR",
       "Other",
       "Proprietary model/coding only"
+    ],
+    "kind": "multi"
+  },
+  "structuredTypes": {
+    "label": "For which types of clinical information is structured representation routinely used?",
+    "options": [
+      "Diagnoses",
+      "Medications",
+      "Allergies",
+      "Laboratory results",
+      "Vital signs",
+      "Procedures",
+      "Clinical observations",
+      "Problem lists",
+      "Questionnaires / PROMs",
+      "Clinical notes",
+      "Other",
+      "None / predominantly unstructured clinical information"
+    ],
+    "kind": "multi"
+  },
+  "terminologies": {
+    "label": "Which clinical terminologies, classifications or coding systems are supported?",
+    "options": [
+      "SNOMED CT",
+      "LOINC",
+      "ICD-10 / ICD-11",
+      "ATC",
+      "UCUM",
+      "Proprietary terminology/coding only",
+      "Other",
+      "None"
+    ],
+    "kind": "multi"
+  },
+  "clinicalModels": {
+    "label": "Which standardized clinical data models or representations are supported?",
+    "options": [
+      "openEHR archetypes/templates",
+      "HL7 FHIR resources/profiles",
+      "OMOP Common Data Model",
+      "Proprietary data model",
+      "Other",
+      "None"
     ],
     "kind": "multi"
   },
@@ -114,6 +255,22 @@
     ],
     "kind": "multi"
   },
+  "certifications": {
+    "label": "Which certifications, attestations or regulatory conformity assessments currently apply to the solution or organization operating it?",
+    "optionalTextLabel": "Optional: Please specify certificate/assessment name, scope and validity.",
+    "options": [
+      "ISO/IEC 27001",
+      "ISO 9001",
+      "ISO 13485",
+      "Medical device conformity under Swiss MedDO / EU MDR, where applicable",
+      "EPR/EPD-related certification or conformity assessment, where applicable",
+      "Other healthcare-specific certification/conformity assessment",
+      "Other information-security certification/attestation",
+      "None",
+      "Not applicable"
+    ],
+    "kind": "multi"
+  },
   "switzerland": {
     "label": "Can customers require that all patient data, including backups and disaster-recovery copies, remains exclusively within Switzerland?",
     "options": [
@@ -139,9 +296,10 @@
   "configuration": {
     "label": "How can the solution be configured or adapted to customer-specific requirements?",
     "options": [
-      "Most configurations/adaptations can be performed independently by trained hospital administrators using built-in configuration tools",
-      "Hospital administrators can perform standard configurations",
-      "Hospital-specific adaptations generally require vendor software development",
+      "Most standard configuration can be performed independently by trained customer administrators",
+      "Some configuration can be performed by the customer",
+      "Configuration generally requires vendor or implementation-partner support",
+      "Customer-specific adaptations generally require software development",
       "Other"
     ],
     "kind": "single"
@@ -172,6 +330,18 @@
     ],
     "kind": "single"
   },
+  "thirdPartyApproval": {
+    "label": "How are third-party applications approved for integration with the CIS?",
+    "options": [
+      "No vendor approval required if technical requirements are met",
+      "Automated technical/conformance validation",
+      "Vendor technical review/certification",
+      "Vendor commercial approval/agreement required",
+      "Only selected vendor partners can integrate",
+      "Other"
+    ],
+    "kind": "multi"
+  },
   "pricing": {
     "label": "How is the solution licence/subscription fee calculated?",
     "options": [
@@ -190,7 +360,6 @@
     "label": "Which of the following are included in the standard licence/subscription and which are charged separately?",
     "options": [
       "Initial implementation",
-      "Configuration",
       "Data migration",
       "Interfaces / integrations",
       "Training / implementation training",
@@ -239,6 +408,20 @@
     ],
     "kind": "multi"
   },
+  "reportingMethods": {
+    "label": "How can clinical data be accessed for reporting and analysis?",
+    "options": [
+      "Built-in reporting",
+      "Vendor-provided analytics platform / data warehouse",
+      "Direct access to underlying analytical data store / data warehouse",
+      "SQL/query access",
+      "APIs",
+      "Real-time/event streaming",
+      "Other",
+      "Not applicable / solution does not manage clinical data"
+    ],
+    "kind": "multi"
+  },
   "research": {
     "label": "What capabilities are provided to support research use of clinical data?",
     "options": [
@@ -266,7 +449,7 @@
     "kind": "multi"
   },
   "clinicalCapabilities": {
-    "label": "Which clinical functional areas are covered by your solution?",
+    "label": "Describe your core CIS coverage, external integrations and specialized functions.",
     "options": [
       "Clinical documentation",
       "Medication management",
@@ -280,7 +463,7 @@
       "Anaesthesia",
       "PDMS"
     ],
-    "kind": "capabilities"
+    "kind": "offerings"
   },
   "specialties": {
     "label": "For which specialties do you offer dedicated modules? Select each specialty you support and describe the module(s).",
@@ -312,6 +495,24 @@
     ],
     "kind": "multi"
   },
+  "documentationMethods": {
+    "label": "Which capabilities are available to reduce documentation burden?",
+    "options": [
+      "Reuse/pre-population of existing patient data",
+      "Structured documentation templates",
+      "Specialty-specific documentation templates/workflows",
+      "Voice dictation",
+      "Speech-to-text",
+      "Ambient AI documentation",
+      "Automated extraction/structuring of clinical information",
+      "Automatic generation of letters/reports",
+      "Cross-module reuse of entered information",
+      "Configurable shortcuts/macros/favourites",
+      "Other",
+      "None"
+    ],
+    "kind": "multi"
+  },
   "dataCapabilities": {
     "label": "Which capabilities does your solution provide?",
     "options": [
@@ -327,6 +528,21 @@
       "Application development / low-code environment",
       "Data warehouse / analytics platform",
       "Vendor-neutral archive",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "dataExchangeHandling": {
+    "label": "How does the solution handle data exchanged between connected systems?",
+    "options": [
+      "Pass-through / routing only",
+      "Transformation / mapping",
+      "Temporary storage / queueing",
+      "Persistent storage",
+      "Patient identity matching",
+      "Consent / access-control enforcement",
+      "Validation / enrichment",
+      "Workflow / orchestration",
       "Other"
     ],
     "kind": "multi"
@@ -356,6 +572,11 @@
       "Complete questionnaires / PROMs",
       "Submit patient-generated health data",
       "Connect wearables / home monitoring devices",
+      "View/manage clinical documents",
+      "Upload clinical documents/data",
+      "Manage consent / access permissions",
+      "View access history / audit log",
+      "Manage representatives / proxies",
       "Other"
     ],
     "kind": "multi"
@@ -380,23 +601,50 @@
     ],
     "kind": "single"
   },
-  "writeBack": {
-    "label": "Can patient-entered or device-generated data be written back into the clinical system as structured, reusable data?",
+  "aggregationMethods": {
+    "label": "How can the solution receive or aggregate patient information from multiple clinical/source systems?",
     "options": [
-      "Yes",
-      "Partially / for selected data types",
+      "Through standards-based interfaces/APIs",
+      "Through vendor-specific interfaces/APIs",
+      "From solutions within the vendor’s own product ecosystem",
+      "Combination of standards-based and vendor-specific integration",
+      "Not supported",
+      "Other"
+    ],
+    "kind": "multi"
+  },
+  "writeBack": {
+    "label": "Can patient-entered or device-generated data be made available to connected clinical systems as structured, reusable data?",
+    "options": [
+      "Yes, automatically",
+      "Yes, after review or approval",
+      "Partially or selected data types",
+      "Only as documents or unstructured data",
       "No"
     ],
     "kind": "single"
   },
   "patientIndependent": {
-    "label": "Can the patient-facing solution be purchased and operated independently of the vendor’s hospital-wide CIS?",
+    "label": "Can the patient-facing solution be purchased and operated independently of a specific hospital-wide CIS?",
     "options": [
       "Yes",
-      "No",
+      "No – requires the vendor’s CIS",
+      "No – requires another specific CIS/platform",
       "Other"
     ],
     "kind": "single"
+  },
+  "patientExchange": {
+    "label": "How is information exchanged between the patient-facing solution and connected clinical systems?",
+    "options": [
+      "Real-time bidirectional structured exchange",
+      "Structured exchange in one direction only",
+      "Document-based exchange",
+      "Manual import/export required",
+      "Depends on the connected clinical system",
+      "Other"
+    ],
+    "kind": "multi"
   },
   "parties": {
     "label": "Which parties are typically required for implementation?",
@@ -410,12 +658,25 @@
     ],
     "kind": "multi"
   },
+  "implementationInvolvement": {
+    "label": "What level of external vendor/implementation-partner involvement is typically required to implement the solution?",
+    "options": [
+      "Can be implemented independently by the customer using standard documentation/tools",
+      "Vendor/implementation-partner support is available but optional",
+      "Vendor or implementation-partner configuration/support is normally required",
+      "Vendor-led implementation is required",
+      "Certified implementation partner is required",
+      "Depends substantially on scope",
+      "Other"
+    ],
+    "kind": "single"
+  },
   "rollout": {
     "label": "Which rollout approaches are supported?",
     "options": [
       "Big-bang migration and rollout",
-      "Phased / incremental migration and rollout",
-      "Parallel operation of legacy and new solution during transition",
+      "Phased rollout by department, site or module",
+      "Temporary parallel operation of legacy and new systems during transition",
       "Other"
     ],
     "kind": "multi"
