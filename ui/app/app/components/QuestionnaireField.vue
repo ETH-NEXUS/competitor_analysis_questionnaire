@@ -2,13 +2,18 @@
 import {
   costOptions,
   emptyProduct,
+  emptyTestingEvent,
+  fhirReleases,
   otherIndex,
   otherIsSelected,
   productsFor,
   sourceOptions,
+  testingEventOptions,
+  testingOutcomeOptions,
   type Answer,
   type Product,
   type Question,
+  type TestingEvent,
 } from '~/utils/questionnaire'
 
 const props = defineProps<{
@@ -48,8 +53,34 @@ function select(value: string, checked: boolean) {
     : props.answer.selected.filter((item) => item !== value)
   emit('update', { ...props.answer, selected })
 }
+function selectSingle(value: string) {
+  emit('update', {
+    ...props.answer,
+    selected: [value],
+    testing_events:
+      props.question.id === 'interoperabilityTesting' && value === '0' && !props.answer.testing_events.length
+        ? [emptyTestingEvent()]
+        : props.answer.testing_events,
+  })
+}
 function detail(key: string, value: string) {
   emit('update', { ...props.answer, details: { ...props.answer.details, [key]: value } })
+}
+function updateFhirRelease(release: string, checked: boolean) {
+  const current = props.answer.followups['0'] || []
+  const selected = checked ? [...new Set([...current, release])] : current.filter((item) => item !== release)
+  emit('update', { ...props.answer, followups: { ...props.answer.followups, '0': selected } })
+}
+function updateTestingEvent(index: number, field: keyof TestingEvent, value: string) {
+  const testing_events = [...props.answer.testing_events]
+  testing_events[index] = { ...testing_events[index]!, [field]: value }
+  emit('update', { ...props.answer, testing_events })
+}
+function addTestingEvent() {
+  emit('update', { ...props.answer, testing_events: [...props.answer.testing_events, emptyTestingEvent()] })
+}
+function removeTestingEvent(index: number) {
+  emit('update', { ...props.answer, testing_events: props.answer.testing_events.filter((_, item) => item !== index) })
 }
 function updateOther(index: number, value: string) {
   const other_items = [...props.answer.other_items]
@@ -129,7 +160,7 @@ function removeProduct(key: string, index: number) {
       :model-value="answer.selected[0]"
       :items="options"
       :aria-label="question.label"
-      @update:model-value="emit('update', { ...answer, selected: [String($event)] })"
+      @update:model-value="selectSingle(String($event))"
     />
     <div v-else-if="question.kind === 'multi'" class="space-y-3">
       <UCheckbox
@@ -283,6 +314,110 @@ function removeProduct(key: string, index: number) {
         />
       </UFormField>
     </template>
+    <div
+      v-if="question.id === 'standards' && answer.selected.includes('0')"
+      class="border-default mt-5 space-y-3 rounded-xl border p-4"
+    >
+      <p class="text-sm font-semibold">Primary FHIR release used in production:</p>
+      <div class="flex flex-wrap gap-x-6 gap-y-3">
+        <UCheckbox
+          v-for="release in fhirReleases"
+          :key="release"
+          :label="release"
+          :model-value="(answer.followups['0'] || []).includes(release)"
+          @update:model-value="updateFhirRelease(release, $event === true)"
+        />
+      </div>
+      <UFormField v-if="answer.followups['0']?.includes('Other')" label="Other FHIR release">
+        <UInput
+          :model-value="answer.details.fhir_other || ''"
+          :maxlength="200"
+          class="w-full"
+          @update:model-value="detail('fhir_other', String($event))"
+        />
+      </UFormField>
+    </div>
+    <div v-if="question.id === 'interoperabilityTesting' && answer.selected.includes('0')" class="mt-5 space-y-4">
+      <p v-if="answer.details.legacy" class="text-warning text-sm">{{ answer.details.legacy }}</p>
+      <div v-for="(event, index) in answer.testing_events" :key="index" class="border-default rounded-xl border p-4">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <h4 class="font-semibold">Testing event {{ index + 1 }}</h4>
+          <UButton
+            type="button"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-trash"
+            :aria-label="`Remove testing event ${index + 1}`"
+            @click="removeTestingEvent(index)"
+          />
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <UFormField label="Event">
+            <USelect
+              :model-value="event.event"
+              :items="testingEventOptions.map((item) => ({ label: item, value: item }))"
+              placeholder="Select an event"
+              class="w-full"
+              @update:model-value="updateTestingEvent(index, 'event', String($event))"
+            />
+          </UFormField>
+          <UFormField label="Year">
+            <UInput
+              :model-value="event.year"
+              type="number"
+              min="1900"
+              :max="new Date().getFullYear() + 1"
+              placeholder="YYYY"
+              class="w-full"
+              @update:model-value="updateTestingEvent(index, 'year', String($event))"
+            />
+          </UFormField>
+          <UFormField v-if="event.event === 'Other'" label="Other event" class="sm:col-span-2">
+            <UInput
+              :model-value="event.event_other"
+              :maxlength="200"
+              class="w-full"
+              @update:model-value="updateTestingEvent(index, 'event_other', String($event))"
+            />
+          </UFormField>
+          <UFormField label="Tested profiles / use cases" class="sm:col-span-2">
+            <UTextarea
+              :model-value="event.profiles"
+              :maxlength="2000"
+              :rows="2"
+              class="w-full"
+              @update:model-value="updateTestingEvent(index, 'profiles', String($event))"
+            />
+          </UFormField>
+          <UFormField label="Outcome / result">
+            <USelect
+              :model-value="event.outcome"
+              :items="testingOutcomeOptions.map((item) => ({ label: item, value: item }))"
+              placeholder="Select a result"
+              class="w-full"
+              @update:model-value="updateTestingEvent(index, 'outcome', String($event))"
+            />
+          </UFormField>
+          <UFormField v-if="event.outcome === 'Other'" label="Other outcome">
+            <UInput
+              :model-value="event.outcome_other"
+              :maxlength="200"
+              class="w-full"
+              @update:model-value="updateTestingEvent(index, 'outcome_other', String($event))"
+            />
+          </UFormField>
+        </div>
+      </div>
+      <UButton
+        v-if="answer.testing_events.length < 30"
+        type="button"
+        color="neutral"
+        variant="outline"
+        icon="i-heroicons-plus"
+        @click="addTestingEvent"
+        >Add another event</UButton
+      >
+    </div>
     <div v-if="otherIsSelected(question, answer)" data-other-list class="mt-5 space-y-3">
       <p class="text-sm font-medium">Other answers</p>
       <div

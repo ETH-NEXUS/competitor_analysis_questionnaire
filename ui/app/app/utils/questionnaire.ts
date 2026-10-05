@@ -1,7 +1,7 @@
 import coreQuestions from './questionnaire-core.json'
 import specificQuestions from './questionnaire-specific.json'
 
-export type Scope = 'A' | 'B' | 'C' | 'D' | 'E'
+export type Scope = 'A' | 'C' | 'D' | 'E'
 export type QuestionKind = 'single' | 'multi' | 'text' | 'costs' | 'capabilities' | 'offerings'
 export interface Question {
   id: string
@@ -28,10 +28,20 @@ export interface Answer {
   selected: string[]
   text: string
   details: Record<string, string>
+  followups: Record<string, string[]>
+  testing_events: TestingEvent[]
   rows: Record<string, Record<string, string>>
   other_items: string[]
   products: Record<string, Product[]>
   offerings: ClinicalOffering[]
+}
+export interface TestingEvent {
+  event: string
+  event_other: string
+  year: string
+  profiles: string
+  outcome: string
+  outcome_other: string
 }
 export interface ClinicalOffering {
   kind: 'core' | 'integration' | 'function'
@@ -60,7 +70,7 @@ export interface Product {
   source: '' | '0' | '1'
   standalone: boolean
 }
-export const scopes: Scope[] = ['A', 'B', 'C', 'D', 'E']
+export const scopes: Scope[] = ['A', 'C', 'D', 'E']
 const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
   questions: Omit<Question, 'label' | 'choices' | 'number'>[]
 })[] = [
@@ -70,9 +80,9 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
     questions: [
       { id: 'apiAccess', kind: 'single', details: [4] },
       { id: 'apiTypes', kind: 'multi', details: [3], exclusive: [4] },
-      { id: 'standards', kind: 'multi', details: [0, 1, 5], exclusive: [6] },
+      { id: 'standards', kind: 'multi', details: [1, 5], exclusive: [6] },
       { id: 'deployment', kind: 'multi', details: [5] },
-      { id: 'interoperabilityTesting', kind: 'single', details: [0] },
+      { id: 'interoperabilityTesting', kind: 'single' },
     ],
   },
   {
@@ -287,14 +297,12 @@ const sectionTitles: Record<string, string> = {
 }
 export const scopeLabels = [
   'Hospital-wide clinical information system',
-  'Patient administration / hospital management system',
   'Specialized clinical solution / modules',
   'Data / interoperability solution',
   'Patient-facing solution',
 ]
 export const scopeDescriptions = [
   'The primary system for clinical documentation and workflows across multiple clinical areas.',
-  'Administrative hospital processes, such as patient administration, ADT and billing.',
   'A specific clinical area, specialty or workflow, including dedicated modules within a hospital-wide CIS.',
   'Data storage, integration, exchange or interoperability capabilities.',
   'Functionality directly available to patients through a portal or app.',
@@ -317,6 +325,9 @@ export const workflowReuseOptions = [
   { label: 'None of these', value: 'none' },
   { label: 'Not sure', value: 'unknown' },
 ]
+export const fhirReleases = ['R2', 'R3', 'R4', 'R4B', 'R5', 'Other']
+export const testingEventOptions = ['Digital Health Projectathon', 'IHE Connectathon', 'Other']
+export const testingOutcomeOptions = ['Successful', 'Partially successful', 'Unsuccessful', 'No formal result', 'Other']
 export const workflowChoiceOptions = {
   write_back: [
     { label: 'Automatically', value: 'automatic' },
@@ -353,7 +364,21 @@ export const sections: QuestionSection[] = sectionDefinitions.map((section) => (
 }))
 
 export function emptyAnswer(): Answer {
-  return { selected: [], text: '', details: {}, rows: {}, other_items: [], products: {}, offerings: [] }
+  return {
+    selected: [],
+    text: '',
+    details: {},
+    followups: {},
+    testing_events: [],
+    rows: {},
+    other_items: [],
+    products: {},
+    offerings: [],
+  }
+}
+
+export function emptyTestingEvent(): TestingEvent {
+  return { event: '', event_other: '', year: '', profiles: '', outcome: '', outcome_other: '' }
 }
 
 export function emptyOffering(kind: ClinicalOffering['kind'] = 'function', name = ''): ClinicalOffering {
@@ -491,6 +516,26 @@ export function isAnswered(question: Question, answer: Answer): boolean {
   const otherItems = question.kind === 'single' ? answer.other_items.slice(0, 1) : answer.other_items
   const otherComplete =
     !otherIsSelected(question, answer) || (otherItems.length > 0 && otherItems.every((item) => Boolean(item.trim())))
+  if (question.id === 'standards' && answer.selected.includes('0')) {
+    const releases = answer.followups['0'] || []
+    if (!releases.length || (releases.includes('Other') && !answer.details.fhir_other?.trim())) return false
+  }
+  if (question.id === 'interoperabilityTesting' && answer.selected.includes('0')) {
+    if (
+      !answer.testing_events.length ||
+      !answer.testing_events.every(
+        (event) =>
+          event.event &&
+          /^\d{4}$/.test(event.year) &&
+          Number(event.year) >= 1900 &&
+          Number(event.year) <= new Date().getFullYear() + 1 &&
+          event.outcome &&
+          (event.event !== 'Other' || event.event_other.trim()) &&
+          (event.outcome !== 'Other' || event.outcome_other.trim()),
+      )
+    )
+      return false
+  }
   if (question.kind === 'text') return Boolean(answer.text.trim())
   if (question.kind === 'costs') {
     return Array.from({ length: question.choices.length }, (_, i) => answer.rows[i]?.cost).every(Boolean)
@@ -529,9 +574,28 @@ export function activeAnswer(question: Question, answer: Answer): Answer {
     text: answer.text,
     details: Object.fromEntries(
       Object.entries(answer.details).filter(
-        ([key]) => answer.selected.includes(key) && Number(key) !== otherIndex(question),
+        ([key]) =>
+          (answer.selected.includes(key) && Number(key) !== otherIndex(question)) ||
+          (question.id === 'standards' &&
+            key === 'fhir_other' &&
+            answer.selected.includes('0') &&
+            answer.followups['0']?.includes('Other')),
       ),
     ),
+    followups:
+      question.id === 'standards' && answer.selected.includes('0')
+        ? { '0': [...new Set(answer.followups['0'] || [])] }
+        : {},
+    testing_events:
+      question.id === 'interoperabilityTesting' && answer.selected.includes('0')
+        ? answer.testing_events.map((event) => ({
+            ...event,
+            event_other: event.event === 'Other' ? event.event_other.trim() : '',
+            year: event.year.trim(),
+            profiles: event.profiles.trim(),
+            outcome_other: event.outcome === 'Other' ? event.outcome_other.trim() : '',
+          }))
+        : [],
     other_items: otherIsSelected(question, answer) ? otherItems.map((item) => item.trim()).filter(Boolean) : [],
     offerings:
       question.kind === 'offerings'
@@ -648,6 +712,18 @@ export function answerLines(question: Question, answer: Answer): string[] {
         : [options[Number(index)]!]
       : [`${options[Number(index)]}${answer.details[index] ? `: ${answer.details[index]}` : ''}`],
   )
+  if (question.id === 'standards' && answer.selected.includes('0')) {
+    const releases = (answer.followups['0'] || []).map((release) =>
+      release === 'Other' && answer.details.fhir_other ? `Other: ${answer.details.fhir_other}` : release,
+    )
+    if (releases.length) selectedLines.push(`Primary FHIR release used in production: ${releases.join(', ')}`)
+  }
+  if (question.id === 'interoperabilityTesting' && answer.selected.includes('0')) {
+    for (const event of answer.testing_events)
+      selectedLines.push(
+        `Event: ${event.event === 'Other' ? event.event_other : event.event || 'Not answered'}; Year: ${event.year || 'Not answered'}; Tested profiles / use cases: ${event.profiles || 'Not specified'}; Outcome: ${event.outcome === 'Other' ? event.outcome_other : event.outcome || 'Not answered'}`,
+      )
+  }
   return question.optionalTextLabel && answer.text.trim()
     ? [...selectedLines, `${question.optionalTextLabel} ${answer.text.trim()}`]
     : selectedLines

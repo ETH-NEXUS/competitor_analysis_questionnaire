@@ -8,6 +8,7 @@ import {
   emptyOffering,
   emptyClinicalWorkflow,
   emptyProduct,
+  emptyTestingEvent,
   isAnswered,
   legacyClinicalOfferings,
   otherIndex,
@@ -17,6 +18,7 @@ import {
   type ClinicalOffering,
   type Product,
   type Scope,
+  type TestingEvent,
 } from '~/utils/questionnaire'
 
 const draftKey = 'hospital-it-questionnaire-v11'
@@ -313,6 +315,37 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
         }
       }
       if (question.kind === 'single') answer.other_items = answer.other_items.slice(0, 1)
+      if (question.id === 'standards') {
+        const saved = value.followups?.['0']
+        if (Array.isArray(saved))
+          answer.followups['0'] = [
+            ...new Set(
+              saved.filter(
+                (item: unknown) => typeof item === 'string' && ['R2', 'R3', 'R4', 'R4B', 'R5', 'Other'].includes(item),
+              ),
+            ),
+          ]
+        else if (answer.details['0']?.trim()) {
+          const legacy = answer.details['0'].trim()
+          answer.followups['0'] = ['R2', 'R3', 'R4', 'R4B', 'R5'].includes(legacy) ? [legacy] : ['Other']
+          if (answer.followups['0'].includes('Other')) answer.details.fhir_other = legacy
+        }
+      }
+      if (question.id === 'interoperabilityTesting' && answer.selected.includes('0')) {
+        answer.testing_events = Array.isArray(value.testing_events)
+          ? value.testing_events.slice(0, 30).map((item: Partial<TestingEvent>) => ({
+              ...emptyTestingEvent(),
+              ...Object.fromEntries(
+                Object.keys(emptyTestingEvent()).map((field) => [
+                  field,
+                  typeof item?.[field as keyof TestingEvent] === 'string' ? item[field as keyof TestingEvent] : '',
+                ]),
+              ),
+            }))
+          : [emptyTestingEvent()]
+        if (!Array.isArray(value.testing_events) && answer.details['0'])
+          answer.details.legacy = `Previous testing details: ${answer.details['0']}`
+      }
       restored[question.id] = answer
     }
     for (const id of ['structure', 'coding', 'reporting', 'documentation', 'aggregation', 'parties', 'specialties']) {
@@ -365,7 +398,6 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
         provider_name: identity.value.providerName.trim(),
         solution_name: identity.value.solutionName.trim(),
         hospital_wide_cis: selectedScopes.value.includes('A'),
-        patient_administration: selectedScopes.value.includes('B'),
         specialized_clinical: selectedScopes.value.includes('C'),
         data_interoperability: selectedScopes.value.includes('D'),
         patient_facing: selectedScopes.value.includes('E'),

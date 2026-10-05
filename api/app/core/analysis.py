@@ -140,6 +140,17 @@ def _vendor_payload(item):
     }
 
 
+def _delete_vendor_outreach(payload):
+    if set(payload) != {"action", "id"} or type(payload["id"]) is not int or payload["id"] <= 0:
+        return JsonResponse({"error": "Invalid vendor ID."}, status=400)
+    with transaction.atomic():
+        item = VendorInvitation.objects.select_for_update().filter(pk=payload["id"]).first()
+        if item is None:
+            return JsonResponse({"error": "Vendor not found."}, status=404)
+        item.delete()
+    return JsonResponse({"deleted_id": payload["id"]})
+
+
 @superuser_only
 @require_POST
 def save_vendor_outreach(request):
@@ -147,8 +158,10 @@ def save_vendor_outreach(request):
         payload = json.loads(request.body)
     except (ValueError, TypeError):
         return JsonResponse({"error": "Invalid request."}, status=400)
-    if not isinstance(payload, dict) or payload.get("action") not in {"create", "update"}:
+    if not isinstance(payload, dict) or payload.get("action") not in {"create", "update", "delete"}:
         return JsonResponse({"error": "Invalid action."}, status=400)
+    if payload["action"] == "delete":
+        return _delete_vendor_outreach(payload)
 
     with transaction.atomic():
         if payload["action"] == "create":

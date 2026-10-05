@@ -88,6 +88,59 @@ class AnalysisTests(TestCase):
         self.assertEqual(saved.questionnaire_version, 11)
         self.assertEqual(saved.answer_data["migration"]["selected"], ["0", "3"])
 
+    def test_fhir_releases_and_multiple_testing_events_are_stored_structurally(self):
+        base = {"question": "Testing", "selected": [], "text": "", "details": {}, "rows": {}, "readable_answer": []}
+        serializer = QuestionnaireResponseSerializer(data={
+            "submission_id": "c2e89939-e81d-44d0-bf9e-ea77d6469ba5",
+            "respondent_email": "testing@example.com",
+            "provider_name": "Testing Vendor",
+            "solution_name": "Interoperability Platform",
+            "data_interoperability": True,
+            "answers": {
+                "standards": {**base, "selected": ["0"], "followups": {"0": ["R4", "R4B", "Other"]}, "details": {"fhir_other": "Custom release"}, "readable_answer": ["HL7 FHIR", "Primary FHIR release used in production: R4, R4B, Other: Custom release"]},
+                "interoperabilityTesting": {**base, "selected": ["0"], "testing_events": [
+                    {"event": "Digital Health Projectathon", "year": "2024", "profiles": "CH Core", "outcome": "Successful"},
+                    {"event": "IHE Connectathon", "year": "2025", "profiles": "XDS", "outcome": "Partially successful"},
+                ], "readable_answer": ["Yes – please specify", "Projectathon 2024", "Connectathon 2025"]},
+            },
+        })
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        response = serializer.save()
+        self.assertEqual(response.answer_data["standards"]["followups"]["0"], ["R4", "R4B", "Other"])
+        self.assertEqual(len(response.answer_data["interoperabilityTesting"]["testing_events"]), 2)
+        self.assertIn("Connectathon 2025", response.interoperability_testing)
+
+    def test_incomplete_testing_event_is_rejected(self):
+        serializer = QuestionnaireResponseSerializer(data={
+            "submission_id": "2cc3e076-1d12-4753-b142-3fae5743e4cb",
+            "respondent_email": "testing@example.com",
+            "provider_name": "Testing Vendor",
+            "solution_name": "Interoperability Platform",
+            "data_interoperability": True,
+            "answers": {"interoperabilityTesting": {
+                "question": "Testing", "selected": ["0"], "text": "", "details": {},
+                "rows": {}, "readable_answer": ["Yes"], "testing_events": [
+                    {"event": "IHE Connectathon", "year": "2025", "outcome": ""},
+                ],
+            }},
+        })
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("answers", serializer.errors)
+
+    def test_patient_administration_is_not_a_new_submission_category(self):
+        serializer = QuestionnaireResponseSerializer(data={
+            "submission_id": "370b5c9a-9c4c-4b31-9c4f-c580424e472a",
+            "respondent_email": "legacy@example.com",
+            "provider_name": "Legacy Vendor",
+            "solution_name": "Administration System",
+            "patient_administration": True,
+            "answers": {"apiAccess": {
+                "question": "API access", "selected": ["0"], "text": "", "details": {}, "rows": {},
+                "readable_answer": ["Broad access"],
+            }},
+        })
+        self.assertFalse(serializer.is_valid())
+
     def test_invitation_roster_is_available_to_superusers_and_analysis(self):
         VendorInvitation.objects.create(provider_name="Declined Vendor", declined=True)
         response = analysis(self.request("/admin/analysis/"))
@@ -142,6 +195,14 @@ class AnalysisTests(TestCase):
         page = analysis(self.request("/admin/analysis/"))
         self.assertContains(page, "Vendor outreach")
         self.assertContains(page, "/admin/analysis/vendors/")
+
+        self.assertEqual(post({"action": "delete", "id": vendor["id"], "provider": "No"}).status_code, 400)
+        deleted = post({"action": "delete", "id": vendor["id"]})
+        self.assertEqual(deleted.status_code, 200)
+        self.assertEqual(json.loads(deleted.content)["deleted_id"], vendor["id"])
+        self.assertFalse(VendorInvitation.objects.filter(pk=vendor["id"]).exists())
+        self.assertEqual(post({"action": "delete", "id": vendor["id"]}).status_code, 404)
+        self.assertEqual(QuestionnaireResponse.objects.count(), 1)
 
     def test_dashboard_assets_load_without_static_file_routing(self):
         css = analysis_css(self.request("/admin/analysis/style.css"))

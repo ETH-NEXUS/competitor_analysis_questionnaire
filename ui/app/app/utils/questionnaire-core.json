@@ -81,7 +81,6 @@
       "None / no healthcare interoperability standards supported"
     ],
     "detailLabels": {
-      "0": "HL7 FHIR: Please specify version",
       "1": "HL7 v2: Please specify supported message types"
     }
   },
@@ -97,9 +96,8 @@
     ]
   },
   "interoperabilityTesting": {
-    "label": "Has the solution successfully participated in interoperability testing relevant to the Swiss healthcare ecosystem (e.g. Digital Health Projectathon / IHE Connectathon)?",
-    "options": ["Yes – please specify", "No", "Not applicable"],
-    "detailLabels": { "0": "Please specify the testing event, year and result" }
+    "label": "Has the solution participated in interoperability testing relevant to the Swiss healthcare ecosystem (e.g. Digital Health Projectathon / IHE Connectathon)?",
+    "options": ["Yes – please specify", "No", "Not applicable"]
   },
   "dataRetention": {
     "label": "Which patient information does this solution itself retain?",

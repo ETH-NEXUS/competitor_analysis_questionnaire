@@ -171,6 +171,13 @@ The production proxy serves the built SPA, Django static/media files and API rou
 Configure domains, upstreams, certificates and routing using the `SMNRP_*` settings
 in `.env.TEMPLATE`. Set the appropriate Django debug, host, CSRF, CORS and cookie
 settings for the deployment. Production API processes run through Gunicorn.
+After changing API dependencies, rebuild the API image before restarting it:
+`docker compose build api && docker compose up -d --no-deps api`. If public API
+routes still time out while `http://localhost:${DJANGO_HOST_PORT}/api/v1/health/`
+works on the host, restart `ws` so its proxy resolves the replacement API container.
+
+The patient-administration-only category is no longer offered or accepted for new
+submissions. Its database field remains so earlier responses keep their original scope.
 
 Celery uses Redis as broker, database-backed results and the database scheduler.
 Periodic tasks can be managed through Django admin when the workers are enabled.

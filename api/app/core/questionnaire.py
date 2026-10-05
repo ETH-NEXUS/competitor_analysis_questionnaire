@@ -112,7 +112,10 @@ def answer_text(answer):
         return "\n".join(lines)
     if answer.get("text"):
         return answer["text"]
-    if any(answer.get(key) for key in ("selected", "details", "rows", "offerings")):
+    if any(
+        answer.get(key)
+        for key in ("selected", "details", "followups", "testing_events", "rows", "offerings")
+    ):
         # Preserve all details if an older submission lacks display text.
         return json.dumps(answer, ensure_ascii=False)
     return ""

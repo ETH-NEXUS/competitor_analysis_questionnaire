@@ -347,6 +347,7 @@ function workflowCell(record, field) {
 function addCanonicalEditor(parent, id, title, variants, suggestions) {
   if (!variants.size) return;
   const editor = node('details', undefined, 'catalog-editor');
+  if (id === 'clinicalProduct') editor.id = 'product-match-editor';
   editor.open = openEditors.has(id);
   editor.addEventListener('toggle', () => editor.open ? openEditors.add(id) : openEditors.delete(id));
   editor.append(node('summary', title));
@@ -359,6 +360,7 @@ function addCanonicalEditor(parent, id, title, variants, suggestions) {
   editor.append(choices);
   for (const [key, variant] of [...variants].sort((a, b) => a[1].label.localeCompare(b[1].label))) {
     const row = node('div', undefined, 'grouping-row');
+    row.dataset.variant = key;
     const input = node('input'); input.type = 'text'; input.maxLength = 200;
     input.value = mappings.get(key) || ''; input.setAttribute('list', choices.id);
     input.placeholder = 'Group name (optional)'; input.setAttribute('aria-label', `Group for ${variant.label}`);
@@ -389,7 +391,7 @@ function renderProductComparison(rows) {
     products.append(card);
     return;
   }
-  card.append(node('p', 'Each row is one reported offering. A grouped product name may appear in several rows when providers report different deployments or workflow details.', 'muted'));
+  card.append(node('p', 'Products match automatically when the reported company and product names differ only in capitalization or spacing. Use Edit match to join names that refer to the same product; original answers stay unchanged.', 'muted'));
   const productGroups = groupingMap('clinicalProduct');
   const productName = record => {
     const raw = `${record.developer} — ${record.name}`;
@@ -436,6 +438,19 @@ function renderProductComparison(rows) {
       const raw = `${record.developer} — ${record.name}`;
       if (productName(record) !== raw) product.append(node('small', `Reported as ${raw}`));
       if (record.description) product.append(node('small', record.description));
+      const matchButton = node('button', 'Edit match', 'product-match-button');
+      matchButton.type = 'button';
+      matchButton.setAttribute('aria-label', `Edit product match for ${raw}`);
+      matchButton.addEventListener('click', () => {
+        const editor = document.getElementById('product-match-editor');
+        if (!editor) return;
+        editor.open = true;
+        openEditors.add('clinicalProduct');
+        const target = [...editor.querySelectorAll('[data-variant]')].find(item => item.dataset.variant === normalizeOther(raw));
+        (target || editor).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target?.querySelector('input')?.focus({ preventScroll: true });
+      });
+      product.append(matchButton);
       const type = record.kind === 'core' ? 'Core CIS' : record.kind === 'integration' ? 'Third-party integration' : 'Specialized function';
       row.append(
         product,
@@ -600,6 +615,55 @@ function addMultiMatrix(card, q, eligible) {
   card.append(node('p', 'A tick means the provider selected the feature. A number means several additional answers were grouped into the same feature. The last row counts answers.', 'muted'));
   vendorTable(card, columns, eligible, (response, label) => perResponse.get(response.id)?.get(label) || 0, { totals: true, additionalStart: columns.length > predefined.length ? predefined.length : -1, statusFor: response => answerStatus(q, response) });
 }
+function addFhirReleaseMatrix(card, rows) {
+  const fhirRows = rows.filter(response => answerSelection(response, 'standards').includes('0') || (response.answers.standards || '').split('\n').includes('HL7 FHIR'));
+  if (!fhirRows.length) return;
+  const releases = ['R2', 'R3', 'R4', 'R4B', 'R5', 'Other'];
+  const selectedFor = response => {
+    const answer = response.answer_data?.standards || {};
+    if (Array.isArray(answer.followups?.['0'])) return answer.followups['0'];
+    const legacy = String(answer.details?.['0'] || '').trim();
+    return legacy ? [releases.includes(legacy) ? legacy : 'Other'] : [];
+  };
+  card.append(node('h3', 'Primary FHIR release used in production'));
+  vendorTable(card, releases, fhirRows, (response, label) => selectedFor(response).includes(label) ? 1 : 0, { totals: true });
+  const other = fhirRows.filter(response => selectedFor(response).includes('Other'));
+  if (other.length) {
+    const list = node('dl', undefined, 'open-answers');
+    for (const response of sortedVendors(other)) {
+      list.append(node('dt', `${response.provider} · response #${response.id}`));
+      list.append(node('dd', response.answer_data?.standards?.details?.fhir_other || response.answer_data?.standards?.details?.['0'] || 'Other release not specified'));
+    }
+    card.append(node('h4', 'Other FHIR releases'), list);
+  }
+}
+function addTestingEventTable(card, rows) {
+  const reported = rows.filter(response => answerSelection(response, 'interoperabilityTesting').includes('0') || String(response.answers.interoperabilityTesting || '').startsWith('Yes – please specify'));
+  if (!reported.length) return;
+  card.append(node('h3', 'Interoperability testing events'));
+  const scroll = node('div', undefined, 'matrix-scroll');
+  const table = node('table', undefined, 'answer-matrix');
+  const head = node('thead'); const heading = node('tr');
+  for (const label of ['Provider / submission', 'Event', 'Year', 'Tested profiles / use cases', 'Outcome / result']) heading.append(node('th', label));
+  head.append(heading); table.append(head);
+  const body = node('tbody');
+  for (const response of sortedVendors(reported)) {
+    const events = response.answer_data?.interoperabilityTesting?.testing_events || [];
+    for (const event of events.length ? events : [null]) {
+      const row = node('tr');
+      const legacy = response.answer_data?.interoperabilityTesting?.details?.['0'] || '';
+      row.append(
+        node('th', `${response.provider} / ${response.solution || 'Unnamed solution'} · #${response.id}`),
+        node('td', event ? event.event === 'Other' ? event.event_other : event.event || '—' : legacy || 'Earlier free-text answer'),
+        node('td', event?.year || '—'),
+        node('td', event?.profiles || '—'),
+        node('td', event ? event.outcome === 'Other' ? event.outcome_other : event.outcome || '—' : 'Not collected separately'),
+      );
+      body.append(row);
+    }
+  }
+  table.append(body); scroll.append(table); card.append(scroll);
+}
 function addRowMatrix(card, q, eligible) {
   const columns = (q.options || []).filter(label => label !== otherOption(q));
   card.append(node('p', q.kind === 'costs' ? 'Each cell shows the cost classification reported for that item.' : 'Each cell shows the answer reported for that item.', 'muted'));
@@ -684,6 +748,7 @@ function questionChart(q, rows) {
     addRowMatrix(card, q, eligible);
   } else if (q.kind === 'multi') {
     addMultiMatrix(card, q, eligible);
+    if (q.id === 'standards') addFhirReleaseMatrix(card, answered);
     if (q.id === 'certifications') {
       const detailed = answered.filter(response => String(response.answer_data?.certifications?.text || '').trim());
       card.append(node('h3', 'Certificate and assessment details'));
@@ -727,6 +792,7 @@ function questionChart(q, rows) {
       }
     }
     addPie(card, groups);
+    if (q.id === 'interoperabilityTesting') addTestingEventTable(card, answered);
   }
   if (q.kind !== 'offerings') addOtherAnswers(card, q, answered, asked.length);
   return card;
@@ -963,6 +1029,10 @@ async function saveVendor(payload) {
   });
   const result = await response.json().catch(() => ({ error: 'Could not save vendor. Refresh the page and try again.' }));
   if (!response.ok) throw new Error(result.error || 'Could not save vendor.');
+  if (payload.action === 'delete') {
+    data.invitations = data.invitations.filter(item => item.id !== result.deleted_id);
+    return result;
+  }
   const index = data.invitations.findIndex(item => item.id === result.vendor.id);
   if (index < 0) data.invitations.push(result.vendor);
   else data.invitations[index] = result.vendor;
@@ -1057,7 +1127,17 @@ function renderOutreach() {
     categoryInput.value = vendor.category || ''; categoryLabel.append(categoryInput);
     const notesLabel = node('label', 'Notes'); const notesInput = node('textarea'); notesInput.value = vendor.notes || ''; notesInput.maxLength = 3000; notesLabel.append(notesInput);
     const save = node('button', 'Save details'); save.type = 'submit';
-    form.append(nameLabel, categoryLabel, matchLabel, notesLabel, save);
+    const remove = node('button', 'Delete vendor', 'vendor-delete-button'); remove.type = 'button';
+    remove.addEventListener('click', async () => {
+      if (!window.confirm(`Delete ${vendor.provider} from the outreach list? Questionnaire submissions will remain saved.`)) return;
+      remove.disabled = true; error.textContent = '';
+      try {
+        await saveVendor({ action: 'delete', id: vendor.id });
+        renderOutreach(); renderPresentation(data.responses);
+      } catch (failure) { error.textContent = failure.message; remove.disabled = false; }
+    });
+    const actions = node('div', undefined, 'outreach-detail-actions'); actions.append(save, remove);
+    form.append(nameLabel, categoryLabel, matchLabel, notesLabel, actions);
     form.addEventListener('submit', async event => {
       event.preventDefault(); save.disabled = true; error.textContent = '';
       try {

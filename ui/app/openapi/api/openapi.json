@@ -1338,6 +1338,72 @@
                     }
                 }
             },
+            "EventEnum": {
+                "enum": [
+                    "Digital Health Projectathon",
+                    "IHE Connectathon",
+                    "Other"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `Digital Health Projectathon` - Digital Health Projectathon\n* `IHE Connectathon` - IHE Connectathon\n* `Other` - Other"
+            },
+            "InteroperabilityTestEvent": {
+                "type": "object",
+                "properties": {
+                    "event": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/EventEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "event_other": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
+                    },
+                    "year": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "default": "",
+                                "pattern": "^(?:|\\d{4})$"
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    },
+                    "profiles": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 2000
+                    },
+                    "outcome": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/OutcomeEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "outcome_other": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "event",
+                    "outcome"
+                ]
+            },
             "KindEnum": {
                 "enum": [
                     "core",
@@ -1389,6 +1455,17 @@
                     "date_of_birth",
                     "name"
                 ]
+            },
+            "OutcomeEnum": {
+                "enum": [
+                    "Successful",
+                    "Partially successful",
+                    "Unsuccessful",
+                    "No formal result",
+                    "Other"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `Successful` - Successful\n* `Partially successful` - Partially successful\n* `Unsuccessful` - Unsuccessful\n* `No formal result` - No formal result\n* `Other` - Other"
             },
             "PaginatedBookList": {
                 "type": "object",
@@ -1604,6 +1681,24 @@
                             "maxLength": 20000
                         }
                     },
+                    "followups": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "maxLength": 200
+                            },
+                            "maxItems": 6
+                        }
+                    },
+                    "testing_events": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/InteroperabilityTestEvent"
+                        },
+                        "maxItems": 30
+                    },
                     "other_items": {
                         "type": "array",
                         "items": {
@@ -1735,11 +1830,6 @@
                         "type": "boolean",
                         "writeOnly": true,
                         "title": "A. Hospital-wide clinical information system"
-                    },
-                    "patient_administration": {
-                        "type": "boolean",
-                        "writeOnly": true,
-                        "title": "B. Patient administration / hospital management"
                     },
                     "specialized_clinical": {
                         "type": "boolean",
