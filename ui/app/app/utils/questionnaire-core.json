@@ -2,12 +2,11 @@
   "apiAccess": {
     "label": "To what extent can third-party systems access or exchange data and functionality with the solution through documented, standardized interfaces/APIs without vendor-specific development?",
     "options": [
-      "Broad access to or exchange of data and functionality through documented, standardized interfaces/APIs",
-      "Broad access to or exchange of data, but documented interfaces/APIs cover only selected functionality",
-      "Documented interfaces/APIs are available for selected data or use cases only",
-      "Integrations generally require vendor-specific interfaces or development",
-      "Other",
-      "No documented interfaces/APIs are available"
+      "Most or all relevant data and functionality are accessible through documented, standardized interfaces/APIs",
+      "A substantial range of data and functionality is accessible, but important areas are not covered",
+      "Interfaces/APIs are available only for selected data domains or specific use cases",
+      "No documented, standardized interfaces/APIs are available",
+      "Other"
     ]
   },
   "apiTypes": {
@@ -31,15 +30,15 @@
       "Write-back through documented APIs",
       "Event/subscription-based integration",
       "Third-party applications can extend functionality without modification of the CIS core",
-      "Other"
+      "Other",
+      "No third-party application integration is supported"
     ]
   },
   "developerIndependence": {
-    "label": "Can independent third-party developers develop and test integrations without direct involvement from the CIS vendor?",
+    "label": "Can independent third-party developers develop and test integrations without involvement from the CIS vendor?",
     "options": [
       "Yes, independently",
       "Yes, after registration/approval by the vendor",
-      "Yes, but vendor support/involvement is normally required",
       "No",
       "Other"
     ]
@@ -60,7 +59,7 @@
     ]
   },
   "appIntegrationStandards": {
-    "label": "Which standards/mechanisms for application integration and authorization are supported?",
+    "label": "Which standardized mechanisms for third-party application integration are supported?",
     "options": [
       "SMART on FHIR",
       "OAuth 2.0 / OpenID Connect",
@@ -101,14 +100,6 @@
     "label": "Has the solution successfully participated in interoperability testing relevant to the Swiss healthcare ecosystem (e.g. Digital Health Projectathon / IHE Connectathon)?",
     "options": ["Yes – please specify", "No", "Not applicable"],
     "detailLabels": { "0": "Please specify the testing event, year and result" }
-  },
-  "externalIntegration": {
-    "label": "Can external applications or systems integrate with this solution through an API or another technical interface?",
-    "options": ["Yes", "No", "Not sure"]
-  },
-  "clinicalDataManagement": {
-    "label": "Does this solution maintain clinical information for care, clinical workflows or analysis, beyond merely retaining files or backups?",
-    "options": ["Yes", "No", "Not sure"]
   },
   "dataRetention": {
     "label": "Which patient information does this solution itself retain?",
@@ -221,7 +212,7 @@
     ]
   },
   "certifications": {
-    "label": "Which certifications, attestations or regulatory conformity assessments currently apply to the solution or organization operating it?",
+    "label": "Which certifications, attestations or regulatory conformity assessments currently apply to your organization or solution?",
     "optionalTextLabel": "Optional: Please specify certificate/assessment name, scope and validity.",
     "options": [
       "ISO/IEC 27001",

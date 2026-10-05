@@ -65,7 +65,7 @@ QUESTION_COLUMNS = {
 }
 
 LEGACY_QUESTION_IDS = frozenset(
-    {"structure", "coding", "reporting", "documentation", "aggregation", "parties", "specialties"}
+    {"structure", "coding", "reporting", "documentation", "aggregation", "parties", "specialties", "externalIntegration", "clinicalDataManagement"}
 )
 
 VERSION_5_QUESTION_IDS = frozenset(

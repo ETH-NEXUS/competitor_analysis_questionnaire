@@ -1,4 +1,5 @@
 import { questionnaireResponsesCreate } from '~/api/generated/questionnaire-responses'
+import { remapV11Selection, retiredV11Option, v11SourceIndex } from '~/utils/draft-option-migration'
 import {
   activeAnswer,
   answerLines,
@@ -18,8 +19,9 @@ import {
   type Scope,
 } from '~/utils/questionnaire'
 
-const draftKey = 'hospital-it-questionnaire-v10'
+const draftKey = 'hospital-it-questionnaire-v11'
 const previousDraftKeys = [
+  'hospital-it-questionnaire-v10',
   'hospital-it-questionnaire-v9',
   'hospital-it-questionnaire-v8',
   'hospital-it-questionnaire-v7',
@@ -71,11 +73,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
   )
   const applicableSections = computed(() =>
     sections
-      .filter(
-        (section) =>
-          (!section.scopes || section.scopes.some((scope) => selectedScopes.value.includes(scope))) &&
-          (section.id !== 'cisEcosystem' || answerFor('externalIntegration').selected.includes('0')),
-      )
+      .filter((section) => !section.scopes || section.scopes.some((scope) => selectedScopes.value.includes(scope)))
       .map((section) => ({
         ...section,
         questions: section.questions
@@ -104,12 +102,8 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
                     ...question,
                     label: selectedScopes.value.includes('A')
                       ? selectedScopes.value.includes('C')
-                        ? answerFor('externalIntegration').selected.includes('0')
-                          ? question.label
-                          : 'Describe your core CIS coverage and specialized functions.'
-                        : answerFor('externalIntegration').selected.includes('0')
-                          ? 'Describe your core CIS coverage and external integrations.'
-                          : 'Describe your core CIS coverage.'
+                        ? question.label
+                        : 'Describe your core CIS coverage and external integrations.'
                       : 'Describe your specialized functions and the areas they cover.',
                   }
                 : question,
@@ -136,7 +130,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
         offering.kind === 'function'
           ? selectedScopes.value.includes('C') || selectedScopes.value.includes('A')
           : offering.kind === 'integration'
-            ? selectedScopes.value.includes('A') && answerFor('externalIntegration').selected.includes('0')
+            ? selectedScopes.value.includes('A')
             : selectedScopes.value.includes('A'),
       ),
     }
@@ -151,7 +145,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       localStorage.setItem(
         draftKey,
         JSON.stringify({
-          version: 10,
+          version: 11,
           scopes: selectedScopes.value,
           answers: answers.value,
           identity: identity.value,
@@ -172,7 +166,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     if (!raw) return false
     const draft = JSON.parse(raw)
     if (
-      ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(draft.version) ||
+      ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(draft.version) ||
       !Array.isArray(draft.scopes) ||
       !draft.answers ||
       typeof draft.answers !== 'object'
@@ -239,10 +233,11 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           if (question.id === 'writeBack') return item === '0' ? '' : item === '1' ? '2' : item === '2' ? '4' : item
           if (question.id === 'patientIndependent') return item === '1' ? '' : item === '2' ? '3' : item
         }
-        if (draft.version >= 8) return item
-        if (question.id === 'thirdPartyIntegration') return item === '8' ? '' : item === '9' ? '8' : item
-        if (question.id === 'thirdPartyApproval') return item === '5' ? '' : item === '6' ? '5' : item
-        return item
+        if (draft.version < 8) {
+          if (question.id === 'thirdPartyIntegration') return item === '8' ? '9' : item === '9' ? '8' : item
+          if (question.id === 'thirdPartyApproval') return item === '5' ? '' : item === '6' ? '5' : item
+        }
+        return draft.version < 11 ? remapV11Selection(question.id, item) : item
       })
       answer.selected = [
         ...new Set<string>(migratedSelected.filter((item: unknown) => typeof item === 'string')),
@@ -260,9 +255,11 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           if (question.id === 'patientFunctions' && i === 14) sourceIndex = 9
           if (question.id === 'patientIndependent' && i === 3) sourceIndex = 2
         }
+        if (draft.version < 11) sourceIndex = v11SourceIndex(question.id, i)
         if (draft.version < 8) {
           if (question.id === 'costs' && i >= 1) sourceIndex = i + 1
           if (question.id === 'thirdPartyIntegration' && i === 8) sourceIndex = 9
+          if (question.id === 'thirdPartyIntegration' && i === 9) sourceIndex = 8
           if (question.id === 'thirdPartyApproval' && i === 5) sourceIndex = 6
         }
         if (typeof value.details[sourceIndex] === 'string') answer.details[i] = value.details[sourceIndex]
@@ -308,6 +305,13 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           index >= 0 && question.kind === 'capabilities' ? answer.rows[index]?.description : answer.details[index]
         if (legacyOther) answer.other_items = [legacyOther]
       }
+      if (draft.version < 11) {
+        for (const oldIndex of value.selected) {
+          const label = retiredV11Option(question.id, oldIndex)
+          if (label && question.kind === 'single') answer.other_items = [label]
+          else if (label && !answer.other_items.includes(label)) answer.other_items.push(label)
+        }
+      }
       if (question.kind === 'single') answer.other_items = answer.other_items.slice(0, 1)
       restored[question.id] = answer
     }
@@ -316,27 +320,9 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       if (legacy && typeof legacy === 'object') restored[id] = legacy as Answer
     }
     if (draft.version < 6) {
-      const selected = (id: string) => restored[id]?.selected || []
       const hasAnswer = (id: string) => {
         const question = sections.flatMap((section) => section.questions).find((item) => item.id === id)
         return Boolean(question && restored[id] && isAnswered(question, restored[id]))
-      }
-      if (selected('thirdPartyIntegration').includes('8') || selected('appIntegrationStandards').includes('5')) {
-        restored.externalIntegration = { ...emptyAnswer(), selected: ['1'] }
-      } else if (
-        hasAnswer('thirdPartyIntegration') ||
-        hasAnswer('appIntegrationStandards') ||
-        selected('apiTypes').some((item) => item !== '4')
-      ) {
-        restored.externalIntegration = { ...emptyAnswer(), selected: ['0'] }
-      }
-      if (
-        ['structuredTypes', 'terminologies', 'clinicalModels', 'research', 'secondary'].some(hasAnswer) ||
-        selected('reportingMethods').some((item) => item !== '7')
-      ) {
-        restored.clinicalDataManagement = { ...emptyAnswer(), selected: ['0'] }
-      } else if (selected('reportingMethods').includes('7')) {
-        restored.clinicalDataManagement = { ...emptyAnswer(), selected: ['1'] }
       }
       const retained = [
         hasAnswer('archive') ? '0' : '',

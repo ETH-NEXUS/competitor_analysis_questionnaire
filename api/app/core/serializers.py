@@ -117,7 +117,7 @@ class QuestionnaireAnswerSerializer(serializers.Serializer):
 
 def validate_answer_details(answers, schema):
     for question_id, answer in answers.items():
-        if schema[question_id]["kind"] == "single" and len(answer.get("other_items", [])) > 1:
+        if schema.get(question_id, {}).get("kind") == "single" and len(answer.get("other_items", [])) > 1:
             raise serializers.ValidationError(
                 {"answers": f"{question_id} accepts only one Other answer."}
             )

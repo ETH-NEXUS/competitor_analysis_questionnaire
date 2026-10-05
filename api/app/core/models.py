@@ -48,7 +48,7 @@ class QuestionnaireResponse(models.Model):
         "D. Data / interoperability solution", default=False
     )
     patient_facing = models.BooleanField("E. Patient-facing solution", default=False)
-    questionnaire_version = models.PositiveSmallIntegerField(default=10, editable=False)
+    questionnaire_version = models.PositiveSmallIntegerField(default=11, editable=False)
     answer_data = models.JSONField(default=dict, blank=True, editable=False)
     api_access = response_answer_field("1.1 API access")
     api_types = response_answer_field("1.1 Documented API types")

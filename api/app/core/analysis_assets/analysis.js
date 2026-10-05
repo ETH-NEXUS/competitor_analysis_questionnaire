@@ -486,15 +486,8 @@ function answerStatus(q, response) {
   if (q.legacy) return response.version >= 5 ? 'retiredForm' : 'notRecorded';
   const scopes = scopedQuestions[q.id];
   if (scopes && !scopes.some(value => response.scopes.includes(value))) return 'notApplicable';
-  if (['thirdPartyIntegration', 'developerIndependence', 'developerResources', 'thirdPartyApproval'].includes(q.id)) {
-    const integrationStatus = screeningStatus(response, 'externalIntegration', ['0']);
-    if (integrationStatus !== 'eligible') return integrationStatus;
-  }
   if (['developerIndependence', 'developerResources', 'thirdPartyApproval'].includes(q.id))
     return missingAfterScreen(screeningStatus(response, 'thirdPartyIntegration', cisIntegrationOptions, 5));
-  if (q.id === 'appIntegrationStandards') return missingAfterScreen(screeningStatus(response, 'externalIntegration', ['0']));
-  if (['structuredTypes', 'terminologies', 'clinicalModels', 'reportingMethods', 'research', 'secondary'].includes(q.id))
-    return missingAfterScreen(screeningStatus(response, 'clinicalDataManagement', ['0']));
   if (q.id === 'archive') return missingAfterScreen(screeningStatus(response, 'dataRetention', ['0', '1']));
   if (q.id === 'export') return missingAfterScreen(screeningStatus(response, 'dataRetention', ['1']));
   if (q.id === 'switzerland') return missingAfterScreen(screeningStatus(response, 'dataRetention', ['0', '1', '2']));
@@ -798,13 +791,11 @@ const figureSpecs = {
   scheduling: { label: 'Scheduling / resources', scope: 'A', kind: 'coreFunction', coreFunction: 'Scheduling / resource planning', terms: [figureChoice('clinicalCapabilities')] },
   wardManagement: { label: 'Ward management', scope: 'A', kind: 'coreFunction', coreFunction: 'Ward management', terms: [figureChoice('clinicalCapabilities')] },
   decisionSupport: { label: 'Clinical decision support', scope: 'A', kind: 'coreFunction', coreFunction: 'Clinical decision support', terms: [figureChoice('clinicalCapabilities')] },
-  prepopulation: { label: 'Reuse / pre-population', scope: 'A', coreDocumentation: true, terms: [figureChoice('documentationMethods', 'Reuse/pre-population of existing patient data')] },
-  templates: { label: 'Structured templates', scope: 'A', coreDocumentation: true, terms: [figureChoice('documentationMethods', 'Structured documentation templates')] },
+  automaticReuse: { label: 'Automatic reuse / pre-population within the CIS', scope: 'A', coreDocumentation: true, terms: [figureChoice('documentationMethods', 'Automatic reuse/pre-population of information entered elsewhere in the CIS')] },
   specialtyWorkflows: { label: 'Specialty-specific workflows', scope: 'A', coreDocumentation: true, terms: [figureChoice('documentationMethods', 'Specialty-specific documentation templates/workflows')] },
   speechToText: { label: 'Speech-to-text', scope: 'A', coreDocumentation: true, terms: [figureChoice('documentationMethods', 'Speech-to-text')] },
   ambientAi: { label: 'Ambient AI documentation', scope: 'A', coreDocumentation: true, terms: [figureChoice('documentationMethods', 'Ambient AI documentation')] },
   automatedLetters: { label: 'Automated letters / reports', scope: 'A', coreDocumentation: true, terms: [figureChoice('documentationMethods', 'Automatic generation of letters/reports')] },
-  crossModule: { label: 'Cross-module reuse', scope: 'A', coreDocumentation: true, terms: [figureChoice('documentationMethods', 'Cross-module reuse of entered information')] },
   shortcuts: { label: 'Shortcuts / macros', scope: 'A', coreDocumentation: true, terms: [figureChoice('documentationMethods', 'Configurable shortcuts/macros/favourites')] },
   coreVendors: { label: 'Core CIS', scope: 'A', kind: 'scopeCount', terms: [] },
   specialistVendors: { label: 'Specialized clinical', scope: 'C', kind: 'scopeCount', terms: [] },
@@ -829,11 +820,11 @@ const presentationSections = [
   { slide: 3, title: 'Interoperability and openness', keys: ['documentedApis', 'fhirStandard', 'independentDevelopment', 'sandbox', 'apiWriteBack', 'smart'] },
   { slide: 4, title: 'Deployment and Swiss data residency', keys: ['cloud', 'swissResidency', 'onPremise', 'privateCloud', 'publicCloud', 'saas', 'hybrid'], note: 'Swiss residency is asked only when a solution retains patient information. Conditional Yes answers count as capable under the stated hosting model.' },
   { slide: 5, title: 'Data portability and vendor independence', keys: ['exitProcess', 'recordExport', 'reusableContent', 'vendorMigration'], note: 'Record export is asked only for solutions retaining a longitudinal clinical record. Migration dependence includes either a vendor-specific record export or a CIS migration approach requiring substantial custom conversion.' },
-  { slide: 6, title: 'Structured and reusable clinical data', keys: ['fhirModel', 'snomed', 'loinc', 'openEhr', 'omop', 'researchApi', 'deidentification', 'secondaryGovernance'], note: 'These questions are asked when the solution stores or manages clinical information.' },
-  { slide: 7, title: 'HCP-facing solutions', keys: ['clinicalDocumentation', 'medicationManagement', 'nursingWorkflows', 'scheduling', 'wardManagement', 'decisionSupport', 'prepopulation', 'templates', 'specialtyWorkflows', 'speechToText', 'ambientAi', 'automatedLetters', 'crossModule', 'shortcuts'], note: 'Functional coverage counts core CIS offerings. Documentation methods are reported at submission level; for vendors selecting both A and C, the answer may also describe specialized functions.' },
+  { slide: 6, title: 'Structured and reusable clinical data', keys: ['fhirModel', 'snomed', 'loinc', 'openEhr', 'omop', 'researchApi', 'deidentification', 'secondaryGovernance'], note: 'These questions are available to the relevant solution categories. Explicit None or Not applicable answers remain separate from missing answers.' },
+  { slide: 7, title: 'HCP-facing solutions', keys: ['clinicalDocumentation', 'medicationManagement', 'nursingWorkflows', 'scheduling', 'wardManagement', 'decisionSupport', 'automaticReuse', 'specialtyWorkflows', 'speechToText', 'ambientAi', 'automatedLetters', 'shortcuts'], note: 'Functional coverage counts core CIS offerings. Documentation methods are reported at submission level; for vendors selecting both A and C, the answer may also describe specialized functions.' },
   { slide: 8, title: 'Existing ecosystem building blocks', keys: ['coreVendors', 'specialistVendors', 'patientVendors', 'integrationEngine', 'apiManagement', 'orchestration', 'clinicalRepository', 'fhirServer', 'mpi', 'terminologyService', 'analyticsWarehouse', 'vendorNeutralArchive', 'researchSecondary'], note: 'These are distinct vendor counts. A vendor may appear in several building blocks. Data capabilities come from category D; research/secondary use also requires clinical data management. Unanswered capability questions are not treated as a negative response.' },
   { slide: 9, title: 'Security, certification and Swiss readiness', keys: ['iso27001', 'medicalConformity', 'eprConformity', 'testing'], note: 'Medical device and EPR/EPD rows exclude vendors who selected Not applicable. Certificate scope and validity remain in the detailed answers.' },
-  { slide: 10, title: 'Overall findings', keys: ['fhirStandard', 'documentedApis', 'independentDevelopment', 'sandbox', 'cloud', 'swissResidency', 'recordExport', 'exitProcess', 'clinicalDocumentation', 'crossModule', 'anyCertification', 'testing'] },
+  { slide: 10, title: 'Overall findings', keys: ['fhirStandard', 'documentedApis', 'independentDevelopment', 'sandbox', 'cloud', 'swissResidency', 'recordExport', 'exitProcess', 'clinicalDocumentation', 'automaticReuse', 'anyCertification', 'testing'] },
 ];
 const questionById = new Map(data.questions.map(question => [question.id, question]));
 function vendorGroups(rows) {

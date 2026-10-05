@@ -46,15 +46,12 @@
   "documentationMethods": {
     "label": "Which capabilities are available to reduce documentation burden?",
     "options": [
-      "Reuse/pre-population of existing patient data",
-      "Structured documentation templates",
       "Specialty-specific documentation templates/workflows",
-      "Voice dictation",
       "Speech-to-text",
       "Ambient AI documentation",
       "Automated extraction/structuring of clinical information",
       "Automatic generation of letters/reports",
-      "Cross-module reuse of entered information",
+      "Automatic reuse/pre-population of information entered elsewhere in the CIS",
       "Configurable shortcuts/macros/favourites",
       "Other",
       "None"

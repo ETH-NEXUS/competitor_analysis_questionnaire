@@ -52,6 +52,42 @@ class AnalysisTests(TestCase):
         self.assertContains(response, "/admin/analysis/app.js")
         self.assertIn("no-store", response["Cache-Control"])
 
+    def test_revised_questionnaire_is_reflected_in_analysis(self):
+        response = analysis(self.request("/admin/analysis/"))
+        payload = json.loads(
+            re.search(
+                r'<script id="analysis-data" type="application/json">(.*?)</script>',
+                response.content.decode(),
+            ).group(1)
+        )
+        questions = {item["id"]: item for item in payload["questions"]}
+        self.assertEqual(payload["current_version"], 11)
+        self.assertNotIn("externalIntegration", questions)
+        self.assertNotIn("clinicalDataManagement", questions)
+        self.assertEqual(questions["migration"]["kind"], "multi")
+        self.assertEqual(len(questions["apiAccess"]["options"]), 5)
+        self.assertEqual(questions["apiAccess"]["options"][-2], "No documented, standardized interfaces/APIs are available")
+        self.assertNotIn("Voice dictation", questions["documentationMethods"]["options"])
+        self.assertIn("Automatic reuse/pre-population of information entered elsewhere in the CIS", questions["documentationMethods"]["options"])
+
+    def test_multiple_migration_approaches_are_saved(self):
+        serializer = QuestionnaireResponseSerializer(data={
+            "submission_id": "962bc6b6-adbc-4fb6-bac3-0732457166b7",
+            "respondent_email": "migration@example.com",
+            "provider_name": "Migration Provider",
+            "solution_name": "Clinical System",
+            "hospital_wide_cis": True,
+            "answers": {"migration": {
+                "question": "How is migration from an existing system / legacy solution typically handled?",
+                "selected": ["0", "3"], "text": "", "details": {}, "rows": {},
+                "readable_answer": ["Vendor-led migration project using standard tools plus hospital-specific mapping", "Only selected historical data is normally migrated; remaining data stays in an archive / legacy viewer"],
+            }},
+        })
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        saved = serializer.save()
+        self.assertEqual(saved.questionnaire_version, 11)
+        self.assertEqual(saved.answer_data["migration"]["selected"], ["0", "3"])
+
     def test_invitation_roster_is_available_to_superusers_and_analysis(self):
         VendorInvitation.objects.create(provider_name="Declined Vendor", declined=True)
         response = analysis(self.request("/admin/analysis/"))
@@ -301,7 +337,7 @@ class AnalysisTests(TestCase):
         valid = QuestionnaireResponseSerializer(data={**data, "solution_name": "Exchange Hub"})
         self.assertTrue(valid.is_valid(), valid.errors)
         saved = valid.save()
-        self.assertEqual(saved.questionnaire_version, 10)
+        self.assertEqual(saved.questionnaire_version, 11)
         self.assertEqual(saved.solution_name, "Exchange Hub")
         self.assertEqual(saved.data_exchange_handling, "Transformation / mapping\nTemporary storage / queueing")
         self.assertEqual(
@@ -384,7 +420,7 @@ class AnalysisTests(TestCase):
         self.assertEqual(saved.clinical_data_management, "Yes")
         self.assertEqual(saved.structured_information_types, "Diagnoses\nMedications")
         self.assertEqual(saved.data_structure, "Earlier answer")
-        self.assertEqual(saved.questionnaire_version, 10)
+        self.assertEqual(saved.questionnaire_version, 11)
 
     def test_new_interoperability_and_certification_answers_are_saved(self):
         serializer = QuestionnaireResponseSerializer(
@@ -415,7 +451,7 @@ class AnalysisTests(TestCase):
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
         saved = serializer.save()
-        self.assertEqual(saved.questionnaire_version, 10)
+        self.assertEqual(saved.questionnaire_version, 11)
         self.assertEqual(saved.interoperability_testing, "Yes – please specify: Projectathon 2026")
         self.assertIn("ISO/IEC 27001", saved.certifications)
         self.assertIn("valid until 2028", saved.certification_details)
@@ -529,7 +565,7 @@ class AnalysisTests(TestCase):
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
         saved = serializer.save()
-        self.assertEqual(saved.questionnaire_version, 10)
+        self.assertEqual(saved.questionnaire_version, 11)
         self.assertEqual(
             saved.answer_data["clinicalCapabilities"]["offerings"][1]["developer"],
             "Oncology Startup",

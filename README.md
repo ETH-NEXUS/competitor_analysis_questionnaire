@@ -59,14 +59,14 @@ backend demo data or authentication configuration was deleted during frontend cl
 ## Answers and submissions
 
 - Choice indices are stable submitted values. Do not reorder existing choices without
-  reviewing how existing answers are interpreted.
+  reviewing how existing answers are interpreted. Form version 11 remaps saved
+  browser drafts for changed options; earlier submissions remain stored under
+  their original version.
 - Scope selections A–E determine the relevant solution-specific question groups.
-  Three questions in Core identify whether the solution supports external
-  integration, manages clinical information, and retains clinical records or
-  patient data. Their answers reveal only the relevant detailed questions.
-  The CIS third-party ecosystem questions appear for A when the core external-integration
-  answer confirms support; the developer and approval follow-ups then depend on the
-  third-party integration answer.
+  Core asks which patient information the solution retains. CIS third-party
+  integration questions appear for scope A; developer and approval follow-ups
+  appear when integration is supported. Clinical data questions use explicit
+  None or Not applicable answers where appropriate.
 - Clinical record export is asked only when the solution retains a longitudinal
   record. Its follow-up appears for Partial export, Vendor-specific migration
   or Other. Hidden answers are excluded from submissions.
@@ -74,7 +74,7 @@ backend demo data or authentication configuration was deleted during frontend cl
   questions, which accept one. These are stored as structured answer data alongside
   the readable question columns. Answers are saved automatically in this browser and
   restored after a refresh, including drafts made with the earlier form version.
-- Scope A opens a core CIS platform entry and, when external integration is supported, lets respondents add
+- Scope A opens a core CIS platform entry and lets respondents add
   external integrations with the third-party company, product and purpose. Scope C opens a
   specialized function entry and lets respondents add more functions. Each entry
   can be tagged with functional areas and specialties. The documentation-burden
@@ -87,13 +87,12 @@ backend demo data or authentication configuration was deleted during frontend cl
   This is separate from Q1, which asks whether the solution exposes documented APIs.
 - The core form asks about Swiss interoperability testing, security certifications and
   related conformity assessments. Certificate names, scope and validity are optional.
-- The patient-information retention question still appears when clinical-information
-  management is No, because a solution can retain patient files or
-  other patient data without managing an ongoing clinical record. The cost question distinguishes
+- The patient-information retention question distinguishes individual files,
+  an ongoing record and other retained data. The cost question distinguishes
   one-time and recurring charges and can record a charging basis per item.
 - On the review screen, each question links to its field and briefly highlights it.
 - In analysis, Q1 appears as a best-to-worst access scale. Administrators can
-  place Other answers into one of its five ranked categories. Grouped Other counts
+  place Other answers into one of its four ranked categories. Grouped Other counts
   represent answer entries, and free-text questions show the provider with each answer.
 - The analysis compares offerings by functional area, specialty and workflow,
   shows which CIS providers integrate third-party products, and lets staff group

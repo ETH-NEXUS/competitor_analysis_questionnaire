@@ -78,11 +78,7 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
   {
     id: 'profile',
     stage: 1,
-    questions: [
-      { id: 'externalIntegration', kind: 'single' },
-      { id: 'clinicalDataManagement', kind: 'single' },
-      { id: 'dataRetention', kind: 'multi', exclusive: [3, 4] },
-    ],
+    questions: [{ id: 'dataRetention', kind: 'multi', exclusive: [3, 4] }],
   },
   {
     id: 'security',
@@ -117,11 +113,11 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
     stage: 2,
     scopes: ['A'],
     questions: [
-      { id: 'thirdPartyIntegration', kind: 'multi', details: [8] },
+      { id: 'thirdPartyIntegration', kind: 'multi', details: [8], exclusive: [9] },
       {
         id: 'developerIndependence',
         kind: 'single',
-        details: [4],
+        details: [3],
         when: { question: 'thirdPartyIntegration', selected: ['0', '1', '2', '3', '4', '5', '6', '7', '8'] },
       },
       {
@@ -149,7 +145,6 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
         scopes: ['A', 'C', 'D', 'E'],
         details: [4],
         exclusive: [5],
-        when: { question: 'externalIntegration', selected: ['0'] },
       },
     ],
   },
@@ -163,7 +158,6 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
         scopes: ['A', 'C', 'D', 'E'],
         details: [10],
         exclusive: [11],
-        when: { question: 'clinicalDataManagement', selected: ['0'] },
       },
       {
         id: 'terminologies',
@@ -171,7 +165,6 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
         scopes: ['A', 'C', 'D', 'E'],
         details: [6],
         exclusive: [5, 7],
-        when: { question: 'clinicalDataManagement', selected: ['0'] },
       },
       {
         id: 'clinicalModels',
@@ -179,28 +172,24 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
         scopes: ['A', 'C', 'D', 'E'],
         details: [4],
         exclusive: [5],
-        when: { question: 'clinicalDataManagement', selected: ['0'] },
       },
       {
         id: 'reportingMethods',
         kind: 'multi',
         details: [6],
         exclusive: [7],
-        when: { question: 'clinicalDataManagement', selected: ['0'] },
       },
       {
         id: 'research',
         kind: 'multi',
         details: [6],
         exclusive: [7],
-        when: { question: 'clinicalDataManagement', selected: ['0'] },
       },
       {
         id: 'secondary',
         kind: 'multi',
         details: [4],
         exclusive: [5],
-        when: { question: 'clinicalDataManagement', selected: ['0'] },
       },
     ],
   },
@@ -220,7 +209,7 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
     scopes: ['A', 'C'],
     questions: [
       { id: 'clinicalCapabilities', kind: 'offerings' },
-      { id: 'documentationMethods', kind: 'multi', details: [10], exclusive: [11] },
+      { id: 'documentationMethods', kind: 'multi', details: [7], exclusive: [8] },
     ],
   },
   {
@@ -254,7 +243,7 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
     scopes: ['A'],
     questions: [
       { id: 'rollout', kind: 'multi', details: [3] },
-      { id: 'migration', kind: 'single', details: [4] },
+      { id: 'migration', kind: 'multi', details: [4] },
       { id: 'goLive', kind: 'multi', details: [8] },
     ],
   },

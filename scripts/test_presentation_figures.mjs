@@ -28,18 +28,18 @@ function response(provider, scopes, selections = {}, offerings = []) {
     answer_data.clinicalCapabilities = { selected: [], offerings };
     answers.clinicalCapabilities = 'Reported offerings';
   }
-  return { id: nextId++, provider, scopes, version: 10, answers, answer_data };
+  return { id: nextId++, provider, scopes, version: 11, answers, answer_data };
 }
 const rows = [
   response('Alpha', ['A', 'D'], {
-    apiTypes: [0], externalIntegration: [0], thirdPartyIntegration: [0],
+    apiTypes: [0], thirdPartyIntegration: [0],
     developerIndependence: [0], dataCapabilities: [1], certifications: [8],
-    documentationMethods: [0],
+    documentationMethods: [5],
   }, [{ kind: 'core', functions: ['Clinical documentation'], other_functions: [] }]),
   response(' Alpha ', ['E'], { apiTypes: [4], standards: [0] }),
   response('Beta', ['A', 'C'], {
-    apiTypes: [], externalIntegration: [0], thirdPartyIntegration: [0],
-    developerIndependence: [3], documentationMethods: [0], certifications: [3],
+    apiTypes: [], thirdPartyIntegration: [0],
+    developerIndependence: [2], documentationMethods: [5], certifications: [3],
   }, [{ kind: 'function', functions: ['Clinical documentation'], other_functions: [] }]),
   response('Gamma', ['D'], { dataCapabilities: [1], certifications: [7] }),
 ];
@@ -49,7 +49,7 @@ assert.equal(measure('documentedApis').answered.length, 1);
 assert.equal(measure('documentedApis').missing.length, 2, 'blank and omitted core answers are missing, not No');
 assert.equal(measure('independentDevelopment').answered.length, 2, 'CIS screening is respected');
 assert.equal(measure('independentDevelopment').matched.length, 1);
-assert.equal(measure('prepopulation').answered.length, 1, 'specialist function is not core CIS');
+assert.equal(measure('automaticReuse').answered.length, 1, 'specialist function is not core CIS');
 assert.equal(measure('integrationEngine').matched.length, 2, 'building block counts vendors');
 assert.equal(measure('medicalConformity').answered.length, 2, 'Not applicable is excluded');
 assert.equal(measure('medicalConformity').matched.length, 1);
