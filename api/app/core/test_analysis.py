@@ -30,7 +30,7 @@ class AnalysisTests(TestCase):
     def request(self, path, *, superuser=True, authenticated=True):
         request = self.factory.get(path)
         request.user = SimpleNamespace(
-            is_active=True, is_authenticated=True, is_superuser=superuser
+            pk=1, is_active=True, is_authenticated=True, is_superuser=superuser
         )
         if not authenticated:
             request.user = AnonymousUser()
@@ -50,6 +50,7 @@ class AnalysisTests(TestCase):
         self.assertContains(response, "analysis-data")
         self.assertContains(response, "/admin/analysis/style.css")
         self.assertContains(response, "/admin/analysis/app.js")
+        self.assertContains(response, 'id="submissions-badge"')
         self.assertIn("no-store", response["Cache-Control"])
 
     def test_revised_questionnaire_is_reflected_in_analysis(self):
@@ -61,6 +62,7 @@ class AnalysisTests(TestCase):
             ).group(1)
         )
         questions = {item["id"]: item for item in payload["questions"]}
+        self.assertEqual(payload["viewer_id"], 1)
         self.assertEqual(payload["current_version"], 11)
         self.assertNotIn("externalIntegration", questions)
         self.assertNotIn("clinicalDataManagement", questions)

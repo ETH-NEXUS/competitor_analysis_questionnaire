@@ -58,6 +58,7 @@ def responses(request):
 def analysis(request):
     schema = json.loads(Path(__file__).with_name("analysis_schema.json").read_text())
     data = {
+        "viewer_id": request.user.pk,
         "current_version": CURRENT_QUESTIONNAIRE_VERSION,
         "vendor_categories": [
             {"value": value, "label": label}

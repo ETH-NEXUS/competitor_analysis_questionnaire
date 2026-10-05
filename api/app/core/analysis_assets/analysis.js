@@ -10,6 +10,28 @@ const products = document.getElementById('products');
 const charts = document.getElementById('charts');
 const providers = document.getElementById('providers');
 const submissions = document.getElementById('submissions');
+const submissionsTab = document.getElementById('submissions-tab');
+const submissionsBadge = document.getElementById('submissions-badge');
+const submissionsSeenKey = `questionnaire-analysis-seen-submissions-v1:${data.viewer_id}`;
+const newestSubmissionId = () => data.submissions.reduce((latest, row) => Math.max(latest, row.id), 0);
+let lastSeenSubmissionId = newestSubmissionId();
+try {
+  const stored = localStorage.getItem(submissionsSeenKey);
+  if (stored !== null && /^\d+$/.test(stored) && Number.isSafeInteger(Number(stored))) lastSeenSubmissionId = Number(stored);
+  else localStorage.setItem(submissionsSeenKey, String(lastSeenSubmissionId));
+} catch { /* Browser storage may be unavailable. The dashboard still works. */ }
+function updateSubmissionBadge() {
+  const count = data.submissions.filter(row => row.id > lastSeenSubmissionId).length;
+  submissionsBadge.hidden = count === 0;
+  submissionsBadge.textContent = count > 99 ? '99+' : String(count);
+  submissionsBadge.setAttribute('aria-label', `${count} new ${count === 1 ? 'submission' : 'submissions'}`);
+  submissionsTab.title = count ? `${count} new since you last opened Submissions in this browser` : 'No new submissions since you last opened this tab in this browser';
+}
+function markSubmissionsSeen() {
+  lastSeenSubmissionId = Math.max(lastSeenSubmissionId, newestSubmissionId());
+  try { localStorage.setItem(submissionsSeenKey, String(lastSeenSubmissionId)); } catch { /* Keep the count for this page. */ }
+  updateSubmissionBadge();
+}
 const exportLink = document.getElementById('export');
 const exportUrl = exportLink.href;
 const groupingUrl = document.getElementById('grouping-url').dataset.url;
@@ -1326,6 +1348,7 @@ function render() {
   renderPresentation(data.responses);
   renderOutreach();
   renderSubmissions();
+  updateSubmissionBadge();
   if (!rows.length) {
     const message = data.responses.length ? 'No responses match these filters.' : 'No submissions use the current questionnaire version yet. Earlier test submissions are available in the Submissions tab.';
     products.append(node('p', message, 'empty'));
@@ -1382,6 +1405,7 @@ function setActiveTab(id) {
     document.getElementById(name).hidden = name !== activeTab;
     document.getElementById(`${name}-tab`).setAttribute('aria-pressed', String(name === activeTab));
   }
+  if (id === 'submissions') markSubmissionsSeen();
 }
 for (const id of ['presentation', 'outreach', 'products', 'charts', 'providers', 'submissions'])
   document.getElementById(`${id}-tab`).addEventListener('click', () => setActiveTab(id));
