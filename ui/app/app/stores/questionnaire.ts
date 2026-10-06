@@ -21,8 +21,9 @@ import {
   type TestingEvent,
 } from '~/utils/questionnaire'
 
-const draftKey = 'hospital-it-questionnaire-v13'
+const draftKey = 'hospital-it-questionnaire-v14'
 const previousDraftKeys = [
+  'hospital-it-questionnaire-v13',
   'hospital-it-questionnaire-v12',
   'hospital-it-questionnaire-v11',
   'hospital-it-questionnaire-v10',
@@ -151,7 +152,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       localStorage.setItem(
         draftKey,
         JSON.stringify({
-          version: 13,
+          version: 14,
           scopes: selectedScopes.value,
           answers: answers.value,
           identity: identity.value,
@@ -172,7 +173,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     if (!raw) return false
     const draft = JSON.parse(raw)
     if (
-      ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(draft.version) ||
+      ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(draft.version) ||
       !Array.isArray(draft.scopes) ||
       !draft.answers ||
       typeof draft.answers !== 'object'
@@ -222,10 +223,17 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
                 all_specialties: item.all_specialties === true,
                 standalone: item.standalone === true,
                 category_b: item.category_b === true,
-                cis_relationship: typeof item.cis_relationship === 'string' ? item.cis_relationship : '',
+                cis_relationship:
+                  draft.version < 14 && item.cis_integration === 'no'
+                    ? 'none'
+                    : draft.version < 14 && item.cis_relationship === 'independent'
+                      ? 'either'
+                      : typeof item.cis_relationship === 'string'
+                        ? item.cis_relationship
+                        : '',
                 cis_relationship_other:
                   typeof item.cis_relationship_other === 'string' ? item.cis_relationship_other : '',
-                cis_integration: typeof item.cis_integration === 'string' ? item.cis_integration : '',
+                cis_integration: '',
                 workflow: {
                   ...emptyClinicalWorkflow(),
                   reused_data: Array.isArray(item.workflow?.reused_data)

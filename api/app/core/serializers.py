@@ -103,7 +103,7 @@ class ClinicalOfferingSerializer(serializers.Serializer):
     standalone = serializers.BooleanField()
     category_b = serializers.BooleanField(required=False, default=False)
     cis_relationship = serializers.ChoiceField(
-        choices=("", "independent", "integration", "specific", "either", "other"),
+        choices=("", "independent", "integration", "specific", "either", "none", "other"),
         required=False,
         default="",
     )
@@ -117,8 +117,8 @@ class ClinicalOfferingSerializer(serializers.Serializer):
         if attrs["kind"] == "integration" and "Other" in attrs["purposes"] and not attrs["purpose_other"].strip():
             raise serializers.ValidationError({"purpose_other": "Specify the other integration purpose."})
         if attrs["kind"] == "function" and attrs["category_b"]:
-            if not attrs["cis_relationship"] or not attrs["cis_integration"]:
-                raise serializers.ValidationError("Answer both CIS relationship questions for the specialized solution.")
+            if not attrs["cis_relationship"]:
+                raise serializers.ValidationError({"cis_relationship": "Select a CIS relationship for the specialized solution."})
             if attrs["cis_relationship"] == "other" and not attrs["cis_relationship_other"].strip():
                 raise serializers.ValidationError({"cis_relationship_other": "Specify the other CIS relationship."})
         return attrs

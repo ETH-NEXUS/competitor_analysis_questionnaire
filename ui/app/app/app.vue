@@ -77,7 +77,7 @@ async function submit() {
 function exportResponse() {
   return {
     questionnaire: 'Hospital IT Vendor Questionnaire',
-    version: 13,
+    version: 14,
     exportedAt: new Date().toISOString(),
     complete: complete.value,
     responseReference: store.submittedId,

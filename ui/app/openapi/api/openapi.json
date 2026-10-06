@@ -1256,10 +1256,11 @@
                     "integration",
                     "specific",
                     "either",
+                    "none",
                     "other"
                 ],
                 "type": "string",
-                "description": "* `` - \n* `independent` - independent\n* `integration` - integration\n* `specific` - specific\n* `either` - either\n* `other` - other"
+                "description": "* `` - \n* `independent` - independent\n* `integration` - integration\n* `specific` - specific\n* `either` - either\n* `none` - none\n* `other` - other"
             },
             "ClinicalOffering": {
                 "type": "object",

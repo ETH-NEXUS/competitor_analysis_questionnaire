@@ -12,7 +12,7 @@ from django.urls import reverse
 
 from .analysis import analysis, analysis_css, analysis_js, delete_submissions, export_csv, save_other_grouping, save_vendor_outreach
 from .models import OtherAnswerGrouping, QuestionnaireResponse, VendorInvitation
-from .serializers import QuestionnaireResponseSerializer
+from .serializers import ClinicalOfferingSerializer, QuestionnaireResponseSerializer
 
 
 class AnalysisTests(TestCase):
@@ -63,7 +63,7 @@ class AnalysisTests(TestCase):
         )
         questions = {item["id"]: item for item in payload["questions"]}
         self.assertEqual(payload["viewer_id"], 1)
-        self.assertEqual(payload["current_version"], 13)
+        self.assertEqual(payload["current_version"], 14)
         self.assertNotIn("externalIntegration", questions)
         self.assertNotIn("clinicalDataManagement", questions)
         self.assertEqual(questions["migration"]["kind"], "multi")
@@ -87,7 +87,7 @@ class AnalysisTests(TestCase):
         })
         self.assertTrue(serializer.is_valid(), serializer.errors)
         saved = serializer.save()
-        self.assertEqual(saved.questionnaire_version, 13)
+        self.assertEqual(saved.questionnaire_version, 14)
         self.assertEqual(saved.answer_data["migration"]["selected"], ["0", "3"])
 
     def test_fhir_releases_and_multiple_testing_events_are_stored_structurally(self):
@@ -128,7 +128,7 @@ class AnalysisTests(TestCase):
         })
         self.assertTrue(serializer.is_valid(), serializer.errors)
         saved = serializer.save()
-        self.assertEqual(saved.questionnaire_version, 13)
+        self.assertEqual(saved.questionnaire_version, 14)
         self.assertEqual(saved.answer_data["standards"]["followups"]["1"], ["ADT", "ORU"])
         self.assertEqual(saved.answer_data["dataRetention"]["selected"], ["1"])
         self.assertEqual(saved.answer_data["requirements"]["followups"]["1"], ["0", "4"])
@@ -433,7 +433,7 @@ class AnalysisTests(TestCase):
         valid = QuestionnaireResponseSerializer(data={**data, "solution_name": "Exchange Hub"})
         self.assertTrue(valid.is_valid(), valid.errors)
         saved = valid.save()
-        self.assertEqual(saved.questionnaire_version, 13)
+        self.assertEqual(saved.questionnaire_version, 14)
         self.assertEqual(saved.solution_name, "Exchange Hub")
         self.assertEqual(saved.data_exchange_handling, "Transformation / mapping\nTemporary storage / queueing")
         self.assertEqual(
@@ -516,7 +516,7 @@ class AnalysisTests(TestCase):
         self.assertEqual(saved.clinical_data_management, "Yes")
         self.assertEqual(saved.structured_information_types, "Diagnoses\nMedications")
         self.assertEqual(saved.data_structure, "Earlier answer")
-        self.assertEqual(saved.questionnaire_version, 13)
+        self.assertEqual(saved.questionnaire_version, 14)
 
     def test_new_interoperability_and_certification_answers_are_saved(self):
         serializer = QuestionnaireResponseSerializer(
@@ -551,7 +551,7 @@ class AnalysisTests(TestCase):
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
         saved = serializer.save()
-        self.assertEqual(saved.questionnaire_version, 13)
+        self.assertEqual(saved.questionnaire_version, 14)
         self.assertEqual(saved.interoperability_testing, "Yes – please specify: Projectathon 2026")
         self.assertIn("ISO/IEC 27001", saved.certifications)
         self.assertIn('"valid_until": "2028"', saved.certification_details)
@@ -665,7 +665,7 @@ class AnalysisTests(TestCase):
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
         saved = serializer.save()
-        self.assertEqual(saved.questionnaire_version, 13)
+        self.assertEqual(saved.questionnaire_version, 14)
         self.assertEqual(
             saved.answer_data["clinicalCapabilities"]["offerings"][1]["developer"],
             "Oncology Startup",
@@ -726,6 +726,31 @@ class AnalysisTests(TestCase):
             saved.answer_data["clinicalCapabilities"]["offerings"][0]["workflow"],
             {**function["workflow"], "other_reused_data": ""},
         )
+
+    def test_specialized_offering_uses_one_cis_relationship_choice(self):
+        offering = {
+            "kind": "function",
+            "name": "ChemoPlan",
+            "description": "Chemotherapy planning",
+            "source": "native",
+            "developer": "",
+            "functions": ["Medication management"],
+            "specialties": ["Oncology"],
+            "other_functions": [],
+            "other_specialties": [],
+            "all_specialties": False,
+            "standalone": True,
+            "category_b": True,
+            "cis_relationship": "none",
+        }
+        for choice in ("none", "either", "integration", "specific"):
+            serializer = ClinicalOfferingSerializer(data={**offering, "cis_relationship": choice})
+            self.assertTrue(serializer.is_valid(), serializer.errors)
+            self.assertEqual(serializer.validated_data["cis_integration"], "")
+
+        other = ClinicalOfferingSerializer(data={**offering, "cis_relationship": "other"})
+        self.assertFalse(other.is_valid())
+        self.assertIn("cis_relationship_other", other.errors)
 
     def test_product_names_can_be_grouped_for_analysis(self):
         request = self.factory.post(

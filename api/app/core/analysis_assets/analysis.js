@@ -233,7 +233,7 @@ function clinicalRecords(rows) {
           cisRelationshipOther: String(entry.cis_relationship_other || ''),
           cisIntegration: String(entry.cis_integration || ''),
           categoryB: entry.category_b === true,
-          workflow: entry.kind === 'core' || (entry.kind === 'function' && entry.category_b && entry.cis_integration === 'no') || (entry.kind === 'integration' && response.version < 7 && !hasWorkflow(entry.workflow)) ? null : entry.workflow || null,
+          workflow: entry.kind === 'core' || (entry.kind === 'function' && entry.category_b && (entry.cis_relationship === 'none' || entry.cis_integration === 'no')) || (entry.kind === 'integration' && response.version < 7 && !hasWorkflow(entry.workflow)) ? null : entry.workflow || null,
           functions: [...new Set([...(entry.functions || []), ...(entry.other_functions || []).map(value => functionGroups.get(normalizeOther(value)) || value)].filter(Boolean))],
           specialties: [...new Set([...(entry.specialties || []), ...(entry.other_specialties || []).map(value => specialtyGroups.get(normalizeOther(value)) || value), ...(entry.all_specialties ? ['Across specialties'] : [])].filter(Boolean))],
           otherFunctions: (entry.other_functions || []).filter(Boolean),
@@ -372,6 +372,12 @@ const workflowLabels = {
   patient_context: { automatic: 'Automatic', manual: 'Patient selected again', none: 'None', unknown: 'Not sure' },
 };
 const cisRelationshipLabels = {
+  integration: 'Requires integration with a hospital-wide CIS, but is not tied to a specific CIS vendor',
+  specific: 'Requires integration with a specific CIS/platform',
+  either: 'Can operate independently or be integrated with a hospital-wide CIS',
+  none: 'Does not integrate with a hospital-wide CIS',
+};
+const previousCisRelationshipLabels = {
   independent: 'Can operate independently of a specific hospital-wide CIS',
   integration: 'Requires integration with a hospital-wide CIS but is not tied to a specific CIS vendor',
   specific: 'Requires a specific CIS/platform',
@@ -380,7 +386,7 @@ const cisRelationshipLabels = {
 const cisIntegrationLabels = { yes: 'Yes', optional: 'Optional / depends on implementation', no: 'No' };
 function workflowCell(record, field) {
   if (record.kind === 'core') return '—';
-  if (record.kind === 'function' && record.categoryB && record.cisIntegration === 'no') return 'Not applicable';
+  if (record.kind === 'function' && record.categoryB && (record.cisRelationship === 'none' || record.cisIntegration === 'no')) return 'Not applicable';
   if (!record.workflow) return record.kind === 'integration' && record.response.version < 7 ? 'Not collected in this form version' : 'Not reported';
   const value = record.workflow[field];
   if (field === 'manual_steps') return String(value || '').trim() || 'Not answered';
@@ -472,7 +478,7 @@ function renderProductComparison(rows) {
     const scroll = node('div', undefined, 'matrix-scroll');
     const table = node('table', undefined, 'product-matrix');
     const header = node('tr');
-    for (const title of ['Product', 'Reporting provider', 'Type', 'Integration type / purpose', 'CIS relationship', 'Typically integrated with CIS', 'Functional areas', 'Specialties', 'Integrated by CIS providers', 'Connected CIS data reused', 'Write-back', 'Application', 'Patient context', 'Manual steps']) header.append(node('th', title));
+    for (const title of ['Product', 'Reporting provider', 'Type', 'Integration type / purpose', 'CIS relationship', 'Functional areas', 'Specialties', 'Integrated by CIS providers', 'Connected CIS data reused', 'Write-back', 'Application', 'Patient context', 'Manual steps']) header.append(node('th', title));
     const head = node('thead'); head.append(header); table.append(head);
     const body = node('tbody');
     for (const record of visible.sort((a, b) => productName(a).localeCompare(productName(b)) || a.response.provider.localeCompare(b.response.provider))) {
@@ -500,8 +506,7 @@ function renderProductComparison(rows) {
         node('td', `${record.response.provider}\nResponse #${record.response.id}`),
         node('td', type),
         node('td', (record.purposes || []).join(', ') || '—'),
-        node('td', record.categoryB ? record.cisRelationship === 'other' ? `Other: ${record.cisRelationshipOther || 'not specified'}` : cisRelationshipLabels[record.cisRelationship] || 'Not answered' : '—'),
-        node('td', record.categoryB ? cisIntegrationLabels[record.cisIntegration] || 'Not answered' : '—'),
+        node('td', record.categoryB ? `${record.cisRelationship === 'other' ? `Other: ${record.cisRelationshipOther || 'not specified'}` : (record.response.version < 14 ? previousCisRelationshipLabels : cisRelationshipLabels)[record.cisRelationship] || 'Not answered'}${record.cisIntegration ? ` · Previously reported integration: ${cisIntegrationLabels[record.cisIntegration] || record.cisIntegration}` : ''}` : '—'),
         node('td', record.functions.join(', ') || 'Not specified'),
         node('td', record.specialties.join(', ') || 'Not specified'),
         node('td', [...(integrators.get(productName(record)) || [])].sort().join(', ') || '—'),

@@ -362,19 +362,14 @@ export const hl7v2MessageTypes = [
   { value: 'Not sure', label: 'Not sure' },
 ]
 export const cisRelationshipOptions = [
-  { value: 'independent', label: 'Can operate independently of a specific hospital-wide CIS' },
+  { value: 'either', label: 'Can operate independently or be integrated with a hospital-wide CIS' },
   {
     value: 'integration',
-    label: 'Requires integration with a hospital-wide CIS but is not tied to a specific CIS vendor',
+    label: 'Requires integration with a hospital-wide CIS, but is not tied to a specific CIS vendor',
   },
-  { value: 'specific', label: 'Requires a specific CIS/platform' },
-  { value: 'either', label: 'Can be used either independently or integrated with a hospital-wide CIS' },
+  { value: 'specific', label: 'Requires integration with a specific CIS/platform' },
+  { value: 'none', label: 'Does not integrate with a hospital-wide CIS' },
   { value: 'other', label: 'Other – specify' },
-]
-export const cisIntegrationOptions = [
-  { value: 'yes', label: 'Yes' },
-  { value: 'optional', label: 'Optional / depends on implementation' },
-  { value: 'no', label: 'No' },
 ]
 export const certificationScopeOptions = [
   { value: 'organization', label: 'Organization' },
@@ -608,10 +603,9 @@ export function isAnswered(question: Question, answer: Answer): boolean {
           (offering.kind !== 'function' ||
             !offering.category_b ||
             (offering.cis_relationship &&
-              (offering.cis_relationship !== 'other' || offering.cis_relationship_other.trim()) &&
-              offering.cis_integration)) &&
+              (offering.cis_relationship !== 'other' || offering.cis_relationship_other.trim()))) &&
           (offering.kind === 'core' ||
-            (offering.kind === 'function' && offering.category_b && offering.cis_integration === 'no') ||
+            (offering.kind === 'function' && offering.category_b && offering.cis_relationship === 'none') ||
             (offering.workflow.reused_data.length &&
               (!offering.workflow.reused_data.includes('other') || offering.workflow.other_reused_data.trim()) &&
               offering.workflow.write_back &&
@@ -783,10 +777,10 @@ export function activeAnswer(question: Question, answer: Answer): Answer {
               offering.kind === 'function' && offering.category_b && offering.cis_relationship === 'other'
                 ? offering.cis_relationship_other.trim()
                 : '',
-            cis_integration: offering.kind === 'function' && offering.category_b ? offering.cis_integration : '',
+            cis_integration: '',
             workflow:
               offering.kind === 'core' ||
-              (offering.kind === 'function' && offering.category_b && offering.cis_integration === 'no')
+              (offering.kind === 'function' && offering.category_b && offering.cis_relationship === 'none')
                 ? emptyClinicalWorkflow()
                 : {
                     ...offering.workflow,
@@ -850,12 +844,12 @@ export function answerLines(question: Question, answer: Answer): string[] {
       const workflow = offering.workflow
       const workflowText =
         offering.kind !== 'core' &&
-        !(offering.kind === 'function' && offering.category_b && offering.cis_integration === 'no')
+        !(offering.kind === 'function' && offering.category_b && offering.cis_relationship === 'none')
           ? `; Connected CIS data reused: ${workflow.reused_data.map((value) => (value === 'other' ? `Other: ${workflow.other_reused_data || 'Not answered'}` : workflowReuseOptions.find((item) => item.value === value)?.label || value)).join(', ') || 'Not answered'}; Connected CIS write-back: ${workflowChoiceOptions.write_back.find((item) => item.value === workflow.write_back)?.label || 'Not answered'}; Separate application: ${workflowChoiceOptions.separate_app.find((item) => item.value === workflow.separate_app)?.label || 'Not answered'}; Patient context: ${workflowChoiceOptions.patient_context.find((item) => item.value === workflow.patient_context)?.label || 'Not answered'}; Manual workflow steps: ${workflow.manual_steps || 'Not answered'}`
           : ''
       const cisRelationship =
         offering.kind === 'function' && offering.category_b
-          ? `; CIS relationship: ${cisRelationshipOptions.find((item) => item.value === offering.cis_relationship)?.label || 'Not answered'}${offering.cis_relationship === 'other' ? `: ${offering.cis_relationship_other || 'Not answered'}` : ''}; Typically integrated with a hospital-wide CIS: ${cisIntegrationOptions.find((item) => item.value === offering.cis_integration)?.label || 'Not answered'}`
+          ? `; CIS relationship: ${cisRelationshipOptions.find((item) => item.value === offering.cis_relationship)?.label || 'Not answered'}${offering.cis_relationship === 'other' ? `: ${offering.cis_relationship_other || 'Not answered'}` : ''}`
           : offering.kind === 'function'
             ? `; Standalone purchase: ${offering.standalone ? 'Yes' : 'No'}`
             : ''

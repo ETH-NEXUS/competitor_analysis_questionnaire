@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {
-  cisIntegrationOptions,
   cisRelationshipOptions,
   clinicalFunctionOptions,
   clinicalSpecialtyOptions,
+  emptyClinicalWorkflow,
   emptyOffering,
   integrationPurposeOptions,
   workflowChoiceOptions,
@@ -328,7 +328,13 @@ async function customEnter(event: KeyboardEvent, index: number, field: 'other_fu
               :items="cisRelationshipOptions"
               placeholder="Select an answer"
               class="w-full"
-              @update:model-value="change(index, { cis_relationship: String($event) })"
+              @update:model-value="
+                change(index, {
+                  cis_relationship: String($event),
+                  cis_integration: '',
+                  workflow: $event === 'none' ? emptyClinicalWorkflow() : offering.workflow,
+                })
+              "
             />
           </UFormField>
           <UFormField v-if="offering.cis_relationship === 'other'" label="Please specify the relationship">
@@ -339,20 +345,12 @@ async function customEnter(event: KeyboardEvent, index: number, field: 'other_fu
               @update:model-value="change(index, { cis_relationship_other: String($event) })"
             />
           </UFormField>
-          <UFormField label="Is the solution typically integrated with a hospital-wide CIS?">
-            <USelect
-              :model-value="offering.cis_integration"
-              :items="cisIntegrationOptions"
-              placeholder="Select an answer"
-              class="w-full"
-              @update:model-value="change(index, { cis_integration: String($event) })"
-            />
-          </UFormField>
         </div>
         <fieldset
           v-if="
             offering.kind === 'integration' ||
-            (offering.kind === 'function' && (!isSpecialist || ['yes', 'optional'].includes(offering.cis_integration)))
+            (offering.kind === 'function' &&
+              (!isSpecialist || (offering.cis_relationship && offering.cis_relationship !== 'none')))
           "
           class="border-default mt-6 space-y-5 border-t pt-5"
         >
