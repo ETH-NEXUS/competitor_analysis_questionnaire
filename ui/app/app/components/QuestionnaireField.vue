@@ -11,7 +11,6 @@ import {
   otherIndex,
   otherIsSelected,
   productsFor,
-  retainedPatientDataOptions,
   sourceOptions,
   testingEventOptions,
   testingOutcomeOptions,
@@ -393,21 +392,6 @@ function removeProduct(key: string, index: number) {
           @update:model-value="detail('hl7v2_other', String($event))"
         />
       </UFormField>
-    </div>
-    <div
-      v-if="question.id === 'dataRetention' && (answer.selected.includes('0') || answer.selected.includes('1'))"
-      class="border-default mt-5 space-y-3 rounded-xl border p-4"
-    >
-      <p class="text-sm font-semibold">Which patient/clinical information is persistently stored?</p>
-      <div class="grid gap-2 sm:grid-cols-2">
-        <UCheckbox
-          v-for="item in retainedPatientDataOptions"
-          :key="item.value"
-          :label="item.label"
-          :model-value="(answer.followups.retained || []).includes(item.value)"
-          @update:model-value="updateFollowup('retained', item.value, $event === true)"
-        />
-      </div>
     </div>
     <div
       v-if="question.id === 'certifications' && answer.selected.some((item) => Number(item) < 7)"

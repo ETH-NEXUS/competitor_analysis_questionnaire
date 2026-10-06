@@ -229,7 +229,11 @@ function clinicalRecords(rows) {
           source: entry.source, kind: entry.kind,
           description: String(entry.description || '').trim(),
           purposes: (entry.purposes || []).map(value => value === 'Other' ? `Other: ${entry.purpose_other || 'not specified'}` : value),
-          workflow: entry.kind === 'core' || (entry.kind === 'integration' && response.version < 7 && !hasWorkflow(entry.workflow)) ? null : entry.workflow || null,
+          cisRelationship: String(entry.cis_relationship || ''),
+          cisRelationshipOther: String(entry.cis_relationship_other || ''),
+          cisIntegration: String(entry.cis_integration || ''),
+          categoryB: entry.category_b === true,
+          workflow: entry.kind === 'core' || (entry.kind === 'function' && entry.category_b && entry.cis_integration === 'no') || (entry.kind === 'integration' && response.version < 7 && !hasWorkflow(entry.workflow)) ? null : entry.workflow || null,
           functions: [...new Set([...(entry.functions || []), ...(entry.other_functions || []).map(value => functionGroups.get(normalizeOther(value)) || value)].filter(Boolean))],
           specialties: [...new Set([...(entry.specialties || []), ...(entry.other_specialties || []).map(value => specialtyGroups.get(normalizeOther(value)) || value), ...(entry.all_specialties ? ['Across specialties'] : [])].filter(Boolean))],
           otherFunctions: (entry.other_functions || []).filter(Boolean),
@@ -272,12 +276,16 @@ function addClinicalCatalog(card, rows) {
     const key = normalizeOther(raw);
     if (!variants.has(key)) variants.set(key, raw);
     const label = mappings.get(key) || raw;
-    if (!groups.has(label)) groups.set(label, { label, descriptions: new Set(), functions: new Set(), specialties: new Set(), purposes: new Set(), integrators: new Set(), offeredBy: new Set(), suppliedBy: new Set(), coreBy: new Set(), workflowReports: [] });
+    if (!groups.has(label)) groups.set(label, { label, descriptions: new Set(), functions: new Set(), specialties: new Set(), purposes: new Set(), relationships: new Set(), integrationStatuses: new Set(), integrators: new Set(), offeredBy: new Set(), suppliedBy: new Set(), coreBy: new Set(), workflowReports: [] });
     const group = groups.get(label);
     if (record.description) group.descriptions.add(record.description);
     record.functions.forEach(value => group.functions.add(value));
     record.specialties.forEach(value => group.specialties.add(value));
     (record.purposes || []).forEach(value => group.purposes.add(value));
+    if (record.categoryB) {
+      group.relationships.add(record.cisRelationship === 'other' ? `Other: ${record.cisRelationshipOther || 'not specified'}` : cisRelationshipLabels[record.cisRelationship] || 'Not answered');
+      group.integrationStatuses.add(cisIntegrationLabels[record.cisIntegration] || 'Not answered');
+    }
     if (record.workflow) group.workflowReports.push({ response: record.response, workflow: record.workflow });
     if (record.kind === 'core') group.coreBy.add(record.response.provider);
     if (record.source === 'partner') {
@@ -294,9 +302,11 @@ function addClinicalCatalog(card, rows) {
     if (group.integrators.size) entry.append(node('p', `Integrated by CIS providers: ${[...group.integrators].sort().join(', ')}`, 'muted'));
     if (group.suppliedBy.size) entry.append(node('p', `Supplied by: ${[...group.suppliedBy].sort().join(', ')}`, 'muted'));
     if (group.purposes.size) entry.append(node('p', `Integration type / purpose: ${[...group.purposes].sort().join(', ')}`, 'muted'));
+    if (group.relationships.size) entry.append(node('p', `CIS relationship: ${[...group.relationships].sort().join(', ')}`, 'muted'));
+    if (group.integrationStatuses.size) entry.append(node('p', `Typically integrated with CIS: ${[...group.integrationStatuses].sort().join(', ')}`, 'muted'));
     if (group.workflowReports.length) {
       const report = node('details', undefined, 'catalog-workflow');
-      report.append(node('summary', `CIS workflow integration · ${group.workflowReports.length} ${group.workflowReports.length === 1 ? 'report' : 'reports'}`));
+      report.append(node('summary', `Connected CIS workflow integration · ${group.workflowReports.length} ${group.workflowReports.length === 1 ? 'report' : 'reports'}`));
       const labels = {
         reused_data: { patient: 'Patient details', medication: 'Medication data', lab: 'Laboratory results', none: 'None of these', unknown: 'Not sure' },
         write_back: { automatic: 'Automatically', user_action: 'After user action', manual: 'Manual transfer', none: 'No write-back', unknown: 'Not sure / not applicable' },
@@ -306,7 +316,7 @@ function addClinicalCatalog(card, rows) {
       for (const item of group.workflowReports) {
         report.append(node('h5', `${item.response.provider} · response #${item.response.id}`));
         const list = node('dl');
-        for (const [key, title] of [['reused_data', 'CIS data reused'], ['write_back', 'Write-back'], ['separate_app', 'Separate application'], ['patient_context', 'Patient context'], ['manual_steps', 'Manual steps']]) {
+        for (const [key, title] of [['reused_data', 'Connected CIS data reused'], ['write_back', 'Write-back'], ['separate_app', 'Separate application'], ['patient_context', 'Patient context'], ['manual_steps', 'Manual steps']]) {
           const value = item.workflow[key];
           const readable = key === 'manual_steps' ? value : key === 'reused_data' ? (value || []).map(code => code === 'other' ? `Other: ${item.workflow.other_reused_data || 'not specified'}` : labels.reused_data[code] || code).join(', ') : labels[key][value];
           list.append(node('dt', title), node('dd', readable || 'Not answered'));
@@ -361,8 +371,16 @@ const workflowLabels = {
   separate_app: { embedded: 'Embedded in CIS', sso: 'Separate app with SSO', separate_login: 'Separate sign-in', unknown: 'Not sure' },
   patient_context: { automatic: 'Automatic', manual: 'Patient selected again', none: 'None', unknown: 'Not sure' },
 };
+const cisRelationshipLabels = {
+  independent: 'Can operate independently of a specific hospital-wide CIS',
+  integration: 'Requires integration with a hospital-wide CIS but is not tied to a specific CIS vendor',
+  specific: 'Requires a specific CIS/platform',
+  either: 'Can be used either independently or integrated with a hospital-wide CIS',
+};
+const cisIntegrationLabels = { yes: 'Yes', optional: 'Optional / depends on implementation', no: 'No' };
 function workflowCell(record, field) {
   if (record.kind === 'core') return '—';
+  if (record.kind === 'function' && record.categoryB && record.cisIntegration === 'no') return 'Not applicable';
   if (!record.workflow) return record.kind === 'integration' && record.response.version < 7 ? 'Not collected in this form version' : 'Not reported';
   const value = record.workflow[field];
   if (field === 'manual_steps') return String(value || '').trim() || 'Not answered';
@@ -454,7 +472,7 @@ function renderProductComparison(rows) {
     const scroll = node('div', undefined, 'matrix-scroll');
     const table = node('table', undefined, 'product-matrix');
     const header = node('tr');
-    for (const title of ['Product', 'Reporting provider', 'Type', 'Integration type / purpose', 'Functional areas', 'Specialties', 'Integrated by CIS providers', 'CIS data reused', 'Write-back', 'Application', 'Patient context', 'Manual steps']) header.append(node('th', title));
+    for (const title of ['Product', 'Reporting provider', 'Type', 'Integration type / purpose', 'CIS relationship', 'Typically integrated with CIS', 'Functional areas', 'Specialties', 'Integrated by CIS providers', 'Connected CIS data reused', 'Write-back', 'Application', 'Patient context', 'Manual steps']) header.append(node('th', title));
     const head = node('thead'); head.append(header); table.append(head);
     const body = node('tbody');
     for (const record of visible.sort((a, b) => productName(a).localeCompare(productName(b)) || a.response.provider.localeCompare(b.response.provider))) {
@@ -482,6 +500,8 @@ function renderProductComparison(rows) {
         node('td', `${record.response.provider}\nResponse #${record.response.id}`),
         node('td', type),
         node('td', (record.purposes || []).join(', ') || '—'),
+        node('td', record.categoryB ? record.cisRelationship === 'other' ? `Other: ${record.cisRelationshipOther || 'not specified'}` : cisRelationshipLabels[record.cisRelationship] || 'Not answered' : '—'),
+        node('td', record.categoryB ? cisIntegrationLabels[record.cisIntegration] || 'Not answered' : '—'),
         node('td', record.functions.join(', ') || 'Not specified'),
         node('td', record.specialties.join(', ') || 'Not specified'),
         node('td', [...(integrators.get(productName(record)) || [])].sort().join(', ') || '—'),
@@ -513,7 +533,6 @@ const scopedQuestions = {
 };
 const cisIntegrationOptions = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
 function answerSelection(response, id) { return response.answer_data?.[id]?.selected || []; }
-function retainedSelection(response) { return response.answer_data?.dataRetention?.followups?.retained || []; }
 function screeningStatus(response, id, allowed, introduced = 6) {
   if (response.version < introduced) return 'earlierRouting';
   const selected = answerSelection(response, id);
@@ -530,15 +549,10 @@ function answerStatus(q, response) {
   if (scopes && !scopes.some(value => response.scopes.includes(value))) return 'notApplicable';
   if (['developerIndependence', 'developerResources', 'thirdPartyApproval'].includes(q.id))
     return missingAfterScreen(screeningStatus(response, 'thirdPartyIntegration', cisIntegrationOptions, 5));
-  if (['structuredTypes', 'clinicalModels', 'reportingMethods', 'research', 'secondary', 'switzerland'].includes(q.id))
-    return missingAfterScreen(screeningStatus(response, 'dataRetention', ['0', '1'], 12));
-  if (q.id === 'archive' || q.id === 'export') {
-    const status = screeningStatus(response, 'dataRetention', ['0', '1'], 12);
-    if (status !== 'eligible') return status;
-    const retained = retainedSelection(response);
-    if (!retained.length) return 'screenUnanswered';
-    return retained.some(value => (q.id === 'archive' ? ['documents', 'record'] : ['record']).includes(value)) ? 'notRecorded' : 'notApplicable';
-  }
+  if (['structuredTypes', 'clinicalModels', 'reportingMethods', 'research', 'secondary', 'switzerland', 'archive'].includes(q.id))
+    return missingAfterScreen(screeningStatus(response, 'dataRetention', ['0', '1'], 13));
+  if (q.id === 'export')
+    return missingAfterScreen(screeningStatus(response, 'dataRetention', ['0'], 13));
   if (q.id === 'exportDetails') {
     const status = answerStatus(questionById.get('export'), response);
     if (status !== 'answered' && status !== 'unanswered' && status !== 'notRecorded') return status;
@@ -701,13 +715,6 @@ function addCertificationsTable(card, rows, q) {
   }
   table.append(body); scroll.append(table); card.append(scroll);
 }
-function addRetainedDataMatrix(card, rows) {
-  const stored = rows.filter(response => ['0', '1'].includes(answerSelection(response, 'dataRetention')[0]));
-  if (!stored.length) return;
-  card.append(node('h3', 'Patient / clinical data persistently stored'));
-  const options = [['documents', 'Clinical documents or images'], ['record', 'Longitudinal clinical record'], ['other', 'Other patient / clinical data']];
-  vendorTable(card, options.map(item => item[1]), stored, (response, label) => retainedSelection(response).includes(options.find(item => item[1] === label)?.[0]) ? 1 : 0, { totals: true });
-}
 function addImplementationRequirements(card, rows) {
   const noRows = rows.filter(response => answerSelection(response, 'requirements').includes('1'));
   if (!noRows.length) return;
@@ -867,7 +874,6 @@ function questionChart(q, rows) {
     }
     addPie(card, groups);
     if (q.id === 'interoperabilityTesting') addTestingEventTable(card, answered);
-    if (q.id === 'dataRetention') addRetainedDataMatrix(card, answered);
     if (q.id === 'requirements') addImplementationRequirements(card, answered);
   }
   if (q.kind !== 'offerings') addOtherAnswers(card, q, answered, asked.length);
@@ -961,7 +967,7 @@ const figureSpecs = {
 const presentationSections = [
   { slide: 3, title: 'Interoperability and openness', keys: ['documentedApis', 'fhirStandard', 'independentDevelopment', 'sandbox', 'apiWriteBack', 'smart'] },
   { slide: 4, title: 'Deployment and Swiss data residency', keys: ['cloud', 'swissResidency', 'onPremise', 'privateCloud', 'publicCloud', 'saas', 'hybrid'], note: 'Swiss residency is asked only when a solution retains patient information. Conditional Yes answers count as capable under the stated hosting model.' },
-  { slide: 5, title: 'Data portability and vendor independence', keys: ['exitProcess', 'recordExport', 'reusableContent', 'vendorMigration'], note: 'Record export is asked only for solutions retaining a longitudinal clinical record. Migration dependence includes either a vendor-specific record export or a CIS migration approach requiring substantial custom conversion.' },
+  { slide: 5, title: 'Data portability and vendor independence', keys: ['exitProcess', 'recordExport', 'reusableContent', 'vendorMigration'], note: 'Record export is asked when Q6 reports persistent clinical-data storage without limiting it to specific data or documents. Migration dependence includes either a vendor-specific record export or a CIS migration approach requiring substantial custom conversion.' },
   { slide: 6, title: 'Structured and reusable clinical data', keys: ['fhirModel', 'snomed', 'loinc', 'openEhr', 'omop', 'researchApi', 'deidentification', 'secondaryGovernance'], note: 'These questions are available to the relevant solution categories. Explicit None or Not applicable answers remain separate from missing answers.' },
   { slide: 7, title: 'HCP-facing solutions', keys: ['clinicalDocumentation', 'medicationManagement', 'nursingWorkflows', 'scheduling', 'wardManagement', 'decisionSupport', 'automaticReuse', 'specialtyWorkflows', 'speechToText', 'ambientAi', 'automatedLetters', 'shortcuts'], note: 'Functional coverage counts core CIS offerings. Documentation methods are reported at submission level; for vendors selecting both A and B, the answer may also describe specialized functions.' },
   { slide: 8, title: 'Existing ecosystem building blocks', keys: ['coreVendors', 'specialistVendors', 'patientVendors', 'integrationEngine', 'apiManagement', 'orchestration', 'clinicalRepository', 'fhirServer', 'mpi', 'terminologyService', 'analyticsWarehouse', 'vendorNeutralArchive', 'researchSecondary'], note: 'These are distinct vendor counts. A vendor may appear in several building blocks. Data capabilities come from category C; research/secondary use is shown when Q6 reports persistent clinical data storage. Unanswered capability questions are not treated as a negative response.' },

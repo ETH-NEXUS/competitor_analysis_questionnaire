@@ -101,11 +101,10 @@
     "label": "Does the solution persistently store patient/clinical data?",
     "options": [
       "Yes",
-      "Yes, but only specific data/documents – please specify",
+      "Yes, but only specific data/documents",
       "No – data is only transmitted/processed temporarily",
       "Not sure"
-    ],
-    "detailLabels": {"1": "Please specify which data/documents are stored"}
+    ]
   },
   "structure": {
     "label": "To what extent is clinical information stored as structured data?",
@@ -317,10 +316,10 @@
   "exitCosts": {
     "label": "Which costs may arise when terminating the contract or switching to another solution?",
     "options": [
-      "No specific termination/exit fee",
-      "Data extraction/export fee",
-      "Vendor support for migration is charged separately",
-      "Continued access/read-only access is charged separately",
+      "No specific termination/exit fees",
+      "Data extraction/export fees",
+      "Migration support fees",
+      "Continued/read-only access fees",
       "Decommissioning/archiving fees",
       "Other"
     ]

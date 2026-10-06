@@ -8,7 +8,7 @@ const store = useQuestionnaireStore()
 const status = ref('')
 const pdfLoading = ref(false)
 const scopeError = ref(false)
-const highlightedQuestionId = ref<string | null>(null)
+const reviewVisited = ref(false)
 const heading = ref<HTMLElement>()
 const stages = ['About you & solution scope', 'Core questions', 'Solution-specific questions', 'Review & submit']
 const visibleSections = computed(() => store.applicableSections.filter((section) => section.stage === store.stage))
@@ -17,6 +17,7 @@ const incompleteQuestions = computed(() =>
     .flatMap((section) => section.questions)
     .filter((question) => !isAnswered(question, store.answerForDisplay(question.id))),
 )
+const incompleteQuestionIds = computed(() => new Set(incompleteQuestions.value.map((question) => question.id)))
 const complete = computed(() => store.done === store.total)
 const percentage = computed(() => Math.round((store.done / store.total) * 100))
 
@@ -34,14 +35,15 @@ async function goTo(stage: number) {
     return
   }
   scopeError.value = false
-  highlightedQuestionId.value = null
+  if (store.stage === 3) reviewVisited.value = true
+  if (stage === 3) reviewVisited.value = true
   store.stage = stage
   await nextTick()
   heading.value?.focus()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 async function goToQuestion(stage: number, id: string) {
-  highlightedQuestionId.value = id
+  reviewVisited.value = true
   store.stage = stage
   await nextTick()
   requestAnimationFrame(() => {
@@ -49,9 +51,13 @@ async function goToQuestion(stage: number, id: string) {
     field?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     field?.focus({ preventScroll: true })
   })
-  window.setTimeout(() => {
-    if (highlightedQuestionId.value === id) highlightedQuestionId.value = null
-  }, 6000)
+}
+function startAnotherSolution() {
+  store.resetForAnotherSolution()
+  reviewVisited.value = false
+  status.value = ''
+  scopeError.value = false
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 async function submit() {
   if (!store.identityValid || !store.selectedScopes.length) {
@@ -71,7 +77,7 @@ async function submit() {
 function exportResponse() {
   return {
     questionnaire: 'Hospital IT Vendor Questionnaire',
-    version: 12,
+    version: 13,
     exportedAt: new Date().toISOString(),
     complete: complete.value,
     responseReference: store.submittedId,
@@ -237,6 +243,9 @@ onMounted(() => {
               :description="`Your answers have been saved. Response reference: ${store.submittedId}.`"
             />
             <div class="mt-5 flex flex-wrap gap-3">
+              <UButton type="button" icon="i-heroicons-plus" @click="startAnotherSolution"
+                >Fill questionnaire for another solution</UButton
+              >
               <UButton type="button" icon="i-heroicons-document-arrow-down" :loading="pdfLoading" @click="downloadPdf"
                 >Download PDF</UButton
               >
@@ -285,7 +294,7 @@ onMounted(() => {
                     v-for="question in section.questions"
                     :id="`question-${question.id}`"
                     :key="question.id"
-                    :class="{ 'question-highlight': highlightedQuestionId === question.id }"
+                    :class="{ 'question-highlight': reviewVisited && incompleteQuestionIds.has(question.id) }"
                     :question="question"
                     :answer="store.answerFor(question.id)"
                     :is-cis="store.selectedScopes.includes('A')"

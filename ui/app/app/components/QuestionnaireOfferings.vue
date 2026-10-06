@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import {
+  cisIntegrationOptions,
+  cisRelationshipOptions,
   clinicalFunctionOptions,
   clinicalSpecialtyOptions,
   emptyOffering,
@@ -47,7 +49,7 @@ function ensureInitialEntries() {
     offerings.push(emptyOffering('core', props.solutionName || 'Core CIS'))
   }
   if (props.isSpecialist && !offerings.some((item) => item.kind === 'function')) {
-    offerings.push(emptyOffering('function', props.solutionName))
+    offerings.push({ ...emptyOffering('function', props.solutionName), category_b: true })
   }
   if (offerings.length !== props.answer.offerings.length) replace(offerings)
 }
@@ -58,7 +60,10 @@ function replace(offerings: ClinicalOffering[]) {
   emit('update', { ...props.answer, offerings })
 }
 function add(kind: ClinicalOffering['kind']) {
-  replace([...props.answer.offerings, emptyOffering(kind)])
+  replace([
+    ...props.answer.offerings,
+    { ...emptyOffering(kind), category_b: kind === 'function' && props.isSpecialist },
+  ])
 }
 function change(index: number, patch: Partial<ClinicalOffering>) {
   const offerings = [...props.answer.offerings]
@@ -310,17 +315,51 @@ async function customEnter(event: KeyboardEvent, index: number, field: 'other_fu
           </fieldset>
         </div>
         <UCheckbox
-          v-if="offering.kind === 'function'"
+          v-if="offering.kind === 'function' && !isSpecialist"
           class="mt-5"
           label="Can be purchased and operated independently of your hospital-wide CIS"
           :model-value="offering.standalone"
           @update:model-value="change(index, { standalone: $event === true })"
         />
-        <fieldset v-if="offering.kind !== 'core'" class="border-default mt-6 space-y-5 border-t pt-5">
-          <legend class="font-semibold">Workflow integration with the CIS</legend>
+        <div v-if="offering.kind === 'function' && isSpecialist" class="border-default mt-6 grid gap-4 border-t pt-5">
+          <UFormField label="How does this solution typically relate to a hospital-wide CIS?">
+            <USelect
+              :model-value="offering.cis_relationship"
+              :items="cisRelationshipOptions"
+              placeholder="Select an answer"
+              class="w-full"
+              @update:model-value="change(index, { cis_relationship: String($event) })"
+            />
+          </UFormField>
+          <UFormField v-if="offering.cis_relationship === 'other'" label="Please specify the relationship">
+            <UInput
+              :model-value="offering.cis_relationship_other"
+              :maxlength="200"
+              class="w-full"
+              @update:model-value="change(index, { cis_relationship_other: String($event) })"
+            />
+          </UFormField>
+          <UFormField label="Is the solution typically integrated with a hospital-wide CIS?">
+            <USelect
+              :model-value="offering.cis_integration"
+              :items="cisIntegrationOptions"
+              placeholder="Select an answer"
+              class="w-full"
+              @update:model-value="change(index, { cis_integration: String($event) })"
+            />
+          </UFormField>
+        </div>
+        <fieldset
+          v-if="
+            offering.kind === 'integration' ||
+            (offering.kind === 'function' && (!isSpecialist || ['yes', 'optional'].includes(offering.cis_integration)))
+          "
+          class="border-default mt-6 space-y-5 border-t pt-5"
+        >
+          <legend class="font-semibold">Workflow integration with the connected CIS</legend>
           <div>
             <p class="mb-2 text-sm font-medium">
-              Which data already in the CIS does this
+              Which data already in the connected CIS does this
               {{ offering.kind === 'integration' ? 'integration' : 'function' }} reuse?
             </p>
             <div class="grid gap-2 sm:grid-cols-2">
@@ -334,7 +373,7 @@ async function customEnter(event: KeyboardEvent, index: number, field: 'other_fu
             </div>
             <UFormField
               v-if="offering.workflow.reused_data.includes('other')"
-              label="Other CIS data reused"
+              label="Other connected CIS data reused"
               class="mt-3"
             >
               <UInput
@@ -346,7 +385,7 @@ async function customEnter(event: KeyboardEvent, index: number, field: 'other_fu
             </UFormField>
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
-            <UFormField label="Is information written back to the CIS?">
+            <UFormField label="Is information written back to the connected CIS?">
               <USelect
                 :model-value="offering.workflow.write_back"
                 :items="workflowChoiceOptions.write_back"

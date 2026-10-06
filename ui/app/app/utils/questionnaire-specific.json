@@ -148,7 +148,8 @@
   },
   "patientIndependent": {
     "label": "Can the patient-facing solution be purchased and operated independently of a specific hospital-wide CIS?",
-    "options": ["Yes", "No – requires the vendor’s CIS", "No – requires another specific CIS/platform", "Other"]
+    "options": ["Yes", "No, requires a specific CIS – please specify", "Other"],
+    "detailLabels": {"1": "Please specify the required CIS"}
   },
   "patientExchange": {
     "label": "How is information exchanged between the patient-facing solution and connected clinical systems?",

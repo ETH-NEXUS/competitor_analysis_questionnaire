@@ -64,6 +64,10 @@ export interface ClinicalOffering {
   other_specialties: string[]
   all_specialties: boolean
   standalone: boolean
+  category_b: boolean
+  cis_relationship: string
+  cis_relationship_other: string
+  cis_integration: string
   workflow: ClinicalWorkflow
 }
 export interface ClinicalWorkflow {
@@ -98,7 +102,7 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
   {
     id: 'profile',
     stage: 1,
-    questions: [{ id: 'dataRetention', kind: 'single', details: [1] }],
+    questions: [{ id: 'dataRetention', kind: 'single' }],
   },
   {
     id: 'security',
@@ -223,7 +227,7 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
     stage: 2,
     questions: [
       { id: 'archive', kind: 'single', details: [4], when: { question: 'dataRetention', selected: ['0', '1'] } },
-      { id: 'export', kind: 'single', details: [4], when: { question: 'dataRetention', selected: ['0', '1'] } },
+      { id: 'export', kind: 'single', details: [4], when: { question: 'dataRetention', selected: ['0'] } },
       { id: 'exportDetails', kind: 'text', when: { question: 'export', selected: ['2', '3', '4'] } },
       { id: 'switzerland', kind: 'single', when: { question: 'dataRetention', selected: ['0', '1'] } },
     ],
@@ -256,7 +260,7 @@ const sectionDefinitions: (Omit<QuestionSection, 'questions' | 'title'> & {
       { id: 'languages', kind: 'multi', details: [4] },
       { id: 'aggregationMethods', kind: 'multi', details: [5], exclusive: [4] },
       { id: 'writeBack', kind: 'single' },
-      { id: 'patientIndependent', kind: 'single', details: [3] },
+      { id: 'patientIndependent', kind: 'single', details: [1] },
       { id: 'patientExchange', kind: 'multi', details: [5] },
     ],
   },
@@ -311,13 +315,13 @@ const sectionTitles: Record<string, string> = {
 }
 export const scopeLabels = [
   'Hospital-wide clinical information system',
-  'Specialized clinical solution / modules',
+  'Specialized clinical solution / module',
   'Data / interoperability solution',
   'Patient-facing solution',
 ]
 export const scopeDescriptions = [
   'The primary system for clinical documentation and workflows across multiple clinical areas.',
-  'A specific clinical area, specialty or workflow, including dedicated modules within a hospital-wide CIS.',
+  'A specialist product or startup solution for a clinical area or workflow, or a specialty module within a hospital-wide CIS.',
   'Data storage, integration, exchange or interoperability capabilities.',
   'Functionality directly available to patients through a portal or app.',
 ]
@@ -357,10 +361,20 @@ export const hl7v2MessageTypes = [
   { value: 'Other', label: 'Other – please specify' },
   { value: 'Not sure', label: 'Not sure' },
 ]
-export const retainedPatientDataOptions = [
-  { value: 'documents', label: 'Individual clinical documents or diagnostic images' },
-  { value: 'record', label: 'An ongoing clinical record across encounters or over time' },
-  { value: 'other', label: 'Other patient/clinical data' },
+export const cisRelationshipOptions = [
+  { value: 'independent', label: 'Can operate independently of a specific hospital-wide CIS' },
+  {
+    value: 'integration',
+    label: 'Requires integration with a hospital-wide CIS but is not tied to a specific CIS vendor',
+  },
+  { value: 'specific', label: 'Requires a specific CIS/platform' },
+  { value: 'either', label: 'Can be used either independently or integrated with a hospital-wide CIS' },
+  { value: 'other', label: 'Other – specify' },
+]
+export const cisIntegrationOptions = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'optional', label: 'Optional / depends on implementation' },
+  { value: 'no', label: 'No' },
 ]
 export const certificationScopeOptions = [
   { value: 'organization', label: 'Organization' },
@@ -474,6 +488,10 @@ export function emptyOffering(kind: ClinicalOffering['kind'] = 'function', name 
     other_specialties: [],
     all_specialties: false,
     standalone: false,
+    category_b: false,
+    cis_relationship: '',
+    cis_relationship_other: '',
+    cis_integration: '',
     workflow: emptyClinicalWorkflow(),
   }
 }
@@ -587,7 +605,13 @@ export function isAnswered(question: Question, answer: Answer): boolean {
             offering.specialties.length ||
             offering.other_specialties.some((item) => item.trim()) ||
             offering.all_specialties) &&
+          (offering.kind !== 'function' ||
+            !offering.category_b ||
+            (offering.cis_relationship &&
+              (offering.cis_relationship !== 'other' || offering.cis_relationship_other.trim()) &&
+              offering.cis_integration)) &&
           (offering.kind === 'core' ||
+            (offering.kind === 'function' && offering.category_b && offering.cis_integration === 'no') ||
             (offering.workflow.reused_data.length &&
               (!offering.workflow.reused_data.includes('other') || offering.workflow.other_reused_data.trim()) &&
               offering.workflow.write_back &&
@@ -608,9 +632,6 @@ export function isAnswered(question: Question, answer: Answer): boolean {
   if (question.id === 'standards' && answer.selected.includes('1')) {
     const messages = answer.followups['1'] || []
     if (!messages.length || (messages.includes('Other') && !answer.details.hl7v2_other?.trim())) return false
-  }
-  if (question.id === 'dataRetention' && ['0', '1'].includes(answer.selected[0] || '')) {
-    if (!(answer.followups.retained || []).length) return false
   }
   if (question.id === 'certifications') {
     for (const index of answer.selected.filter((item) => Number(item) < 7)) {
@@ -705,11 +726,9 @@ export function activeAnswer(question: Question, answer: Answer): Answer {
               .filter((key) => answer.selected.includes(key))
               .map((key) => [key, [...new Set(answer.followups[key] || [])]]),
           )
-        : question.id === 'dataRetention' && ['0', '1'].includes(answer.selected[0] || '')
-          ? { retained: [...new Set(answer.followups.retained || [])] }
-          : question.id === 'requirements' && answer.selected.includes('1')
-            ? { '1': [...new Set(answer.followups['1'] || [])] }
-            : {},
+        : question.id === 'requirements' && answer.selected.includes('1')
+          ? { '1': [...new Set(answer.followups['1'] || [])] }
+          : {},
     testing_events:
       question.id === 'interoperabilityTesting' && answer.selected.includes('0')
         ? answer.testing_events.map((event) => ({
@@ -758,8 +777,16 @@ export function activeAnswer(question: Question, answer: Answer): Answer {
             other_functions: offering.other_functions.map((item) => item.trim()).filter(Boolean),
             other_specialties: offering.other_specialties.map((item) => item.trim()).filter(Boolean),
             standalone: offering.kind === 'function' && offering.standalone,
+            category_b: offering.kind === 'function' && offering.category_b,
+            cis_relationship: offering.kind === 'function' && offering.category_b ? offering.cis_relationship : '',
+            cis_relationship_other:
+              offering.kind === 'function' && offering.category_b && offering.cis_relationship === 'other'
+                ? offering.cis_relationship_other.trim()
+                : '',
+            cis_integration: offering.kind === 'function' && offering.category_b ? offering.cis_integration : '',
             workflow:
-              offering.kind === 'core'
+              offering.kind === 'core' ||
+              (offering.kind === 'function' && offering.category_b && offering.cis_integration === 'no')
                 ? emptyClinicalWorkflow()
                 : {
                     ...offering.workflow,
@@ -822,14 +849,21 @@ export function answerLines(question: Question, answer: Answer): string[] {
             : 'Specialized function'
       const workflow = offering.workflow
       const workflowText =
-        offering.kind !== 'core'
-          ? `; CIS data reused: ${workflow.reused_data.map((value) => (value === 'other' ? `Other: ${workflow.other_reused_data || 'Not answered'}` : workflowReuseOptions.find((item) => item.value === value)?.label || value)).join(', ') || 'Not answered'}; CIS write-back: ${workflowChoiceOptions.write_back.find((item) => item.value === workflow.write_back)?.label || 'Not answered'}; Separate application: ${workflowChoiceOptions.separate_app.find((item) => item.value === workflow.separate_app)?.label || 'Not answered'}; Patient context: ${workflowChoiceOptions.patient_context.find((item) => item.value === workflow.patient_context)?.label || 'Not answered'}; Manual workflow steps: ${workflow.manual_steps || 'Not answered'}`
+        offering.kind !== 'core' &&
+        !(offering.kind === 'function' && offering.category_b && offering.cis_integration === 'no')
+          ? `; Connected CIS data reused: ${workflow.reused_data.map((value) => (value === 'other' ? `Other: ${workflow.other_reused_data || 'Not answered'}` : workflowReuseOptions.find((item) => item.value === value)?.label || value)).join(', ') || 'Not answered'}; Connected CIS write-back: ${workflowChoiceOptions.write_back.find((item) => item.value === workflow.write_back)?.label || 'Not answered'}; Separate application: ${workflowChoiceOptions.separate_app.find((item) => item.value === workflow.separate_app)?.label || 'Not answered'}; Patient context: ${workflowChoiceOptions.patient_context.find((item) => item.value === workflow.patient_context)?.label || 'Not answered'}; Manual workflow steps: ${workflow.manual_steps || 'Not answered'}`
           : ''
+      const cisRelationship =
+        offering.kind === 'function' && offering.category_b
+          ? `; CIS relationship: ${cisRelationshipOptions.find((item) => item.value === offering.cis_relationship)?.label || 'Not answered'}${offering.cis_relationship === 'other' ? `: ${offering.cis_relationship_other || 'Not answered'}` : ''}; Typically integrated with a hospital-wide CIS: ${cisIntegrationOptions.find((item) => item.value === offering.cis_integration)?.label || 'Not answered'}`
+          : offering.kind === 'function'
+            ? `; Standalone purchase: ${offering.standalone ? 'Yes' : 'No'}`
+            : ''
       const purposes =
         offering.kind === 'integration'
           ? `; Type/purpose: ${offering.purposes.map((value) => (value === 'Other' ? `Other: ${offering.purpose_other || 'Not answered'}` : value)).join(', ') || 'Not answered'}`
           : ''
-      return `${title}: ${offering.name || 'Not answered'}; ${offering.source === 'partner' ? `Third-party company: ${offering.developer || 'Not answered'}` : 'Developed by your company'}${offering.kind === 'core' ? '' : `; What it does: ${offering.description || 'Not answered'}`}${purposes}; Areas: ${tags.join(', ') || 'Not answered'}${offering.kind === 'function' ? `; Standalone purchase: ${offering.standalone ? 'Yes' : 'No'}` : ''}${workflowText}`
+      return `${title}: ${offering.name || 'Not answered'}; ${offering.source === 'partner' ? `Third-party company: ${offering.developer || 'Not answered'}` : 'Developed by your company'}${offering.kind === 'core' ? '' : `; What it does: ${offering.description || 'Not answered'}`}${purposes}; Areas: ${tags.join(', ') || 'Not answered'}${cisRelationship}${workflowText}`
     })
   if (question.kind === 'text') return answer.text.trim() ? [answer.text] : []
   const options = question.choices
@@ -883,12 +917,6 @@ export function answerLines(question: Question, answer: Answer): string[] {
       value === 'Other' ? `Other: ${answer.details.hl7v2_other || 'Not answered'}` : value,
     )
     if (messages.length) selectedLines.push(`HL7 v2 message types: ${messages.join(', ')}`)
-  }
-  if (question.id === 'dataRetention' && ['0', '1'].includes(answer.selected[0] || '')) {
-    const retained = (answer.followups.retained || []).map(
-      (value) => retainedPatientDataOptions.find((item) => item.value === value)?.label || value,
-    )
-    if (retained.length) selectedLines.push(`Persistently stored: ${retained.join(', ')}`)
   }
   if (question.id === 'certifications') {
     for (const index of answer.selected.filter((item) => Number(item) < 7)) {

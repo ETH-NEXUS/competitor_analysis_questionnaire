@@ -1241,6 +1241,26 @@
                     "scopes"
                 ]
             },
+            "CisIntegrationEnum": {
+                "enum": [
+                    "yes",
+                    "optional",
+                    "no"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `yes` - yes\n* `optional` - optional\n* `no` - no"
+            },
+            "CisRelationshipEnum": {
+                "enum": [
+                    "independent",
+                    "integration",
+                    "specific",
+                    "either",
+                    "other"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `independent` - independent\n* `integration` - integration\n* `specific` - specific\n* `either` - either\n* `other` - other"
+            },
             "ClinicalOffering": {
                 "type": "object",
                 "properties": {
@@ -1312,6 +1332,37 @@
                     },
                     "standalone": {
                         "type": "boolean"
+                    },
+                    "category_b": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "cis_relationship": {
+                        "default": "",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/CisRelationshipEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "cis_relationship_other": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
+                    },
+                    "cis_integration": {
+                        "default": "",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/CisIntegrationEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
                     },
                     "workflow": {
                         "$ref": "#/components/schemas/ClinicalWorkflow"

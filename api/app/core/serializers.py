@@ -101,11 +101,26 @@ class ClinicalOfferingSerializer(serializers.Serializer):
     )
     all_specialties = serializers.BooleanField()
     standalone = serializers.BooleanField()
+    category_b = serializers.BooleanField(required=False, default=False)
+    cis_relationship = serializers.ChoiceField(
+        choices=("", "independent", "integration", "specific", "either", "other"),
+        required=False,
+        default="",
+    )
+    cis_relationship_other = serializers.CharField(allow_blank=True, max_length=200, required=False, default="")
+    cis_integration = serializers.ChoiceField(
+        choices=("", "yes", "optional", "no"), required=False, default=""
+    )
     workflow = ClinicalWorkflowSerializer(required=False)
 
     def validate(self, attrs):
         if attrs["kind"] == "integration" and "Other" in attrs["purposes"] and not attrs["purpose_other"].strip():
             raise serializers.ValidationError({"purpose_other": "Specify the other integration purpose."})
+        if attrs["kind"] == "function" and attrs["category_b"]:
+            if not attrs["cis_relationship"] or not attrs["cis_integration"]:
+                raise serializers.ValidationError("Answer both CIS relationship questions for the specialized solution.")
+            if attrs["cis_relationship"] == "other" and not attrs["cis_relationship_other"].strip():
+                raise serializers.ValidationError({"cis_relationship_other": "Specify the other CIS relationship."})
         return attrs
 
 
@@ -205,7 +220,6 @@ class QuestionnaireAnswerSerializer(serializers.Serializer):
 
 
 HL7_V2_MESSAGE_TYPES = {"ADT", "ORM", "ORU", "OML", "MDM", "SIU", "DFT", "BAR", "RDE", "RAS", "VXU", "Other", "Not sure"}
-RETAINED_DATA_TYPES = {"documents", "record", "other"}
 IMPLEMENTATION_REQUIREMENTS = {str(index) for index in range(10)}
 
 
@@ -230,14 +244,6 @@ def validate_followups(question_id, answer):
         v2 = followups.get("1", [])
         if "Not sure" in v2 and len(v2) > 1:
             raise serializers.ValidationError({"answers": "Not sure cannot be combined with message types."})
-    elif question_id == "dataRetention":
-        retained = followups.get("retained", [])
-        if set(followups) - {"retained"} or set(retained) - RETAINED_DATA_TYPES or len(retained) != len(set(retained)):
-            raise serializers.ValidationError({"answers": "Invalid stored-data selection."})
-        if (selected and selected[0] in {"0", "1"}) != bool(retained):
-            raise serializers.ValidationError({"answers": "Describe the data stored when persistent storage is selected."})
-        if selected == ["1"] and not details.get("1", "").strip():
-            raise serializers.ValidationError({"answers": "Specify the data or documents stored."})
     elif question_id == "requirements":
         required = followups.get("1", [])
         if set(followups) - {"1"} or set(required) - IMPLEMENTATION_REQUIREMENTS or len(required) != len(set(required)):

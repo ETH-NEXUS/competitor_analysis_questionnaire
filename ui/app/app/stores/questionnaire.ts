@@ -21,8 +21,9 @@ import {
   type TestingEvent,
 } from '~/utils/questionnaire'
 
-const draftKey = 'hospital-it-questionnaire-v12'
+const draftKey = 'hospital-it-questionnaire-v13'
 const previousDraftKeys = [
+  'hospital-it-questionnaire-v12',
   'hospital-it-questionnaire-v11',
   'hospital-it-questionnaire-v10',
   'hospital-it-questionnaire-v9',
@@ -86,12 +87,6 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
               (question.id !== 'documentationMethods' ||
                 documentationKinds.value.has('core') ||
                 documentationKinds.value.has('function')) &&
-              (question.id !== 'archive' ||
-                ['documents', 'record'].some((value) =>
-                  (answerFor('dataRetention').followups.retained || []).includes(value),
-                )) &&
-              ((question.id !== 'export' && question.id !== 'exportDetails') ||
-                (answerFor('dataRetention').followups.retained || []).includes('record')) &&
               (!question.when ||
                 answerFor(question.when.question).selected.some((value) => question.when!.selected.includes(value))),
           )
@@ -134,13 +129,16 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     if (id !== 'clinicalCapabilities') return answer
     return {
       ...answer,
-      offerings: answer.offerings.filter((offering) =>
-        offering.kind === 'function'
-          ? selectedScopes.value.includes('B') || selectedScopes.value.includes('A')
-          : offering.kind === 'integration'
-            ? selectedScopes.value.includes('A')
+      offerings: answer.offerings
+        .filter((offering) =>
+          offering.kind === 'function'
+            ? selectedScopes.value.includes('B') || selectedScopes.value.includes('A')
             : selectedScopes.value.includes('A'),
-      ),
+        )
+        .map((offering) => ({
+          ...offering,
+          category_b: offering.kind === 'function' && selectedScopes.value.includes('B'),
+        })),
     }
   }
   function toggleScope(scope: Scope, checked: boolean) {
@@ -153,7 +151,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       localStorage.setItem(
         draftKey,
         JSON.stringify({
-          version: 12,
+          version: 13,
           scopes: selectedScopes.value,
           answers: answers.value,
           identity: identity.value,
@@ -174,7 +172,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     if (!raw) return false
     const draft = JSON.parse(raw)
     if (
-      ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(draft.version) ||
+      ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(draft.version) ||
       !Array.isArray(draft.scopes) ||
       !draft.answers ||
       typeof draft.answers !== 'object'
@@ -223,6 +221,11 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
                   : [],
                 all_specialties: item.all_specialties === true,
                 standalone: item.standalone === true,
+                category_b: item.category_b === true,
+                cis_relationship: typeof item.cis_relationship === 'string' ? item.cis_relationship : '',
+                cis_relationship_other:
+                  typeof item.cis_relationship_other === 'string' ? item.cis_relationship_other : '',
+                cis_integration: typeof item.cis_integration === 'string' ? item.cis_integration : '',
                 workflow: {
                   ...emptyClinicalWorkflow(),
                   reused_data: Array.isArray(item.workflow?.reused_data)
@@ -257,6 +260,12 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       answer.selected = [
         ...new Set<string>(migratedSelected.filter((item: unknown) => typeof item === 'string')),
       ].filter((item) => /^\d+$/.test(item) && Number(item) < question.choices.length)
+      if (draft.version < 13 && question.id === 'patientIndependent') {
+        const old = value.selected[0]
+        answer.selected = old === '0' ? ['0'] : old === '1' || old === '2' ? ['1'] : old === '3' ? ['2'] : []
+        if (old === '1' || old === '2')
+          answer.details.legacy = `Previous answer: ${old === '1' ? 'Requires the vendor’s CIS' : 'Requires another specific CIS/platform'}. Please specify the required CIS.`
+      }
       if (draft.version < 12 && question.id === 'dataRetention') {
         const oldSelected = value.selected as string[]
         const retained = [
@@ -389,10 +398,6 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           if (!matched.length) answer.details.hl7v2_other = legacy
         }
       }
-      if (question.id === 'dataRetention' && draft.version >= 12 && Array.isArray(value.followups?.retained))
-        answer.followups.retained = value.followups.retained.filter((item: unknown) =>
-          ['documents', 'record', 'other'].includes(String(item)),
-        )
       if (question.id === 'requirements' && draft.version >= 12 && Array.isArray(value.followups?.['1']))
         answer.followups['1'] = value.followups['1'].filter((item: unknown) => /^\d$/.test(String(item)))
       if (
@@ -481,6 +486,16 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       flush: 'sync',
     })
   }
+  function resetForAnotherSolution() {
+    if (submittedId.value === null) return
+    selectedScopes.value = []
+    answers.value = {}
+    identity.value = { ...identity.value, solutionName: '' }
+    stage.value = 0
+    submissionId.value = ''
+    submittedId.value = null
+    saveDraft()
+  }
   async function submit() {
     if (isSubmitting.value || submittedId.value !== null) return
     if (!identityValid.value || !selectedScopes.value.length) throw new Error('Missing respondent details or scope')
@@ -523,6 +538,7 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     isSubmitting,
     draftStorageError,
     submit,
+    resetForAnotherSolution,
     answers,
     stage,
     applicableSections,

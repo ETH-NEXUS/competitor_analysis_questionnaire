@@ -114,13 +114,10 @@
     "label": "Does the solution persistently store patient/clinical data?",
     "options": [
       "Yes",
-      "Yes, but only specific data/documents – please specify",
+      "Yes, but only specific data/documents",
       "No – data is only transmitted/processed temporarily",
       "Not sure"
     ],
-    "detailLabels": {
-      "1": "Please specify which data/documents are stored"
-    },
     "kind": "single"
   },
   "structure": {
@@ -362,10 +359,10 @@
   "exitCosts": {
     "label": "Which costs may arise when terminating the contract or switching to another solution?",
     "options": [
-      "No specific termination/exit fee",
-      "Data extraction/export fee",
-      "Vendor support for migration is charged separately",
-      "Continued access/read-only access is charged separately",
+      "No specific termination/exit fees",
+      "Data extraction/export fees",
+      "Migration support fees",
+      "Continued/read-only access fees",
       "Decommissioning/archiving fees",
       "Other"
     ],
@@ -598,10 +595,12 @@
     "label": "Can the patient-facing solution be purchased and operated independently of a specific hospital-wide CIS?",
     "options": [
       "Yes",
-      "No – requires the vendor’s CIS",
-      "No – requires another specific CIS/platform",
+      "No, requires a specific CIS – please specify",
       "Other"
     ],
+    "detailLabels": {
+      "1": "Please specify the required CIS"
+    },
     "kind": "single"
   },
   "patientExchange": {
