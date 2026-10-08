@@ -10,6 +10,16 @@
 <header><div><p class="eyebrow">HOSPITAL IT · SUPERUSER</p><h1>Questionnaire analysis</h1></div><nav><a href="{% url 'admin:core_questionnaireresponse_changelist' %}">Django submissions</a><a href="{% url 'admin:index' %}">Administration</a></nav></header>
 <main>
   <form id="grouping-security" hidden>{% csrf_token %}</form>
+  <details class="card pdf-import">
+    <summary>Upload questionnaire PDF</summary>
+    <p class="muted">Import a response PDF received from a vendor. Preview the recovered answers before saving them to analysis.</p>
+    <form id="pdf-import-form" data-url="{% url 'questionnaire-analysis-import-pdf' %}">
+      <label>Response PDF (up to 10 MB)<input id="pdf-import-file" type="file" name="pdf" accept="application/pdf,.pdf" required></label>
+      <button id="pdf-preview-button" type="submit">Preview PDF</button>
+      <p id="pdf-import-status" role="status"></p>
+      <div id="pdf-import-preview" hidden></div>
+    </form>
+  </details>
   <div id="detail-controls" hidden>
     <section class="toolbar" aria-label="Analysis filters">
       <label>Company / provider<select id="provider"><option value="">All providers</option></select></label>
@@ -32,6 +42,15 @@
 <div id="vendor-url" data-url="{% url 'questionnaire-analysis-vendors' %}" hidden></div>
 <div id="delete-url" data-url="{% url 'questionnaire-analysis-delete' %}" hidden></div>
 <dialog id="delete-confirmation" aria-labelledby="delete-title"><h2 id="delete-title">Delete selected submissions?</h2><p id="delete-summary"></p><p>This permanently removes the selected answers from the database and analysis.</p><div class="dialog-actions"><button id="cancel-delete" type="button">Cancel</button><button id="confirm-delete" type="button" class="danger-button">Delete submissions</button></div><p id="delete-error" role="alert"></p></dialog>
+<dialog id="invitation-dialog" aria-labelledby="invitation-title">
+  <form id="invitation-form" class="outreach-details">
+    <h2 id="invitation-title">Who sent the invitation?</h2>
+    <p id="invitation-vendor"></p>
+    <label>Sent by<input id="invitation-sender" type="text" maxlength="200" required></label>
+    <p class="muted">The date and time will be recorded when you save. You can edit them in Edit details.</p>
+    <div class="dialog-actions"><button id="invitation-cancel" type="button">Cancel</button><button type="submit">Save invitation</button></div>
+  </form>
+</dialog>
 {{ analysis_data|json_script:"analysis-data" }}
 </body>
 </html>

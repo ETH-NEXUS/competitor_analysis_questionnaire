@@ -1,11 +1,13 @@
 """Generate a styled, downloadable copy of the current questionnaire response."""
 
 from io import BytesIO
+import json
 from pathlib import Path
 from xml.sax.saxutils import escape
 
 from django.http import HttpResponse
 from django.utils import timezone
+from pypdf import PdfReader, PdfWriter
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
@@ -266,7 +268,12 @@ def make_pdf(payload):
     append_sections(story, payload["sections"], styles)
     decorate = page_decoration(status)
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
-    return stream.getvalue()
+    # Keep the original answer structure alongside the readable copy for admin imports.
+    writer = PdfWriter(clone_from=PdfReader(BytesIO(stream.getvalue())))
+    writer.add_attachment("questionnaire-response.json", json.dumps(payload, ensure_ascii=False).encode())
+    output = BytesIO()
+    writer.write(output)
+    return output.getvalue()
 
 
 @api_view(["POST"])

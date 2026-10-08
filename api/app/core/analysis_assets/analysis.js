@@ -51,6 +51,100 @@ const node = (tag, text, className) => {
   if (className) el.className = className;
   return el;
 };
+function askInvitationSender(vendor) {
+  const dialog = document.getElementById('invitation-dialog');
+  const form = document.getElementById('invitation-form');
+  const input = document.getElementById('invitation-sender');
+  document.getElementById('invitation-vendor').textContent = vendor.provider;
+  input.value = vendor.invitation_sent_by || '';
+  return new Promise(resolve => {
+    let sender = null;
+    const submit = event => {
+      event.preventDefault();
+      if (!input.value.trim()) { input.setCustomValidity('Enter who sent the invitation.'); input.reportValidity(); return; }
+      sender = input.value.trim(); dialog.close();
+    };
+    const cancel = () => dialog.close();
+    const close = () => {
+      form.removeEventListener('submit', submit);
+      document.getElementById('invitation-cancel').removeEventListener('click', cancel);
+      resolve(sender);
+    };
+    input.oninput = () => input.setCustomValidity('');
+    input.setCustomValidity('');
+    form.addEventListener('submit', submit);
+    document.getElementById('invitation-cancel').addEventListener('click', cancel);
+    dialog.addEventListener('close', close, { once: true });
+    dialog.showModal(); input.focus();
+  });
+}
+const localDateTime = value => {
+  if (!value) return '';
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+const pdfForm = document.getElementById('pdf-import-form');
+const pdfFile = document.getElementById('pdf-import-file');
+const pdfPreview = document.getElementById('pdf-import-preview');
+const pdfStatus = document.getElementById('pdf-import-status');
+const pdfPreviewButton = document.getElementById('pdf-preview-button');
+pdfFile.addEventListener('change', () => { pdfPreview.hidden = true; pdfPreview.replaceChildren(); pdfStatus.textContent = ''; });
+async function sendPdf(action) {
+  const payload = new FormData(pdfForm); payload.set('action', action);
+  const response = await fetch(pdfForm.dataset.url, {
+    method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': csrfToken }, body: payload,
+  });
+  const result = await response.json().catch(() => ({ error: 'The PDF could not be uploaded. Please try again.' }));
+  if (!response.ok) throw new Error(result.error || 'The PDF could not be uploaded.');
+  return result;
+}
+pdfForm.addEventListener('submit', async event => {
+  event.preventDefault(); pdfPreviewButton.disabled = true; pdfStatus.textContent = 'Reading PDF…';
+  pdfPreview.hidden = true; pdfPreview.replaceChildren();
+  try {
+    const { preview } = await sendPdf('preview');
+    pdfStatus.textContent = 'Review the recovered details and answers, then import the response.';
+    for (const message of preview.warnings) pdfPreview.append(node('p', message, 'pdf-warning'));
+    const fields = node('div', undefined, 'pdf-identity');
+    for (const [key, title] of Object.entries({ providerName: 'Company / provider', solutionName: 'Solution / product', respondentName: 'Respondent (optional)', respondentEmail: 'Respondent email' })) {
+      const label = node('label', title); const input = node('input'); input.name = key;
+      input.value = preview.respondent[key] || ''; input.type = key === 'respondentEmail' ? 'email' : 'text';
+      input.maxLength = key === 'respondentEmail' ? 254 : 200; input.required = key !== 'respondentName';
+      label.append(input); fields.append(label);
+    }
+    pdfPreview.append(fields, node('p', `Questionnaire version ${preview.version} · ${Object.keys(preview.answers).length} questions recovered`));
+    const scopes = node('fieldset'); scopes.append(node('legend', 'Solution scope'));
+    for (const [code, title] of Object.entries(data.scopes).filter(([code]) => ['A', 'B', 'C', 'D'].includes(code))) {
+      const label = node('label', undefined, 'pdf-scope'); const input = node('input');
+      input.type = 'checkbox'; input.name = 'scopes'; input.value = code; input.checked = preview.scopes.includes(code);
+      label.append(input, node('span', `${code}. ${title}`)); scopes.append(label);
+    }
+    pdfPreview.append(scopes);
+    const answers = node('details'); answers.append(node('summary', 'Review recovered answers'));
+    for (const [id, answer] of Object.entries(preview.answers)) {
+      answers.append(node('h3', answer.question || questionById.get(id)?.label || id));
+      const lines = answer.readable_answer || [];
+      for (const line of lines.length ? lines : ['Not answered']) answers.append(node('p', line));
+    }
+    pdfPreview.append(answers);
+    const save = node('button', 'Import response'); save.type = 'button';
+    save.addEventListener('click', async () => {
+      if (!pdfForm.reportValidity()) return;
+      if (!pdfForm.querySelector('input[name=scopes]:checked')) { pdfStatus.textContent = 'Select at least one solution scope.'; return; }
+      save.disabled = true; pdfPreviewButton.disabled = true;
+      pdfStatus.textContent = 'Saving response…';
+      try {
+        const result = await sendPdf('import');
+        pdfStatus.textContent = `Imported response #${result.id}. Refreshing analysis…`;
+        window.location.reload();
+      } catch (failure) {
+        pdfStatus.textContent = failure.message; save.disabled = false; pdfPreviewButton.disabled = false;
+      }
+    });
+    pdfPreview.append(save); pdfPreview.hidden = false;
+  } catch (failure) { pdfStatus.textContent = failure.message; }
+  finally { pdfPreviewButton.disabled = false; }
+});
 for (const name of [...new Set(data.responses.map(r => r.provider))].sort()) {
   const option = node('option', name); option.value = name; provider.append(option);
 }
@@ -1146,7 +1240,7 @@ function renderOutreach() {
   const error = node('p', '', 'vendor-save-error'); error.setAttribute('role', 'alert');
   card.append(error);
   const filters = node('div', undefined, 'outreach-filters');
-  const searchLabel = node('label', 'Find vendor'); const search = node('input'); search.type = 'search'; search.placeholder = 'Search names or notes'; search.value = outreachSearch; searchLabel.append(search);
+  const searchLabel = node('label', 'Find vendor'); const search = node('input'); search.type = 'search'; search.placeholder = 'Search names, emails or notes'; search.value = outreachSearch; searchLabel.append(search);
   const filterLabel = node('label', 'Show'); const filter = node('select');
   for (const [value, label] of [['all', 'All vendors'], ['not_invited', 'Invitation not sent'], ['waiting', 'Awaiting response'], ['reminded', 'Reminder sent'], ['declined', 'Declined'], ['answered', 'Answered questionnaire']]) {
     const option = node('option', label); option.value = value; filter.append(option);
@@ -1177,7 +1271,13 @@ function renderOutreach() {
     const answered = matches.length > 0;
     const row = node('tr');
     visibleRows.push({ row, vendor, answered });
-    row.append(node('td', vendor.provider, 'outreach-vendor-name'));
+    const vendorCell = node('td', undefined, 'outreach-vendor-name');
+    vendorCell.append(node('strong', vendor.provider));
+    const contact = node('small');
+    if (vendor.contact_email) {
+      const link = node('a', vendor.contact_email); link.href = `mailto:${vendor.contact_email}`; contact.append(link);
+    } else contact.textContent = 'No contact email yet';
+    vendorCell.append(contact); row.append(vendorCell);
     for (const field of ['invitation_sent', 'reminder_sent', 'declined']) {
       const cell = node('td');
       const checkbox = node('input'); checkbox.type = 'checkbox'; checkbox.checked = Boolean(vendor[field]);
@@ -1185,7 +1285,13 @@ function renderOutreach() {
       checkbox.addEventListener('change', async () => {
         checkbox.disabled = true; error.textContent = '';
         try {
-          await saveVendor({ action: 'update', id: vendor.id, [field]: checkbox.checked });
+          const payload = { action: 'update', id: vendor.id, [field]: checkbox.checked };
+          if (field === 'invitation_sent' && checkbox.checked) {
+            const sender = await askInvitationSender(vendor);
+            if (sender === null) { checkbox.checked = false; checkbox.disabled = false; return; }
+            payload.invitation_sent_by = sender;
+          }
+          await saveVendor(payload);
           renderOutreach(); renderPresentation(data.responses);
         } catch (failure) {
           checkbox.checked = !checkbox.checked;
@@ -1213,6 +1319,9 @@ function renderOutreach() {
     for (const item of categories) { const option = node('option', item.label); option.value = item.value; categoryInput.append(option); }
     categoryInput.value = vendor.category || ''; categoryLabel.append(categoryInput);
     const notesLabel = node('label', 'Notes'); const notesInput = node('textarea'); notesInput.value = vendor.notes || ''; notesInput.maxLength = 3000; notesLabel.append(notesInput);
+    const emailLabel = node('label', 'Vendor contact email'); const emailInput = node('input'); emailInput.type = 'email'; emailInput.value = vendor.contact_email || ''; emailInput.maxLength = 254; emailLabel.append(emailInput);
+    const senderLabel = node('label', 'Invitation sent by'); const senderInput = node('input'); senderInput.value = vendor.invitation_sent_by || ''; senderInput.maxLength = 200; senderLabel.append(senderInput);
+    const sentLabel = node('label', 'Invitation date and time'); const sentInput = node('input'); sentInput.type = 'datetime-local'; sentInput.value = localDateTime(vendor.invitation_sent_at); sentLabel.append(sentInput);
     const save = node('button', 'Save details'); save.type = 'submit';
     const remove = node('button', 'Delete vendor', 'vendor-delete-button'); remove.type = 'button';
     remove.addEventListener('click', async () => {
@@ -1224,11 +1333,11 @@ function renderOutreach() {
       } catch (failure) { error.textContent = failure.message; remove.disabled = false; }
     });
     const actions = node('div', undefined, 'outreach-detail-actions'); actions.append(save, remove);
-    form.append(nameLabel, categoryLabel, matchLabel, notesLabel, actions);
+    form.append(nameLabel, emailLabel, categoryLabel, matchLabel, senderLabel, sentLabel, notesLabel, actions);
     form.addEventListener('submit', async event => {
       event.preventDefault(); save.disabled = true; error.textContent = '';
       try {
-        await saveVendor({ action: 'update', id: vendor.id, provider: nameInput.value, category: categoryInput.value, match_name: matchInput.value, notes: notesInput.value });
+        await saveVendor({ action: 'update', id: vendor.id, provider: nameInput.value, category: categoryInput.value, match_name: matchInput.value, notes: notesInput.value, contact_email: emailInput.value, invitation_sent_by: senderInput.value, invitation_sent_at: sentInput.value ? new Date(sentInput.value).toISOString() : null });
         renderOutreach(); renderPresentation(data.responses);
       } catch (failure) { error.textContent = failure.message; save.disabled = false; }
     });
@@ -1240,7 +1349,7 @@ function renderOutreach() {
     outreachSearch = search.value.trim().toLowerCase(); outreachFilter = filter.value; outreachCategory = categoryFilter.value;
     let count = 0;
     for (const { row, vendor, answered } of visibleRows) {
-      const searchMatch = `${vendor.provider} ${vendor.match_name || ''} ${vendor.notes || ''}`.toLowerCase().includes(outreachSearch);
+      const searchMatch = `${vendor.provider} ${vendor.contact_email || ''} ${vendor.match_name || ''} ${vendor.invitation_sent_by || ''} ${vendor.notes || ''}`.toLowerCase().includes(outreachSearch);
       const statusMatch = outreachFilter === 'all' ||
         (outreachFilter === 'not_invited' && !vendor.invitation_sent) ||
         (outreachFilter === 'waiting' && vendor.invitation_sent && !vendor.declined && !answered) ||
@@ -1263,12 +1372,13 @@ function renderOutreach() {
   for (const item of categories) { const option = node('option', item.label); option.value = item.value; addCategory.append(option); }
   addCategory.value = outreachCategory === 'all' ? '' : outreachCategory; addCategoryLabel.append(addCategory);
   const addMatchLabel = node('label', 'Name used in questionnaire (if different)'); const addMatch = node('input'); addMatch.maxLength = 200; addMatchLabel.append(addMatch);
+  const addEmailLabel = node('label', 'Vendor contact email'); const addEmail = node('input'); addEmail.type = 'email'; addEmail.maxLength = 254; addEmailLabel.append(addEmail);
   const addButton = node('button', 'Add vendor'); addButton.type = 'submit';
-  addForm.append(addNameLabel, addCategoryLabel, addMatchLabel, addButton);
+  addForm.append(addNameLabel, addEmailLabel, addCategoryLabel, addMatchLabel, addButton);
   addForm.addEventListener('submit', async event => {
     event.preventDefault(); addButton.disabled = true; error.textContent = '';
     try {
-      await saveVendor({ action: 'create', provider: addName.value, category: addCategory.value, match_name: addMatch.value });
+      await saveVendor({ action: 'create', provider: addName.value, category: addCategory.value, match_name: addMatch.value, contact_email: addEmail.value });
       renderOutreach(); renderPresentation(data.responses);
     } catch (failure) { error.textContent = failure.message; addButton.disabled = false; }
   });
@@ -1386,7 +1496,12 @@ function renderSubmissions() {
     checkbox.setAttribute('aria-label', `Select ${response.provider || 'unnamed provider'} response #${response.id}`);
     checkbox.addEventListener('change', () => { if (checkbox.checked) selectedSubmissionIds.add(response.id); else selectedSubmissionIds.delete(response.id); updateControls(); });
     const selectCell = node('td'); selectCell.append(checkbox);
-    row.append(selectCell, node('td', `${response.provider || 'Unnamed provider'} · #${response.id}`), node('td', response.solution || '—'), node('td', response.scopes.join(', ') || '—'), node('td', String(response.version)), node('td', new Date(response.submitted).toLocaleString()), node('td', response.email));
+    const providerCell = node('td', `${response.provider || 'Unnamed provider'} · #${response.id}`);
+    if (response.imported_pdf) {
+      const link = node('a', 'Original PDF'); link.href = `/admin/analysis/submissions/${response.id}/pdf/`;
+      const line = node('small'); line.append(link); providerCell.append(line);
+    }
+    row.append(selectCell, providerCell, node('td', response.solution || '—'), node('td', response.scopes.join(', ') || '—'), node('td', String(response.version)), node('td', new Date(response.submitted).toLocaleString()), node('td', response.email));
     body.append(row);
   }
   table.append(body); scroll.append(table); card.append(scroll); submissions.append(card); updateControls();

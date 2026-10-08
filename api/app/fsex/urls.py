@@ -22,7 +22,16 @@ from rest_framework.routers import DefaultRouter
 
 from core import views
 from core.admin import questionnaire_admin_site
-from core.analysis import analysis, analysis_css, analysis_js, delete_submissions, export_csv, save_other_grouping, save_vendor_outreach
+from core.analysis import (
+    analysis,
+    analysis_css,
+    analysis_js,
+    delete_submissions,
+    export_csv,
+    save_other_grouping,
+    save_vendor_outreach,
+)
+from core.pdf_import import import_pdf, imported_pdf
 from core.questionnaire_pdf import export_questionnaire_pdf
 from core.viewsets import (
     AccessAdminViewSet,
@@ -56,6 +65,8 @@ urlpatterns = [
     path("admin/analysis/group/", save_other_grouping, name="questionnaire-analysis-group"),
     path("admin/analysis/vendors/", save_vendor_outreach, name="questionnaire-analysis-vendors"),
     path("admin/analysis/delete/", delete_submissions, name="questionnaire-analysis-delete"),
+    path("admin/analysis/import-pdf/", import_pdf, name="questionnaire-analysis-import-pdf"),
+    path("admin/analysis/submissions/<int:response_id>/pdf/", imported_pdf, name="questionnaire-analysis-response-pdf"),
     path("admin/", questionnaire_admin_site.urls),
     path("api/v1/health/", views.health, name="health"),
     path("api/v1/questionnaire-pdf/", export_questionnaire_pdf, name="questionnaire-pdf"),

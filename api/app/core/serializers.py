@@ -77,11 +77,6 @@ class ClinicalWorkflowSerializer(serializers.Serializer):
             )
         return value
 
-    def validate(self, attrs):
-        if "other" in attrs["reused_data"] and not attrs["other_reused_data"].strip():
-            raise serializers.ValidationError({"other_reused_data": "Specify the other CIS data reused."})
-        return attrs
-
 
 class ClinicalOfferingSerializer(serializers.Serializer):
     kind = serializers.ChoiceField(choices=("core", "integration", "function"))
@@ -113,16 +108,6 @@ class ClinicalOfferingSerializer(serializers.Serializer):
     )
     workflow = ClinicalWorkflowSerializer(required=False)
 
-    def validate(self, attrs):
-        if attrs["kind"] == "integration" and "Other" in attrs["purposes"] and not attrs["purpose_other"].strip():
-            raise serializers.ValidationError({"purpose_other": "Specify the other integration purpose."})
-        if attrs["kind"] == "function" and attrs["category_b"]:
-            if not attrs["cis_relationship"]:
-                raise serializers.ValidationError({"cis_relationship": "Select a CIS relationship for the specialized solution."})
-            if attrs["cis_relationship"] == "other" and not attrs["cis_relationship_other"].strip():
-                raise serializers.ValidationError({"cis_relationship_other": "Specify the other CIS relationship."})
-        return attrs
-
 
 class CertificationDetailSerializer(serializers.Serializer):
     name = serializers.CharField(allow_blank=True, max_length=200, required=False, default="")
@@ -134,10 +119,6 @@ class CertificationDetailSerializer(serializers.Serializer):
     valid_until = serializers.RegexField(regex=r"^(?:|\d{4})$", allow_blank=True, required=False, default="")
 
     def validate(self, attrs):
-        if not attrs["scopes"]:
-            raise serializers.ValidationError({"scopes": "Select at least one scope."})
-        if "other" in attrs["scopes"] and not attrs["scope_other"].strip():
-            raise serializers.ValidationError({"scope_other": "Specify the other scope."})
         if attrs["valid_until"] and int(attrs["valid_until"]) < MIN_INTEROPERABILITY_TEST_YEAR:
             raise serializers.ValidationError({"valid_until": "Enter a valid year."})
         return attrs
@@ -169,15 +150,9 @@ class InteroperabilityTestEventSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        if not attrs["event"] or not attrs["outcome"]:
-            raise serializers.ValidationError("Event and outcome are required.")
         year = attrs.get("year", "")
-        if not year or not MIN_INTEROPERABILITY_TEST_YEAR <= int(year) <= timezone.now().year + 1:
+        if year and not MIN_INTEROPERABILITY_TEST_YEAR <= int(year) <= timezone.now().year + 1:
             raise serializers.ValidationError({"year": "Enter a valid four-digit year."})
-        if attrs["event"] == "Other" and not attrs["event_other"].strip():
-            raise serializers.ValidationError({"event_other": "Specify the event."})
-        if attrs["outcome"] == "Other" and not attrs["outcome_other"].strip():
-            raise serializers.ValidationError({"outcome_other": "Specify the outcome."})
         return attrs
 
 
@@ -223,24 +198,19 @@ HL7_V2_MESSAGE_TYPES = {"ADT", "ORM", "ORU", "OML", "MDM", "SIU", "DFT", "BAR", 
 IMPLEMENTATION_REQUIREMENTS = {str(index) for index in range(10)}
 
 
-def validate_followups(question_id, answer):
+def validate_followups(question_id, answer):  # noqa: C901 - different follow-up formats
     selected = answer.get("selected", [])
     followups = answer.get("followups", {})
-    details = answer.get("details", {})
     if question_id == "standards":
         if set(followups) - {"0", "1"}:
             raise serializers.ValidationError({"answers": "Invalid interoperability follow-up."})
-        for key, choices, other_key in (
-            ("0", {"R2", "R3", "R4", "R4B", "R5", "Other"}, "fhir_other"),
-            ("1", HL7_V2_MESSAGE_TYPES, "hl7v2_other"),
+        for key, choices in (
+            ("0", {"R2", "R3", "R4", "R4B", "R5", "Other"}),
+            ("1", HL7_V2_MESSAGE_TYPES),
         ):
             values = followups.get(key, [])
-            if key in selected and not values:
-                raise serializers.ValidationError({"answers": "Select the supported release or message types."})
-            if key not in selected and values or len(values) != len(set(values)) or set(values) - choices:
+            if (key not in selected and values) or len(values) != len(set(values)) or set(values) - choices:
                 raise serializers.ValidationError({"answers": "Invalid interoperability follow-up selection."})
-            if "Other" in values and not details.get(other_key, "").strip():
-                raise serializers.ValidationError({"answers": "Specify the Other interoperability answer."})
         v2 = followups.get("1", [])
         if "Not sure" in v2 and len(v2) > 1:
             raise serializers.ValidationError({"answers": "Not sure cannot be combined with message types."})
@@ -248,10 +218,8 @@ def validate_followups(question_id, answer):
         required = followups.get("1", [])
         if set(followups) - {"1"} or set(required) - IMPLEMENTATION_REQUIREMENTS or len(required) != len(set(required)):
             raise serializers.ValidationError({"answers": "Invalid implementation requirement selection."})
-        if (selected == ["1"]) != bool(required):
-            raise serializers.ValidationError({"answers": "Select what is required when standard configuration is not sufficient."})
-        if "9" in required and not details.get("requirements_other", "").strip():
-            raise serializers.ValidationError({"answers": "Specify the other implementation requirement."})
+        if required and selected != ["1"]:
+            raise serializers.ValidationError({"answers": "Implementation requirements require a No answer."})
     elif followups:
         raise serializers.ValidationError({"answers": "Follow-up answers are attached to the wrong question."})
 
@@ -264,11 +232,8 @@ def validate_certification_details(question_id, answer):
         return
     selected = set(answer.get("selected", []))
     expected = {index for index in selected if index in {str(item) for item in range(7)}}
-    if set(entries) != expected:
-        raise serializers.ValidationError({"answers": "Provide details for each selected certification."})
-    for index, entry in entries.items():
-        if int(index) >= 5 and not entry["name"].strip():
-            raise serializers.ValidationError({"answers": "Specify the other certification or assessment name."})
+    if set(entries) - expected:
+        raise serializers.ValidationError({"answers": "Certification details require the matching selection."})
 
 
 def validate_answer_details(answers, schema):

@@ -145,7 +145,7 @@ class AnalysisTests(TestCase):
         })
         self.assertFalse(serializer.is_valid())
 
-    def test_incomplete_testing_event_is_rejected(self):
+    def test_incomplete_testing_event_is_accepted(self):
         serializer = QuestionnaireResponseSerializer(data={
             "submission_id": "2cc3e076-1d12-4753-b142-3fae5743e4cb",
             "respondent_email": "testing@example.com",
@@ -159,8 +159,9 @@ class AnalysisTests(TestCase):
                 ],
             }},
         })
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("answers", serializer.errors)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        saved = serializer.save()
+        self.assertEqual(saved.answer_data["interoperabilityTesting"]["testing_events"][0]["outcome"], "")
 
     def test_patient_administration_is_not_a_new_submission_category(self):
         serializer = QuestionnaireResponseSerializer(data={
@@ -186,7 +187,7 @@ class AnalysisTests(TestCase):
             ).group(1)
         )
         self.assertEqual(
-            payload["invitations"], [{"id": VendorInvitation.objects.get().pk, "provider": "Declined Vendor", "category": "", "match_name": "", "invitation_sent": False, "reminder_sent": False, "declined": True, "notes": ""}]
+            payload["invitations"], [{"id": VendorInvitation.objects.get().pk, "provider": "Declined Vendor", "category": "", "match_name": "", "invitation_sent": False, "contact_email": "", "invitation_sent_by": "", "invitation_sent_at": None, "reminder_sent": False, "declined": True, "notes": ""}]
         )
         self.assertContains(response, "Presentation figures")
         user = get_user_model().objects.create_superuser(
@@ -219,7 +220,7 @@ class AnalysisTests(TestCase):
         self.assertEqual(vendor["provider"], "Example Health")
         self.assertEqual(vendor["category"], "cis")
         self.assertFalse(vendor["invitation_sent"])
-        updated = post({"action": "update", "id": vendor["id"], "invitation_sent": True, "reminder_sent": True})
+        updated = post({"action": "update", "id": vendor["id"], "invitation_sent": True, "invitation_sent_by": "Alex", "reminder_sent": True})
         self.assertEqual(updated.status_code, 200)
         self.assertTrue(json.loads(updated.content)["vendor"]["reminder_sent"])
         self.assertEqual(post({"action": "create", "provider": "example ag"}).status_code, 400)
@@ -749,8 +750,7 @@ class AnalysisTests(TestCase):
             self.assertEqual(serializer.validated_data["cis_integration"], "")
 
         other = ClinicalOfferingSerializer(data={**offering, "cis_relationship": "other"})
-        self.assertFalse(other.is_valid())
-        self.assertIn("cis_relationship_other", other.errors)
+        self.assertTrue(other.is_valid(), other.errors)
 
     def test_product_names_can_be_grouped_for_analysis(self):
         request = self.factory.post(

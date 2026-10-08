@@ -31,6 +31,9 @@ class Book(models.Model):
 
 class QuestionnaireResponse(models.Model):
     submission_id = models.UUIDField(unique=True, null=True, editable=False)
+    imported_pdf = models.BinaryField(null=True, editable=False)
+    imported_pdf_name = models.CharField(max_length=255, blank=True, editable=False)
+    imported_pdf_sha256 = models.CharField(max_length=64, unique=True, null=True, editable=False)
     respondent_name = models.CharField(max_length=200, blank=True)
     respondent_email = models.EmailField(db_index=True)
     provider_name = models.CharField("Company", max_length=200, db_index=True)
@@ -165,6 +168,9 @@ class VendorInvitation(models.Model):
         help_text="Use this when the vendor submits under a different organization name.",
     )
     invitation_sent = models.BooleanField(default=False)
+    contact_email = models.EmailField(blank=True)
+    invitation_sent_by = models.CharField(max_length=200, blank=True)
+    invitation_sent_at = models.DateTimeField(null=True, blank=True)
     reminder_sent = models.BooleanField(default=False)
     declined = models.BooleanField(
         default=False,
@@ -184,6 +190,8 @@ class VendorInvitation(models.Model):
         from django.core.exceptions import ValidationError
 
         super().clean()
+        if self.invitation_sent and not self.invitation_sent_by and (not self.pk or not type(self).objects.filter(pk=self.pk, invitation_sent=True).exists()):
+            raise ValidationError({"invitation_sent_by": "Enter who sent the invitation."})
         own_names = {
             " ".join(name.split()).casefold()
             for name in (self.provider_name, self.submission_match_name)

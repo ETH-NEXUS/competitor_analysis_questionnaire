@@ -229,9 +229,8 @@ onMounted(() => {
               categories where applicable.
             </p>
             <p v-if="store.stage === 3 && store.submittedId === null" class="text-muted mt-4 max-w-2xl leading-relaxed">
-              Check your details and answers, then submit your response.
-              {{ incompleteQuestions.length ? `${incompleteQuestions.length} questions are incomplete.` : '' }}
-              Select any question title to jump to it and make changes.
+              Check your details and answers, then submit your response. Select any question title to jump to it and
+              make changes.
             </p>
           </div>
 
@@ -309,11 +308,11 @@ onMounted(() => {
               <div v-else class="space-y-6">
                 <QuestionnaireIdentity readonly />
                 <UAlert
-                  :color="complete ? 'success' : 'warning'"
+                  :color="complete ? 'success' : 'info'"
                   :title="
                     complete
                       ? 'All applicable questions are complete. Your response is ready to submit.'
-                      : 'Some answers are incomplete. You can return to fill them in, or submit your current response with those questions unanswered.'
+                      : 'Your response is ready to submit. Unanswered or incomplete questions are highlighted below; you can submit without completing them.'
                   "
                 />
                 <UCard>
@@ -332,7 +331,12 @@ onMounted(() => {
                       <UButton type="button" variant="link" @click="goTo(section.stage)">Edit section</UButton>
                     </div>
                   </template>
-                  <div v-for="question in section.questions" :key="question.id" class="question-field">
+                  <div
+                    v-for="question in section.questions"
+                    :key="question.id"
+                    class="question-field"
+                    :class="{ 'review-unanswered': incompleteQuestionIds.has(question.id) }"
+                  >
                     <h3 class="text-sm font-medium">
                       <button
                         type="button"
@@ -347,7 +351,11 @@ onMounted(() => {
                       v-if="!isAnswered(question, store.answerForDisplay(question.id))"
                       class="text-warning mt-2 text-xs"
                     >
-                      Incomplete answer
+                      {{
+                        answerLines(question, store.answerForDisplay(question.id)).length
+                          ? 'Incomplete answer (optional to complete)'
+                          : 'Unanswered (optional to complete)'
+                      }}
                     </p>
                     <ul class="text-muted mt-3 space-y-2 text-sm leading-relaxed">
                       <li

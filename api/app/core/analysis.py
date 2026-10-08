@@ -10,6 +10,8 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
@@ -35,7 +37,7 @@ def superuser_only(view):
 
 
 def responses(request):
-    queryset = QuestionnaireResponse.objects.filter(
+    queryset = QuestionnaireResponse.objects.defer("imported_pdf").filter(
         questionnaire_version=CURRENT_QUESTIONNAIRE_VERSION
     )
     if provider := request.GET.get("provider"):
@@ -89,6 +91,7 @@ def analysis(request):
                 "submitted": row.submitted_at.isoformat(),
                 "version": row.questionnaire_version,
                 "scopes": scope_codes(row),
+                "imported_pdf": bool(row.imported_pdf_sha256),
                 "answers": {
                     key: getattr(row, field) for key, (field, _) in QUESTION_COLUMNS.items()
                 },
@@ -104,18 +107,12 @@ def analysis(request):
                 "email": row.respondent_email,
                 "submitted": row.submitted_at.isoformat(),
                 "version": row.questionnaire_version,
+                "imported_pdf": bool(row.imported_pdf_sha256),
                 "scopes": scope_codes(row),
             }
-            for row in QuestionnaireResponse.objects.all()
+            for row in QuestionnaireResponse.objects.defer("imported_pdf").all()
         ],
-        "invitations": [
-            {"id": item.pk, "provider": item.provider_name, "category": item.category,
-             "match_name": item.submission_match_name,
-             "invitation_sent": item.invitation_sent,
-             "reminder_sent": item.reminder_sent,
-             "declined": item.declined, "notes": item.notes}
-            for item in VendorInvitation.objects.all()
-        ],
+        "invitations": [_vendor_payload(item) for item in VendorInvitation.objects.all()],
         "other_groupings": [
             {
                 "question_id": item.question_id,
@@ -135,6 +132,9 @@ def _vendor_payload(item):
         "category": item.category,
         "match_name": item.submission_match_name,
         "invitation_sent": item.invitation_sent,
+        "contact_email": item.contact_email,
+        "invitation_sent_by": item.invitation_sent_by,
+        "invitation_sent_at": item.invitation_sent_at.isoformat() if item.invitation_sent_at else None,
         "reminder_sent": item.reminder_sent,
         "declined": item.declined,
         "notes": item.notes,
@@ -175,13 +175,14 @@ def save_vendor_outreach(request):
             if item is None:
                 return JsonResponse({"error": "Vendor not found."}, status=404)
 
-        allowed = {"provider", "category", "match_name", "notes", "invitation_sent", "reminder_sent", "declined"}
+        was_invited = item.invitation_sent
+        allowed = {"provider", "category", "match_name", "notes", "invitation_sent", "reminder_sent", "declined", "contact_email", "invitation_sent_by", "invitation_sent_at"}
         if any(key not in allowed | {"action", "id"} for key in payload):
             return JsonResponse({"error": "Unexpected field."}, status=400)
-        for key, field in (("provider", "provider_name"), ("match_name", "submission_match_name"), ("notes", "notes")):
+        for key, field in (("provider", "provider_name"), ("match_name", "submission_match_name"), ("notes", "notes"), ("contact_email", "contact_email"), ("invitation_sent_by", "invitation_sent_by")):
             if key in payload:
                 value = payload[key]
-                if not isinstance(value, str) or len(value) > (3000 if key == "notes" else 200):
+                if not isinstance(value, str) or len(value) > (3000 if key == "notes" else 254 if key == "contact_email" else 200):
                     return JsonResponse({"error": f"Invalid {key}."}, status=400)
                 setattr(item, field, value.strip())
         for key in ("invitation_sent", "reminder_sent", "declined"):
@@ -189,6 +190,20 @@ def save_vendor_outreach(request):
                 if type(payload[key]) is not bool:
                     return JsonResponse({"error": f"Invalid {key}."}, status=400)
                 setattr(item, key, payload[key])
+        if "invitation_sent_at" in payload:
+            value = payload["invitation_sent_at"]
+            try:
+                sent_at = parse_datetime(value) if isinstance(value, str) and value else None
+            except ValueError:
+                sent_at = None
+            if value and (sent_at is None or timezone.is_naive(sent_at)):
+                return JsonResponse({"error": "Enter a valid invitation date and time."}, status=400)
+            item.invitation_sent_at = sent_at
+        if item.invitation_sent and not was_invited:
+            if not item.invitation_sent_by:
+                return JsonResponse({"error": "Enter who sent the invitation."}, status=400)
+            if not item.invitation_sent_at or "invitation_sent_at" not in payload:
+                item.invitation_sent_at = timezone.now()
         if "category" in payload:
             category = payload["category"]
             if not isinstance(category, str) or (category and category not in dict(VendorInvitation.CATEGORY_CHOICES)):
@@ -208,7 +223,7 @@ def save_vendor_outreach(request):
             item.full_clean()
             item.save()
         except ValidationError:
-            return JsonResponse({"error": "Check the vendor name and questionnaire name."}, status=400)
+            return JsonResponse({"error": "Check the vendor name, contact email and invitation details."}, status=400)
     return JsonResponse({"vendor": _vendor_payload(item)}, status=201 if payload["action"] == "create" else 200)
 
 

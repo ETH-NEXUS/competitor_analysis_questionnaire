@@ -90,7 +90,9 @@ backend demo data or authentication configuration was deleted during frontend cl
 - The patient-information retention question distinguishes individual files,
   an ongoing record and other retained data. The cost question distinguishes
   one-time and recurring charges and can record a charging basis per item.
-- On the review screen, each question links to its field and briefly highlights it.
+- On the review screen, unanswered and incomplete questions are highlighted.
+  Submit response saves immediately, including partial follow-up answers.
+  Each question links back to its field for optional changes.
 - In analysis, Q1 appears as a best-to-worst access scale. Administrators can
   place Other answers into one of its four ranked categories. Grouped Other counts
   represent answer entries, and free-text questions show the provider with each answer.
@@ -106,6 +108,9 @@ backend demo data or authentication configuration was deleted during frontend cl
   entered in its details. Unmatched submissions are listed for manual linking.
   The initial roster contains 38 vendors in five editable categories, with all
   outreach flags unset.
+  Vendor contact emails appear beneath their names and can be edited in Edit details.
+  Marking an invitation as sent asks for the sender and records the date and time;
+  both remain editable in the vendor details.
   Participation figures use vendors marked as invited; no invitation names are
   inferred from the sample presentation.
   A latest-submission-per-provider filter applies to the dashboard and CSV export;
@@ -115,11 +120,18 @@ backend demo data or authentication configuration was deleted during frontend cl
   submissions; the dashboard Submissions tab lists every version and lets staff
   select and delete rows after confirmation.
 - Email, provider, solution name and at least one scope are required. Each response covers one solution; the same solution can have multiple categories. Solution names from older responses remain as submitted. Incomplete
-  questionnaire answers are allowed with a warning on the review screen.
+  questionnaire answers are allowed; the review screen explains that completion is optional.
 - `POST /api/v1/questionnaire-responses/` saves a response and returns its ID and date.
 - The review and receipt screens can download a styled PDF copy. `POST
   /api/v1/questionnaire-pdf/` generates it from the current answers without saving
   another response. JSON download remains available for machine-readable export.
+  Superusers can use Upload questionnaire PDF on the analysis page to preview and
+  import emailed response copies. New PDFs include structured answers. Older
+  downloadable copies are recovered from matching question text, with limitations
+  shown in the preview; scanned PDFs and unknown question wording are rejected.
+  Imported originals are retained and can be downloaded in Submissions. Duplicate
+  file imports and PDFs referencing an existing response are rejected.
+  Deployments must install the new `pypdf` dependency and apply migrations 0025–0026.
 - A client-generated submission UUID prevents duplicate rows when a request is retried.
 - The public endpoint does not list, retrieve, edit or delete saved responses.
 - In question columns, SQL NULL means not asked; an empty string means unanswered.

@@ -63,6 +63,14 @@
   text-underline-offset: 3px;
 }
 
+.review-unanswered {
+  margin-inline: -0.75rem;
+  padding: 1.25rem 0.75rem !important;
+  border-radius: 0.5rem;
+  background: #fffbeb;
+  box-shadow: inset 4px 0 #d97706;
+}
+
 .review-question-link:focus-visible {
   outline: 2px solid #0f766e;
   outline-offset: 3px;

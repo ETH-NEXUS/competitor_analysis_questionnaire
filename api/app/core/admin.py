@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils import timezone
 from django.utils.html import format_html_join
 
 from .models import QuestionnaireResponse, VendorInvitation
@@ -22,10 +23,15 @@ questionnaire_admin_site.index_template = "admin/questionnaire_index.html"
 
 @admin.register(VendorInvitation, site=questionnaire_admin_site)
 class VendorInvitationAdmin(admin.ModelAdmin):
-    list_display = ("provider_name", "category", "invitation_sent", "reminder_sent", "declined", "submission_match_name", "notes")
-    list_editable = ("category", "invitation_sent", "reminder_sent", "declined")
+    list_display = ("provider_name", "contact_email", "category", "invitation_sent", "invitation_sent_by", "invitation_sent_at", "reminder_sent", "declined", "submission_match_name", "notes")
+    list_editable = ("category", "reminder_sent", "declined")
     list_filter = ("category", "invitation_sent", "reminder_sent", "declined")
-    search_fields = ("provider_name", "submission_match_name", "notes")
+    search_fields = ("provider_name", "contact_email", "invitation_sent_by", "submission_match_name", "notes")
+
+    def save_model(self, request, obj, form, change):
+        if obj.invitation_sent and not obj.invitation_sent_at:
+            obj.invitation_sent_at = timezone.now()
+        super().save_model(request, obj, form, change)
 
     def has_module_permission(self, request):
         return request.user.is_active and request.user.is_superuser
