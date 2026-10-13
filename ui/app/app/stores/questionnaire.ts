@@ -1,4 +1,10 @@
 import { questionnaireResponsesCreate } from '~/api/generated/questionnaire-responses'
+import {
+  SharedDraftSession,
+  type SharedDraftData,
+  type SharedDraftRecord,
+  type SharedDraftState,
+} from '~/utils/shared-draft'
 import { remapV11Selection, retiredV11Option, v11SourceIndex } from '~/utils/draft-option-migration'
 import {
   activeAnswer,
@@ -22,6 +28,7 @@ import {
 } from '~/utils/questionnaire'
 
 const draftKey = 'hospital-it-questionnaire-v14'
+const activeSharedKey = `${draftKey}:active-shared`
 const previousDraftKeys = [
   'hospital-it-questionnaire-v13',
   'hospital-it-questionnaire-v12',
@@ -47,7 +54,150 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
   const submittedId = ref<number | null>(null)
   const isSubmitting = ref(false)
   const draftStorageError = ref(false)
+  const sharedToken = ref('')
+  const sharedState = ref<SharedDraftState>('local')
+  const sharedMessage = ref('')
+  const sharedExpiresAt = ref('')
+  const sharedUpdatedAt = ref('')
+  const sharedSubmitted = ref(false)
+  const draftLoading = ref(false)
+  const sharedLink = computed(() =>
+    sharedToken.value && import.meta.client
+      ? `${window.location.origin}${window.location.pathname}#draft=${sharedToken.value}`
+      : '',
+  )
+  const responseSubmitted = computed(() => submittedId.value !== null || sharedSubmitted.value)
+  const sharedBlocked = computed(() => ['loading', 'conflict', 'unavailable', 'submitted'].includes(sharedState.value))
+  let applyingShared = false
+  let polling: ReturnType<typeof setInterval> | undefined
   let autosaveStarted = false
+  let cachedSharedRevision: number | undefined
+  let cachedSharedDirty = false
+  let cachedPendingToken = ''
+  function sharedData(): SharedDraftData {
+    return { version: 14, scopes: selectedScopes.value, identity: identity.value, answers: answers.value }
+  }
+  function applyShared(record: SharedDraftRecord) {
+    applyingShared = true
+    try {
+      const data = JSON.parse(JSON.stringify(record.data)) as SharedDraftData
+      selectedScopes.value = data.scopes
+      identity.value = data.identity
+      answers.value = Object.fromEntries(
+        Object.entries(data.answers).map(([id, answer]) => [id, { ...emptyAnswer(), ...answer }]),
+      )
+      submittedId.value = record.response_id
+      sharedSubmitted.value = record.submitted
+      if (record.submitted) stage.value = 3
+      else if (!identityValid.value || !selectedScopes.value.length) stage.value = 0
+    } finally {
+      applyingShared = false
+    }
+  }
+  const shared = new SharedDraftSession(sharedData, applyShared, () => {
+    sharedToken.value = shared.token
+    sharedState.value = shared.state
+    sharedMessage.value = shared.message
+    sharedExpiresAt.value = shared.record?.expires_at || ''
+    sharedUpdatedAt.value = shared.record?.updated_at || ''
+    if (shared.token && shared.record) {
+      try {
+        localStorage.setItem(activeSharedKey, shared.token)
+      } catch {
+        draftStorageError.value = true
+      }
+      if (import.meta.client) window.history.replaceState(null, '', `#draft=${shared.token}`)
+    }
+    if (autosaveStarted && shared.state !== 'loading' && !draftLoading.value) saveDraft()
+  })
+  function startSharedPolling() {
+    if (polling) return
+    polling = setInterval(() => {
+      void shared.poll().catch(() => {})
+    }, 15000)
+  }
+  async function initializeDraft() {
+    if (autosaveStarted) saveDraft()
+    draftLoading.value = true
+    let token = ''
+    try {
+      const linkToken = new URLSearchParams(window.location.hash.slice(1)).get('draft')
+      try {
+        token = linkToken ?? localStorage.getItem(activeSharedKey) ?? ''
+      } catch {
+        token = linkToken ?? ''
+      }
+      if (token) {
+        cachedSharedRevision = undefined
+        cachedSharedDirty = false
+        cachedPendingToken = ''
+        sharedToken.value = token
+        // Keep an offline copy available if a shared link cannot be reached.
+        try {
+          const cached = localStorage.getItem(`${draftKey}:shared:${token}`)
+          if (cached) {
+            const saved = JSON.parse(cached)
+            cachedSharedRevision = Number.isSafeInteger(saved.sharedRevision) ? saved.sharedRevision : undefined
+            cachedSharedDirty = saved.sharedDirty === true
+            cachedPendingToken = typeof saved.pendingSharedToken === 'string' ? saved.pendingSharedToken : ''
+            applyingShared = true
+            try {
+              restoreDraft(saved)
+            } finally {
+              applyingShared = false
+            }
+          }
+        } catch {
+          /* The server remains the source of truth for a shared draft. */
+        }
+        await shared.load(token, cachedSharedDirty ? (cachedSharedRevision ?? 0) : undefined, cachedPendingToken)
+        cachedSharedDirty = false
+        shared.scheduleSave()
+        if (!responseSubmitted.value && identityValid.value && selectedScopes.value.length) stage.value = 3
+        startSharedPolling()
+        return 'shared'
+      }
+      return restoreDraft() ? 'restored' : 'new'
+    } finally {
+      draftLoading.value = false
+      startAutosave()
+      saveDraft()
+    }
+  }
+  async function shareDraft() {
+    await shared.create()
+    startSharedPolling()
+    saveDraft()
+  }
+  async function loadLatestSharedDraft() {
+    try {
+      localStorage.setItem(`${draftKey}:shared-backup`, JSON.stringify({ ...sharedData(), stage: stage.value }))
+    } catch {
+      draftStorageError.value = true
+    }
+    await shared.load(shared.token)
+    saveDraft()
+  }
+  async function retrySharedSave() {
+    if (!shared.record || shared.pendingToken) {
+      await shared.load(
+        shared.token,
+        cachedSharedDirty || shared.hasUnsavedChanges
+          ? (shared.record?.revision ?? cachedSharedRevision ?? 0)
+          : undefined,
+      )
+      cachedSharedDirty = false
+      shared.scheduleSave()
+      startSharedPolling()
+      return
+    }
+    await shared.saveNow()
+    await shared.poll()
+  }
+  onScopeDispose(() => {
+    shared.dispose()
+    clearInterval(polling)
+  })
   const identityErrors = computed(() => ({
     respondentEmail:
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity.value.respondentEmail.trim()) &&
@@ -148,9 +298,10 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       : selectedScopes.value.filter((item) => item !== scope)
   }
   function saveDraft() {
+    if (applyingShared || draftLoading.value) return
     try {
       localStorage.setItem(
-        draftKey,
+        sharedToken.value ? `${draftKey}:shared:${sharedToken.value}` : draftKey,
         JSON.stringify({
           version: 14,
           scopes: selectedScopes.value,
@@ -159,19 +310,23 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           stage: stage.value,
           submissionId: submissionId.value,
           submittedId: submittedId.value,
+          sharedRevision: shared.record?.revision ?? cachedSharedRevision,
+          sharedDirty: Boolean(sharedToken.value && (cachedSharedDirty || shared.hasUnsavedChanges)),
+          pendingSharedToken: shared.pendingToken,
         }),
       )
-      previousDraftKeys.forEach((key) => localStorage.removeItem(key))
+      if (!sharedToken.value) previousDraftKeys.forEach((key) => localStorage.removeItem(key))
       draftStorageError.value = false
     } catch {
       draftStorageError.value = true
     }
   }
-  function restoreDraft(): boolean {
-    const raw =
-      localStorage.getItem(draftKey) || previousDraftKeys.map((key) => localStorage.getItem(key)).find(Boolean)
-    if (!raw) return false
-    const draft = JSON.parse(raw)
+  function restoreDraft(saved?: Record<string, unknown>): boolean {
+    const raw = saved
+      ? null
+      : localStorage.getItem(draftKey) || previousDraftKeys.map((key) => localStorage.getItem(key)).find(Boolean)
+    if (!saved && !raw) return false
+    const draft = saved || JSON.parse(raw!)
     if (
       ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(draft.version) ||
       !Array.isArray(draft.scopes) ||
@@ -493,9 +648,31 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
       deep: true,
       flush: 'sync',
     })
+    watch(
+      [selectedScopes, answers, identity],
+      () => {
+        if (!applyingShared) shared.scheduleSave()
+      },
+      { deep: true, flush: 'sync' },
+    )
   }
   function resetForAnotherSolution() {
-    if (submittedId.value === null) return
+    if (!responseSubmitted.value) return
+    shared.reset()
+    clearInterval(polling)
+    polling = undefined
+    sharedToken.value = ''
+    sharedState.value = 'local'
+    sharedMessage.value = ''
+    sharedSubmitted.value = false
+    cachedSharedRevision = undefined
+    cachedSharedDirty = false
+    try {
+      localStorage.removeItem(activeSharedKey)
+    } catch {
+      draftStorageError.value = true
+    }
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
     selectedScopes.value = []
     answers.value = {}
     identity.value = { ...identity.value, solutionName: '' }
@@ -505,12 +682,12 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     saveDraft()
   }
   async function submit() {
-    if (isSubmitting.value || submittedId.value !== null) return
+    if (isSubmitting.value || responseSubmitted.value) return
     if (!identityValid.value || !selectedScopes.value.length) throw new Error('Missing respondent details or scope')
     isSubmitting.value = true
     try {
       submissionId.value ||= crypto.randomUUID()
-      const response = await questionnaireResponsesCreate({
+      const buildPayload = () => ({
         submission_id: submissionId.value,
         respondent_name: identity.value.respondentName.trim(),
         respondent_email: identity.value.respondentEmail.trim(),
@@ -531,7 +708,16 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
           ]),
         ),
       })
-      submittedId.value = response.id
+      if (sharedToken.value) await shared.submit(buildPayload)
+      else {
+        const payload = buildPayload()
+        const response = await questionnaireResponsesCreate({
+          ...payload,
+          // Draft fields allow partially typed values; the API validates final choice codes.
+          answers: payload.answers as Parameters<typeof questionnaireResponsesCreate>[0]['answers'],
+        })
+        submittedId.value = response.id
+      }
     } finally {
       isSubmitting.value = false
     }
@@ -545,6 +731,19 @@ export const useQuestionnaireStore = defineStore('questionnaire', () => {
     submittedId,
     isSubmitting,
     draftStorageError,
+    sharedToken,
+    sharedState,
+    sharedMessage,
+    sharedExpiresAt,
+    sharedUpdatedAt,
+    sharedLink,
+    sharedBlocked,
+    responseSubmitted,
+    draftLoading,
+    initializeDraft,
+    shareDraft,
+    loadLatestSharedDraft,
+    retrySharedSave,
     submit,
     resetForAnotherSolution,
     answers,

@@ -23,6 +23,7 @@
     }
   },
   "scripts": {
+    "test:shared-drafts": "node --test scripts/test-shared-drafts.mjs scripts/test-shared-store.mjs",
     "build": "nuxt build",
     "generate:api": "orval",
     "watch:openapi": "node /app/scripts/watch-openapi.mjs",

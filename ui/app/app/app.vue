@@ -9,6 +9,22 @@ const status = ref('')
 const pdfLoading = ref(false)
 const scopeError = ref(false)
 const reviewVisited = ref(false)
+const shareBusy = ref(false)
+const sharedSaveLabel = computed(
+  () =>
+    ({
+      local: '',
+      loading: 'Loading shared draft…',
+      creating: 'Creating private link…',
+      unsaved: 'Changes waiting to save…',
+      saving: 'Saving…',
+      saved: 'Saved',
+      error: 'Shared draft needs attention',
+      conflict: 'Newer changes are available',
+      unavailable: 'Draft link unavailable',
+      submitted: 'Submitted · read-only',
+    })[store.sharedState],
+)
 const heading = ref<HTMLElement>()
 const stages = ['About you & solution scope', 'Core questions', 'Solution-specific questions', 'Review & submit']
 const visibleSections = computed(() => store.applicableSections.filter((section) => section.stage === store.stage))
@@ -24,11 +40,12 @@ const percentage = computed(() => Math.round((store.done / store.total) * 100))
 useHead({
   title: 'Hospital IT Vendor Questionnaire',
   htmlAttrs: { lang: 'en' },
+  meta: [{ name: 'referrer', content: 'no-referrer' }],
   link: [{ rel: 'icon', type: 'image/svg+xml', href: faviconUrl }],
 })
 
 async function goTo(stage: number) {
-  if (store.isSubmitting || store.submittedId !== null) return
+  if (store.isSubmitting || store.responseSubmitted || store.draftLoading) return
   if (stage > 0 && (!store.selectedScopes.length || !store.identityValid)) {
     store.stage = 0
     scopeError.value = true
@@ -53,6 +70,7 @@ async function goToQuestion(stage: number, id: string) {
   })
 }
 function startAnotherSolution() {
+  if (store.isSubmitting) return
   store.resetForAnotherSolution()
   reviewVisited.value = false
   status.value = ''
@@ -72,6 +90,50 @@ async function submit() {
     status.value =
       'Your response could not be submitted. Your answers are still here. Please check your connection and try again.'
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+async function copySharedLink() {
+  shareBusy.value = true
+  try {
+    await store.shareDraft()
+    try {
+      await navigator.clipboard.writeText(store.sharedLink)
+      status.value = 'Private draft link copied. Send it to your colleague so they can continue your answers.'
+    } catch {
+      status.value = 'Your private link is ready. Select and copy it below to send to your colleague.'
+    }
+  } catch {
+    status.value = 'The draft link could not be created or updated. Your local answers are still here. Please retry.'
+  } finally {
+    shareBusy.value = false
+  }
+}
+async function loadLatestSharedDraft() {
+  if (
+    !window.confirm(
+      'Load the latest shared copy? This replaces the answers currently shown. Download your copy first if you need to keep your unsaved changes.',
+    )
+  )
+    return
+  shareBusy.value = true
+  try {
+    await store.loadLatestSharedDraft()
+    status.value = 'The latest shared response has been loaded.'
+  } catch {
+    status.value = 'The shared response could not be loaded. Please retry.'
+  } finally {
+    shareBusy.value = false
+  }
+}
+async function retrySharedSave() {
+  shareBusy.value = true
+  try {
+    await store.retrySharedSave()
+    status.value = 'Your shared draft is up to date.'
+  } catch {
+    status.value = 'Your shared draft still needs attention. Your local answers are kept in this browser.'
+  } finally {
+    shareBusy.value = false
   }
 }
 function exportResponse() {
@@ -133,14 +195,29 @@ async function downloadPdf() {
     pdfLoading.value = false
   }
 }
-onMounted(() => {
+async function openDraft() {
   try {
-    if (store.restoreDraft()) status.value = 'Your previous answers have been restored.'
+    const result = await store.initializeDraft()
+    if (result === 'shared')
+      status.value = store.responseSubmitted
+        ? 'This response has already been submitted. You can download its saved answers below.'
+        : 'Shared draft loaded. You can review the existing answers and continue filling it in.'
+    if (result === 'restored') status.value = 'Your previous answers have been restored.'
   } catch {
-    status.value = 'Saved answers could not be restored in this browser.'
+    status.value = store.sharedToken
+      ? 'The shared draft could not be opened. Check the message below.'
+      : 'Saved answers could not be restored in this browser.'
   }
-  store.startAutosave()
+}
+async function onDraftLinkChanged() {
+  const token = new URLSearchParams(window.location.hash.slice(1)).get('draft')
+  if (token && token !== store.sharedToken) await openDraft()
+}
+onMounted(() => {
+  window.addEventListener('hashchange', onDraftLinkChanged)
+  void openDraft()
 })
+onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChanged))
 </script>
 
 <template>
@@ -174,7 +251,7 @@ onMounted(() => {
                 v-for="(label, index) in stages"
                 :key="index"
                 type="button"
-                :disabled="store.isSubmitting || store.submittedId !== null"
+                :disabled="store.isSubmitting || store.responseSubmitted || store.draftLoading"
                 class="step-button"
                 :class="{ 'step-active': store.stage === index }"
                 :aria-current="store.stage === index ? 'step' : undefined"
@@ -200,6 +277,76 @@ onMounted(() => {
         </aside>
 
         <main class="min-w-0">
+          <UCard v-if="!store.draftLoading && (store.sharedToken || !store.responseSubmitted)" class="mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <h2 class="font-semibold">Continue with a colleague</h2>
+              <p v-if="sharedSaveLabel" role="status" class="text-muted text-sm">{{ sharedSaveLabel }}</p>
+            </div>
+            <p class="text-muted mt-2 text-sm leading-relaxed">
+              {{
+                store.responseSubmitted
+                  ? 'This shared response has been submitted and can no longer be edited.'
+                  : 'Share a private link so a colleague can see your answers and help complete this response. Changes are saved automatically after sharing.'
+              }}
+            </p>
+            <p v-if="store.sharedMessage" role="alert" class="mt-3 text-sm font-medium">{{ store.sharedMessage }}</p>
+            <div v-if="store.sharedLink" class="mt-4">
+              <label for="shared-draft-link" class="text-sm">Private draft link</label>
+              <input
+                id="shared-draft-link"
+                :value="store.sharedLink"
+                readonly
+                class="shared-draft-link"
+                @focus="($event.target as HTMLInputElement).select()"
+              />
+              <p class="text-muted mt-2 text-xs leading-relaxed">
+                Anyone with this link can {{ store.responseSubmitted ? 'view' : 'view and edit' }} this response. Share
+                it only with your colleagues.
+                {{
+                  store.sharedExpiresAt ? `Link expires ${new Date(store.sharedExpiresAt).toLocaleDateString()}.` : ''
+                }}
+              </p>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <UButton
+                v-if="!store.responseSubmitted && !store.sharedBlocked"
+                type="button"
+                icon="i-heroicons-link"
+                :loading="shareBusy"
+                :disabled="store.isSubmitting"
+                @click="copySharedLink"
+              >
+                {{ store.sharedToken ? 'Copy link' : 'Share draft / Copy link' }}
+              </UButton>
+              <UButton
+                v-if="store.sharedState === 'conflict'"
+                type="button"
+                :loading="shareBusy"
+                @click="loadLatestSharedDraft"
+                >Load latest shared copy</UButton
+              >
+              <UButton
+                v-if="store.sharedToken && (store.sharedState === 'error' || store.sharedState === 'unavailable')"
+                type="button"
+                :loading="shareBusy"
+                @click="retrySharedSave"
+                >Retry</UButton
+              >
+              <UButton
+                v-if="
+                  store.sharedState === 'conflict' ||
+                  store.sharedState === 'error' ||
+                  store.sharedState === 'unavailable'
+                "
+                type="button"
+                color="neutral"
+                variant="outline"
+                @click="download"
+                >Download my answers (JSON)</UButton
+              >
+            </div>
+          </UCard>
+          <p v-if="store.draftLoading" role="status" class="mb-6">Loading your saved response…</p>
           <p v-if="status" role="status" class="border-default bg-default mb-5 rounded-xl border p-4 text-sm">
             {{ status }}
           </p>
@@ -221,28 +368,32 @@ onMounted(() => {
               }}
             </h1>
             <p
-              v-if="store.stage === 0 && store.submittedId === null"
+              v-if="store.stage === 0 && !store.responseSubmitted"
               class="border-default bg-default mt-5 rounded-xl border p-4 leading-relaxed"
             >
               Please complete the questionnaire for one solution/product at a time. If your organization offers multiple
               distinct solutions, please submit them separately. A single solution may be assigned to multiple
               categories where applicable.
             </p>
-            <p v-if="store.stage === 3 && store.submittedId === null" class="text-muted mt-4 max-w-2xl leading-relaxed">
+            <p v-if="store.stage === 3 && !store.responseSubmitted" class="text-muted mt-4 max-w-2xl leading-relaxed">
               Check your details and answers, then submit your response. Select any question title to jump to it and
               make changes.
             </p>
           </div>
 
-          <UCard v-if="store.submittedId !== null">
+          <UCard v-if="store.responseSubmitted">
             <UAlert
               color="success"
               icon="i-heroicons-check-circle"
               title="Thank you. Your response has been submitted."
-              :description="`Your answers have been saved. Response reference: ${store.submittedId}.`"
+              :description="`Your answers have been saved.${store.submittedId ? ` Response reference: ${store.submittedId}.` : ''}`"
             />
             <div class="mt-5 flex flex-wrap gap-3">
-              <UButton type="button" icon="i-heroicons-plus" @click="startAnotherSolution"
+              <UButton
+                type="button"
+                icon="i-heroicons-plus"
+                :disabled="store.isSubmitting"
+                @click="startAnotherSolution"
                 >Fill questionnaire for another solution</UButton
               >
               <UButton type="button" icon="i-heroicons-document-arrow-down" :loading="pdfLoading" @click="downloadPdf"
@@ -258,8 +409,8 @@ onMounted(() => {
               >
             </div>
           </UCard>
-          <form v-else @submit.prevent>
-            <fieldset :disabled="store.isSubmitting" class="min-w-0">
+          <form v-else-if="!store.draftLoading" @submit.prevent>
+            <fieldset :disabled="store.isSubmitting || store.sharedBlocked || shareBusy" class="min-w-0">
               <div v-if="store.stage === 0">
                 <QuestionnaireIdentity :show-errors="scopeError" />
                 <UCard>

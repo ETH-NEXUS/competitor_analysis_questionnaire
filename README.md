@@ -133,6 +133,35 @@ backend demo data or authentication configuration was deleted during frontend cl
   file imports and PDFs referencing an existing response are rejected.
   Deployments must install the new `pypdf` dependency and apply migrations 0025–0026.
 - A client-generated submission UUID prevents duplicate rows when a request is retried.
+- **Sharing work with a colleague:** use **Share draft / Copy link** on any page,
+  then send the private link yourself. The colleague opens the same response,
+  sees the existing answers, and continues without an account. Shared edits save
+  automatically after a short pause; the page shows the save status and checks
+  for colleagues' changes every 15 seconds. Browser-only progress is still saved
+  locally until sharing is requested.
+  Each link expires after 90 days. Anyone holding an active link can view/edit that one draft,
+  so respondents should share it only with intended colleagues.
+  Simultaneous edits are checked against the saved revision: newer work is never
+  silently overwritten. If a conflict appears, download your current answers,
+  load the latest shared copy, and reapply any changes you want to keep. Unsaved
+  offline work is kept in the browser and recovered on refresh; when the shared
+  copy has also changed, the app asks the respondent to resolve the conflict.
+  Final submission creates one normal response and locks the shared draft. The
+  same link then opens a read-only receipt with PDF/JSON downloads. Shared drafts
+  are stored in a separate database table and do not appear in analysis or CSV
+  until submitted.
+  Draft tokens are stored hashed on the server, carried in the URL fragment, and
+  sent to draft endpoints in an Authorization header. Draft writes require CSRF
+  protection, and responses disable caching. No email is sent automatically.
+- Deploy shared drafts by pulling the changes and running
+  `docker compose --profile prod up -d --build`. API startup applies migration
+  `0027_questionnairedraft`; no new runtime dependencies are required for this feature.
+  Draft API routes are `POST /api/v1/questionnaire-drafts/`,
+  `GET/PATCH /api/v1/questionnaire-drafts/current/`, and
+  `POST /api/v1/questionnaire-drafts/current/{rotate,submit}/`, using the private
+  token as `Authorization: Bearer ...`.
+  Run sync/store regression tests with `docker compose exec ui pnpm run test:shared-drafts`
+  (Node 24, matching the UI image), and API tests with `docker compose exec api python manage.py test core`.
 - The public endpoint does not list, retrieve, edit or delete saved responses.
 - In question columns, SQL NULL means not asked; an empty string means unanswered.
   Multi-select and matrix details are stored as readable lines.

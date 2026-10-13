@@ -869,7 +869,7 @@ export function answerLines(question: Question, answer: Answer): string[] {
         const classification =
           row.cost === undefined || row.cost === '' ? missing : costOptions[Number(row.cost)] || missing
         return [
-          `${label}: ${classification}${row.billing_unit && ['1', '2'].includes(row.cost) ? `; Charged per: ${row.billing_unit}` : ''}`,
+          `${label}: ${classification}${row.billing_unit && ['1', '2'].includes(row.cost || '') ? `; Charged per: ${row.billing_unit}` : ''}`,
         ]
       }
       if (index === otherIndex(question) && row.provided !== 'yes') return []

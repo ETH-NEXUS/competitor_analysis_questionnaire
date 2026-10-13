@@ -33,6 +33,7 @@ from core.analysis import (
 )
 from core.pdf_import import import_pdf, imported_pdf
 from core.questionnaire_pdf import export_questionnaire_pdf
+from core.shared_drafts import create_draft, current_draft, rotate_draft_link, submit_draft
 from core.viewsets import (
     AccessAdminViewSet,
     AccessAuthenticatedViewSet,
@@ -69,6 +70,10 @@ urlpatterns = [
     path("admin/analysis/submissions/<int:response_id>/pdf/", imported_pdf, name="questionnaire-analysis-response-pdf"),
     path("admin/", questionnaire_admin_site.urls),
     path("api/v1/health/", views.health, name="health"),
+    path("api/v1/questionnaire-drafts/", create_draft, name="questionnaire-draft-create"),
+    path("api/v1/questionnaire-drafts/current/", current_draft, name="questionnaire-draft-current"),
+    path("api/v1/questionnaire-drafts/current/rotate/", rotate_draft_link, name="questionnaire-draft-rotate"),
+    path("api/v1/questionnaire-drafts/current/submit/", submit_draft, name="questionnaire-draft-submit"),
     path("api/v1/questionnaire-pdf/", export_questionnaire_pdf, name="questionnaire-pdf"),
     path("api/v1/auth/csrf/", views.csrf, name="csrf"),
     path("api/v1/auth/", include("dj_rest_auth.urls")),

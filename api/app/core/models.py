@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -7,6 +9,20 @@ from .questionnaire import QUESTION_COLUMNS
 def response_answer_field(label):
     # NULL means not asked; an empty string means asked but left unanswered.
     return models.TextField(label, null=True, blank=True)
+
+
+class QuestionnaireDraft(models.Model):
+    """A shared work in progress, accessible only with its private capability token."""
+
+    token_hash = models.CharField(max_length=64, unique=True, editable=False)
+    submission_id = models.UUIDField(default=uuid4, unique=True, editable=False)
+    data = models.JSONField(default=dict)
+    revision = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField()
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    response = models.ForeignKey("QuestionnaireResponse", null=True, blank=True, on_delete=models.SET_NULL)
 
 
 class Author(models.Model):
