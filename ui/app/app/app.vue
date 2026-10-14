@@ -10,21 +10,6 @@ const pdfLoading = ref(false)
 const scopeError = ref(false)
 const reviewVisited = ref(false)
 const shareBusy = ref(false)
-const sharedSaveLabel = computed(
-  () =>
-    ({
-      local: '',
-      loading: 'Loading shared draft…',
-      creating: 'Creating private link…',
-      unsaved: 'Changes waiting to save…',
-      saving: 'Saving…',
-      saved: 'Saved',
-      error: 'Shared draft needs attention',
-      conflict: 'Newer changes are available',
-      unavailable: 'Draft link unavailable',
-      submitted: 'Submitted · read-only',
-    })[store.sharedState],
-)
 const heading = ref<HTMLElement>()
 const stages = ['About you & solution scope', 'Core questions', 'Solution-specific questions', 'Review & submit']
 const visibleSections = computed(() => store.applicableSections.filter((section) => section.stage === store.stage))
@@ -196,13 +181,9 @@ async function downloadPdf() {
   }
 }
 async function openDraft() {
+  status.value = ''
   try {
-    const result = await store.initializeDraft()
-    if (result === 'shared')
-      status.value = store.responseSubmitted
-        ? 'This response has already been submitted. You can download its saved answers below.'
-        : 'Shared draft loaded. You can review the existing answers and continue filling it in.'
-    if (result === 'restored') status.value = 'Your previous answers have been restored.'
+    await store.initializeDraft()
   } catch {
     status.value = store.sharedToken
       ? 'The shared draft could not be opened. Check the message below.'
@@ -277,47 +258,12 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
         </aside>
 
         <main class="min-w-0">
-          <UCard v-if="!store.draftLoading && (store.sharedToken || !store.responseSubmitted)" class="mb-6">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <h2 class="font-semibold">Continue with a colleague</h2>
-              <p v-if="sharedSaveLabel" role="status" class="text-muted text-sm">{{ sharedSaveLabel }}</p>
-            </div>
-            <p class="text-muted mt-2 text-sm leading-relaxed">
-              {{
-                store.responseSubmitted
-                  ? 'This shared response has been submitted and can no longer be edited.'
-                  : 'Share a private link so a colleague can see your answers and help complete this response. Changes are saved automatically after sharing.'
-              }}
-            </p>
-            <p v-if="store.sharedMessage" role="alert" class="mt-3 text-sm font-medium">{{ store.sharedMessage }}</p>
-            <div v-if="store.sharedLink" class="mt-4">
-              <label for="shared-draft-link" class="text-sm">Private draft link</label>
-              <input
-                id="shared-draft-link"
-                :value="store.sharedLink"
-                readonly
-                class="shared-draft-link"
-                @focus="($event.target as HTMLInputElement).select()"
-              />
-              <p class="text-muted mt-2 text-xs leading-relaxed">
-                Anyone with this link can {{ store.responseSubmitted ? 'view' : 'view and edit' }} this response. Share
-                it only with your colleagues.
-                {{
-                  store.sharedExpiresAt ? `Link expires ${new Date(store.sharedExpiresAt).toLocaleDateString()}.` : ''
-                }}
-              </p>
-            </div>
+          <div
+            v-if="!store.draftLoading && ['error', 'conflict', 'unavailable'].includes(store.sharedState)"
+            class="mb-6"
+          >
+            <p v-if="store.sharedMessage" role="alert" class="text-sm font-medium">{{ store.sharedMessage }}</p>
             <div class="mt-4 flex flex-wrap gap-3">
-              <UButton
-                v-if="!store.responseSubmitted && !store.sharedBlocked"
-                type="button"
-                icon="i-heroicons-link"
-                :loading="shareBusy"
-                :disabled="store.isSubmitting"
-                @click="copySharedLink"
-              >
-                {{ store.sharedToken ? 'Copy link' : 'Share draft / Copy link' }}
-              </UButton>
               <UButton
                 v-if="store.sharedState === 'conflict'"
                 type="button"
@@ -345,16 +291,12 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
                 >Download my answers (JSON)</UButton
               >
             </div>
-          </UCard>
+          </div>
           <p v-if="store.draftLoading" role="status" class="mb-6">Loading your saved response…</p>
-          <p v-if="status" role="status" class="border-default bg-default mb-5 rounded-xl border p-4 text-sm">
+          <p v-if="status" role="status" class="mb-5 text-sm">
             {{ status }}
           </p>
-          <p
-            v-if="store.draftStorageError"
-            role="alert"
-            class="border-default bg-default mb-5 rounded-xl border p-4 text-sm"
-          >
+          <p v-if="store.draftStorageError" role="alert" class="mb-5 text-sm">
             This browser could not save your progress. Keep this page open until you submit.
           </p>
           <div class="mb-8">
@@ -367,17 +309,10 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
                     : stages[store.stage]
               }}
             </h1>
-            <p
-              v-if="store.stage === 0 && !store.responseSubmitted"
-              class="border-default bg-default mt-5 rounded-xl border p-4 leading-relaxed"
-            >
+            <p v-if="store.stage === 0 && !store.responseSubmitted" class="mt-5 leading-relaxed">
               Please complete the questionnaire for one solution/product at a time. If your organization offers multiple
               distinct solutions, please submit them separately. A single solution may be assigned to multiple
               categories where applicable.
-            </p>
-            <p v-if="store.stage === 3 && !store.responseSubmitted" class="text-muted mt-4 max-w-2xl leading-relaxed">
-              Check your details and answers, then submit your response. Select any question title to jump to it and
-              make changes.
             </p>
           </div>
 
@@ -522,50 +457,96 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
                 </UCard>
               </div>
 
-              <footer class="border-default mt-8 flex items-center justify-between gap-3 border-t pt-6">
-                <UButton
-                  type="button"
-                  color="neutral"
-                  variant="ghost"
-                  :disabled="store.stage === 0"
-                  icon="i-heroicons-arrow-left"
-                  @click="goTo(store.stage - 1)"
-                  >Back</UButton
-                >
-                <UButton
-                  v-if="store.stage < 3"
-                  type="button"
-                  size="lg"
-                  trailing-icon="i-heroicons-arrow-right"
-                  @click="goTo(Math.min(store.stage + 1, 3))"
-                  >{{ store.stage === 2 ? 'Review answers' : 'Continue' }}</UButton
-                >
-                <div v-else class="flex flex-wrap justify-end gap-3">
-                  <UButton
-                    type="button"
-                    icon="i-heroicons-document-arrow-down"
-                    :loading="pdfLoading"
-                    :disabled="store.isSubmitting"
-                    @click="downloadPdf"
-                    >Download PDF</UButton
-                  >
+              <footer class="border-default mt-8 border-t pt-6">
+                <div class="flex items-center justify-between gap-3">
                   <UButton
                     type="button"
                     color="neutral"
-                    variant="outline"
-                    icon="i-heroicons-arrow-down-tray"
-                    :disabled="store.isSubmitting"
-                    @click="download"
-                    >Download answers (JSON)</UButton
+                    variant="ghost"
+                    :disabled="store.stage === 0"
+                    icon="i-heroicons-arrow-left"
+                    @click="goTo(store.stage - 1)"
+                    >Back</UButton
                   >
                   <UButton
+                    v-if="store.stage < 3"
                     type="button"
                     size="lg"
-                    icon="i-heroicons-paper-airplane"
-                    :loading="store.isSubmitting"
-                    @click="submit"
-                    >Submit response</UButton
+                    trailing-icon="i-heroicons-arrow-right"
+                    @click="goTo(Math.min(store.stage + 1, 3))"
+                    >{{ store.stage === 2 ? 'Review answers' : 'Continue' }}</UButton
                   >
+                </div>
+                <div v-if="store.stage === 3" class="mt-5 space-y-4">
+                  <h2 class="text-lg font-semibold">Submit now or continue with a colleague</h2>
+                  <p class="text-muted text-sm leading-relaxed">
+                    Submit the answers you have, even if some questions are unanswered. If a colleague needs to add
+                    more, send them your draft instead: the button copies a private link with your existing answers.
+                  </p>
+                  <div class="grid grid-cols-2 gap-3">
+                    <UButton
+                      type="button"
+                      size="lg"
+                      icon="i-heroicons-paper-airplane"
+                      class="min-w-0 justify-center whitespace-normal"
+                      :loading="store.isSubmitting"
+                      :disabled="shareBusy || store.sharedBlocked"
+                      @click="submit"
+                      ><span class="whitespace-normal">Submit response</span></UButton
+                    >
+                    <UButton
+                      type="button"
+                      size="lg"
+                      color="neutral"
+                      variant="outline"
+                      icon="i-heroicons-link"
+                      class="min-w-0 justify-center whitespace-normal"
+                      :loading="shareBusy"
+                      :disabled="store.isSubmitting || store.sharedBlocked"
+                      @click="copySharedLink"
+                      ><span class="whitespace-normal">Send to a colleague</span></UButton
+                    >
+                  </div>
+                  <div v-if="store.sharedLink">
+                    <label for="shared-draft-link" class="text-sm">Private draft link to send to your colleague</label>
+                    <input
+                      id="shared-draft-link"
+                      :value="store.sharedLink"
+                      readonly
+                      class="shared-draft-link"
+                      @focus="($event.target as HTMLInputElement).select()"
+                    />
+                    <p class="text-muted mt-2 text-xs leading-relaxed">
+                      Anyone with this link can view and edit this draft. Share it only with your colleagues.
+                      {{
+                        store.sharedExpiresAt
+                          ? `Link expires ${new Date(store.sharedExpiresAt).toLocaleDateString()}.`
+                          : ''
+                      }}
+                    </p>
+                  </div>
+                  <p v-if="status" role="status" class="text-sm">{{ status }}</p>
+                  <div class="flex flex-wrap gap-3">
+                    <UButton
+                      type="button"
+                      color="neutral"
+                      variant="ghost"
+                      icon="i-heroicons-document-arrow-down"
+                      :loading="pdfLoading"
+                      :disabled="store.isSubmitting"
+                      @click="downloadPdf"
+                      >Download PDF</UButton
+                    >
+                    <UButton
+                      type="button"
+                      color="neutral"
+                      variant="ghost"
+                      icon="i-heroicons-arrow-down-tray"
+                      :disabled="store.isSubmitting"
+                      @click="download"
+                      >Download answers (JSON)</UButton
+                    >
+                  </div>
                 </div>
               </footer>
             </fieldset>

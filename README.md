@@ -133,10 +133,11 @@ backend demo data or authentication configuration was deleted during frontend cl
   file imports and PDFs referencing an existing response are rejected.
   Deployments must install the new `pypdf` dependency and apply migrations 0025–0026.
 - A client-generated submission UUID prevents duplicate rows when a request is retried.
-- **Sharing work with a colleague:** use **Share draft / Copy link** on any page,
-  then send the private link yourself. The colleague opens the same response,
+- **Sharing work with a colleague:** use **Send to a colleague**, shown beside **Submit response**
+  on the review page after filling out the questionnaire. It copies a private link
+  for you to send yourself. The colleague opens the same response,
   sees the existing answers, and continues without an account. Shared edits save
-  automatically after a short pause; the page shows the save status and checks
+  automatically after a short pause; the page warns if saving fails and checks
   for colleagues' changes every 15 seconds. Browser-only progress is still saved
   locally until sharing is requested.
   Each link expires after 90 days. Anyone holding an active link can view/edit that one draft,
