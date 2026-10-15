@@ -88,9 +88,12 @@ const pdfFile = document.getElementById('pdf-import-file');
 const pdfPreview = document.getElementById('pdf-import-preview');
 const pdfStatus = document.getElementById('pdf-import-status');
 const pdfPreviewButton = document.getElementById('pdf-preview-button');
-pdfFile.addEventListener('change', () => { pdfPreview.hidden = true; pdfPreview.replaceChildren(); pdfStatus.textContent = ''; });
+let readAnswerOverrides = null;
+pdfFile.addEventListener('change', () => { readAnswerOverrides = null; pdfPreview.hidden = true; pdfPreview.replaceChildren(); pdfStatus.textContent = ''; });
 async function sendPdf(action) {
   const payload = new FormData(pdfForm); payload.set('action', action);
+  const overrides = action === 'import' ? readAnswerOverrides?.() : null;
+  if (overrides) payload.set('answer_overrides', JSON.stringify(overrides));
   const response = await fetch(pdfForm.dataset.url, {
     method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': csrfToken }, body: payload,
   });
@@ -98,9 +101,232 @@ async function sendPdf(action) {
   if (!response.ok) throw new Error(result.error || 'The PDF could not be uploaded.');
   return result;
 }
+function correctionText(parent, title, value = '', { multiline = false, maxLength = 20000 } = {}) {
+  const label = node('label', title); const input = node(multiline ? 'textarea' : 'input');
+  input.value = value; input.maxLength = maxLength;
+  if (multiline) input.rows = 3;
+  label.append(input); parent.append(label); return input;
+}
+function correctionChoices(parent, title, choices, selected = [], single = false) {
+  if (single) {
+    const label = node('label', title); const select = node('select');
+    const blank = node('option', 'Not answered'); blank.value = ''; select.append(blank);
+    for (const [value, title] of choices) { const option = node('option', title); option.value = value; select.append(option); }
+    select.value = selected[0] || ''; label.append(select); parent.append(label);
+    return () => select.value ? [select.value] : [];
+  }
+  const group = node('fieldset', undefined, 'pdf-choice-group'); group.append(node('legend', title));
+  const inputs = choices.map(([value, title]) => {
+    const label = node('label', undefined, 'pdf-scope'); const input = node('input');
+    input.type = 'checkbox'; input.value = value; input.checked = selected.includes(value);
+    label.append(input, node('span', title)); group.append(label); return input;
+  });
+  parent.append(group); return () => inputs.filter(input => input.checked).map(input => input.value);
+}
+function correctionList(parent, title, initial, build, max = 100) {
+  const container = node('div'); container.append(node('h4', title));
+  const entries = new Map(); const add = node('button', `Add ${title.toLowerCase()}`); add.type = 'button';
+  function append(value = {}) {
+    if (entries.size >= max) return;
+    const row = node('fieldset', undefined, 'pdf-correction-entry');
+    const read = build(row, value); const remove = node('button', 'Remove'); remove.type = 'button';
+    remove.addEventListener('click', () => { entries.delete(row); row.remove(); add.disabled = false; });
+    row.append(remove); container.insertBefore(row, add); entries.set(row, read); add.disabled = entries.size >= max;
+  }
+  add.addEventListener('click', () => append()); container.append(add); parent.append(container);
+  for (const item of initial || []) append(item);
+  return () => [...entries.values()].map(read => read());
+}
+const correctionStrings = input => input.value.split('\n').map(value => value.trim()).filter(Boolean);
+const namedChoices = values => values.map(value => [value, value]);
+function productCorrection(parent, product) {
+  const name = correctionText(parent, 'Product / module name', product.name, { maxLength: 2000 });
+  const description = correctionText(parent, 'Brief description', product.description, { multiline: true });
+  const source = correctionChoices(parent, 'Developed by', [['0', 'Your company'], ['1', 'Third-party / partner']], [product.source], true);
+  const standalone = correctionChoices(parent, 'Can be purchased and operated independently', [['yes', 'Yes']], product.standalone ? ['yes'] : []);
+  return () => ({ name: name.value.trim(), description: description.value.trim(), source: source()[0] || '', standalone: standalone().includes('yes') });
+}
+function offeringCorrection(parent, offering, definitions) {
+  const kind = correctionChoices(parent, 'Product type', [['core', 'Core CIS platform'], ['integration', 'External integration'], ['function', 'Specialized function']], [offering.kind || 'core'], true);
+  const name = correctionText(parent, 'Product / function name', offering.name, { maxLength: 200 });
+  const description = correctionText(parent, 'What it does', offering.description, { multiline: true, maxLength: 2000 });
+  const developer = correctionText(parent, 'Third-party company', offering.developer, { maxLength: 200 });
+  const functions = correctionChoices(parent, 'Functional areas', namedChoices(definitions.clinicalCapabilities.options), offering.functions);
+  const specialties = correctionChoices(parent, 'Specialties', namedChoices(definitions.specialties.options), offering.specialties);
+  const others = correctionText(parent, 'Additional functions (one per line)', offering.other_functions?.join('\n'), { multiline: true });
+  const otherSpecialties = correctionText(parent, 'Additional specialties (one per line)', offering.other_specialties?.join('\n'), { multiline: true });
+  const flags = correctionChoices(parent, 'Product availability', [['all_specialties', 'Across specialties'], ['standalone', 'Standalone purchase'], ['category_b', 'Specialized solution / category B']], ['all_specialties', 'standalone', 'category_b'].filter(key => offering[key]));
+  const purposes = correctionText(parent, 'Integration type / purpose (one per line)', offering.purposes?.join('\n'), { multiline: true });
+  const purposeOther = correctionText(parent, 'Other integration purpose', offering.purpose_other, { maxLength: 200 });
+  const relationship = correctionChoices(parent, 'Relationship to a hospital-wide CIS', [['either', 'Independent or integrated'], ['independent', 'Independent'], ['integration', 'Integration required; no specific CIS'], ['specific', 'Requires a specific CIS'], ['none', 'Does not integrate'], ['other', 'Other']], [offering.cis_relationship], true);
+  const relationshipOther = correctionText(parent, 'Other CIS relationship', offering.cis_relationship_other, { maxLength: 200 });
+  const workflow = offering.workflow || {};
+  const reused = correctionChoices(parent, 'Connected CIS data reused', [['patient', 'Patient details'], ['medication', 'Medication data'], ['lab', 'Laboratory results'], ['other', 'Other'], ['none', 'None of these'], ['unknown', 'Not sure']], workflow.reused_data);
+  const reusedOther = correctionText(parent, 'Other data reused', workflow.other_reused_data, { maxLength: 200 });
+  const writeBack = correctionChoices(parent, 'Connected CIS write-back', [['automatic', 'Automatically'], ['user_action', 'After a user action'], ['manual', 'Manual transfer / duplicate entry'], ['none', 'No write-back'], ['unknown', 'Not sure / not applicable']], [workflow.write_back], true);
+  const separateApp = correctionChoices(parent, 'Separate application', [['embedded', 'Embedded in the CIS'], ['sso', 'Separate, with single sign-on'], ['separate_login', 'Separate, with separate sign-in'], ['unknown', 'Not sure']], [workflow.separate_app], true);
+  const context = correctionChoices(parent, 'Patient context', [['automatic', 'Automatically transferred'], ['manual', 'User selects patient again'], ['none', 'No context transferred'], ['unknown', 'Not sure']], [workflow.patient_context], true);
+  const steps = correctionText(parent, 'Manual workflow steps', workflow.manual_steps, { multiline: true, maxLength: 2000 });
+  return () => ({
+    kind: kind()[0] || 'core', name: name.value.trim(), description: description.value.trim(), source: kind()[0] === 'integration' ? 'partner' : 'native', developer: developer.value.trim(),
+    functions: functions(), specialties: specialties(), other_functions: correctionStrings(others), other_specialties: correctionStrings(otherSpecialties),
+    all_specialties: flags().includes('all_specialties'), standalone: flags().includes('standalone'), category_b: flags().includes('category_b'),
+    purposes: correctionStrings(purposes), purpose_other: purposeOther.value.trim(), cis_relationship: relationship()[0] || '', cis_relationship_other: relationshipOther.value.trim(), cis_integration: offering.cis_integration || '',
+    workflow: { reused_data: reused(), other_reused_data: reusedOther.value.trim(), write_back: writeBack()[0] || '', separate_app: separateApp()[0] || '', patient_context: context()[0] || '', manual_steps: steps.value.trim() },
+  });
+}
+function eventCorrection(parent, event) {
+  const title = correctionChoices(parent, 'Event', namedChoices(['Digital Health Projectathon', 'IHE Connectathon', 'Other']), [event.event], true);
+  const other = correctionText(parent, 'Other event', event.event_other, { maxLength: 200 });
+  const year = correctionText(parent, 'Year', event.year, { maxLength: 4 });
+  const profiles = correctionText(parent, 'Tested profiles / use cases', event.profiles, { multiline: true, maxLength: 2000 });
+  const outcome = correctionChoices(parent, 'Outcome', namedChoices(['Successful', 'Partially successful', 'Unsuccessful', 'No formal result', 'Other']), [event.outcome], true);
+  const outcomeOther = correctionText(parent, 'Other outcome', event.outcome_other, { maxLength: 200 });
+  return () => ({ event: title()[0] || '', event_other: other.value.trim(), year: year.value.trim(), profiles: profiles.value.trim(), outcome: outcome()[0] || '', outcome_other: outcomeOther.value.trim() });
+}
+function genericCorrection(parent, id, definition, answer, definitions) {
+  if (definition.kind === 'text') {
+    const text = correctionText(parent, 'Answer', answer.text || answer.readable_answer?.join('\n'), { multiline: true });
+    return () => ({ text: text.value.trim() });
+  }
+  const notes = correctionText(parent, 'Additional information / source of the separate reply', answer.text, { multiline: true });
+  if (definition.kind === 'offerings') {
+    const offerings = correctionList(parent, 'Product / function', answer.offerings, (row, value) => offeringCorrection(row, value, definitions));
+    return () => ({ offerings: offerings(), text: notes.value.trim() });
+  }
+  if (['costs', 'capabilities'].includes(definition.kind)) {
+    const rows = new Map();
+    for (const [index, title] of definition.options.entries()) {
+      const key = String(index); const group = node('fieldset', undefined, 'pdf-correction-entry'); group.append(node('legend', title));
+      const row = answer.rows?.[key] || {};
+      if (definition.kind === 'costs') {
+        const cost = correctionChoices(group, 'Classification', ['Included', 'One-time additional', 'Recurring additional', 'Depends on scope/contract', 'Not applicable'].map((label, i) => [String(i), label]), [row.cost], true);
+        const billing = correctionText(group, 'Charged per (for additional costs)', row.billing_unit);
+        rows.set(key, () => ({ cost: cost()[0] || '', billing_unit: billing.value.trim() }));
+      } else {
+        const provided = correctionChoices(group, 'Provided', [['yes', 'Yes'], ['no', 'No']], [row.provided], true);
+        const products = correctionList(group, 'Product / module', answer.products?.[key], productCorrection);
+        rows.set(key, () => ({ provided: provided()[0] || '', products: products() }));
+      }
+      parent.append(group);
+    }
+    return () => {
+      const values = [...rows].map(([key, read]) => [key, read()]);
+      return { text: notes.value.trim(), rows: Object.fromEntries(values.map(([key, row]) => [key, definition.kind === 'costs' ? row : { provided: row.provided }])), products: Object.fromEntries(values.filter(([, row]) => row.provided === 'yes').map(([key, row]) => [key, row.products])) };
+    };
+  }
+  const selected = correctionChoices(parent, 'Answer', definition.options.map((title, index) => [String(index), title]), answer.selected, definition.kind === 'single');
+  const details = new Map();
+  definition.options.forEach((title, index) => { details.set(String(index), correctionText(parent, `${title} — details (optional)`, answer.details?.[index])); });
+  const otherItems = correctionText(parent, 'Other answers (one per line, when Other is selected)', answer.other_items?.join('\n'), { multiline: true });
+  const certificates = new Map();
+  if (id === 'certifications') {
+    for (let index = 0; index < 7; index++) {
+      const key = String(index); const group = node('fieldset', undefined, 'pdf-correction-entry'); group.append(node('legend', definition.options[index]));
+      const entry = answer.certification_details?.[key] || {};
+      const name = correctionText(group, 'Certificate / attestation name', entry.name, { maxLength: 200 });
+      const scopes = correctionChoices(group, 'Scope', [['organization', 'Organization'], ['solution', 'Solution or product'], ['other', 'Other']], entry.scopes);
+      const other = correctionText(group, 'Other scope', entry.scope_other, { maxLength: 200 });
+      const until = correctionText(group, 'Valid until (year)', entry.valid_until, { maxLength: 4 });
+      certificates.set(key, () => ({ name: name.value.trim(), scopes: scopes(), scope_other: other.value.trim(), valid_until: until.value.trim() })); parent.append(group);
+    }
+  }
+  const events = id === 'interoperabilityTesting' ? correctionList(parent, 'Testing event (when Yes is selected)', answer.testing_events, eventCorrection, 30) : null;
+  const requirements = id === 'requirements' ? correctionChoices(parent, 'What is required (when No is selected)', ['Integration with CIS/HIS', 'Integration with patient administration/ADT', 'Identity/SSO integration', 'Other clinical-system integrations', 'Data migration/import', 'Hospital-specific interface development', 'Vendor-specific customization/development', 'Local infrastructure/components', 'Clinical workflow/process configuration', 'Other'].map((title, index) => [String(index), title]), answer.followups?.['1']) : null;
+  const requirementOther = requirements ? correctionText(parent, 'Other implementation requirement', answer.details?.requirements_other) : null;
+  return () => {
+    const choices = selected(); const otherSelected = choices.some(index => definition.options[Number(index)].startsWith('Other'));
+    return {
+      selected: choices, text: notes.value.trim(),
+      details: { ...Object.fromEntries([...details].filter(([key, input]) => choices.includes(key) && input.value.trim()).map(([key, input]) => [key, input.value.trim()])), ...(requirements && choices.includes('1') ? { requirements_other: requirementOther.value.trim() } : {}) },
+      other_items: otherSelected ? correctionStrings(otherItems).slice(0, definition.kind === 'single' ? 1 : 100) : [],
+      certification_details: Object.fromEntries([...certificates].filter(([key]) => choices.includes(key)).map(([key, read]) => [key, read()])),
+      testing_events: events && choices.includes('0') ? events() : [],
+      followups: requirements && choices.includes('1') ? { '1': requirements() } : {},
+    };
+  };
+}
+function addAnswerCorrections(preview) {
+  const editor = node('details', undefined, 'pdf-corrections'); editor.append(node('summary', 'Add or correct answers from a separate reply'));
+  editor.append(node('p', 'Choose a question to add or revise its answer. You can correct several questions before importing. Each correction replaces that question’s answer; the original PDF is retained.', 'muted'));
+  const definitions = preview.question_definitions;
+  const picker = node('label', 'Question to modify'); const select = node('select');
+  const blank = node('option', 'Select a question…'); blank.value = ''; select.append(blank);
+  const questions = [...data.questions, ...Object.keys(preview.answers).filter(id => !questionById.has(id)).map(id => ({ id, ...definitions[id] }))];
+  for (const question of questions) {
+    const option = node('option', `${question.number ? `Q${question.number}` : 'Earlier version'} · ${question.label}${preview.answers[question.id] ? '' : ' (not in PDF)'}`);
+    option.value = question.id; select.append(option);
+  }
+  picker.append(select); editor.append(picker);
+  const add = node('button', 'Edit selected question'); add.type = 'button'; editor.append(add);
+  const entries = new Map();
+  add.addEventListener('click', () => {
+    const id = select.value; if (!id) return;
+    if (entries.has(id)) { const existing = entries.get(id).card; existing.open = true; existing.scrollIntoView({ block: 'nearest' }); return; }
+    const definition = definitions[id]; const answer = preview.answers[id] || {};
+    const card = node('details', undefined, 'pdf-correction-question'); card.open = true;
+    const title = select.selectedOptions[0].textContent;
+    card.append(node('summary', title));
+    const original = node('details'); original.append(node('summary', 'Original answer from PDF'));
+    for (const line of answer.readable_answer?.length ? answer.readable_answer : ['Not answered']) original.append(node('p', line));
+    card.append(original);
+    const fields = node('fieldset'); fields.append(node('legend', 'Revised answer'));
+    const read = id === 'standards' ? standardsCorrection(fields, answer) : genericCorrection(fields, id, definition, answer, definitions);
+    card.append(fields);
+    const remove = node('button', 'Keep original answer'); remove.type = 'button';
+    remove.addEventListener('click', () => { entries.delete(id); card.remove(); }); card.append(remove);
+    entries.set(id, { card, read, initial: JSON.stringify(read()) }); editor.append(card);
+  });
+  readAnswerOverrides = () => Object.fromEntries([...entries].flatMap(([id, entry]) => {
+    const answer = entry.read();
+    return JSON.stringify(answer) === entry.initial ? [] : [[id, answer]];
+  }));
+  pdfPreview.append(editor);
+}
+function standardsCorrection(fields, answer = {}) {
+  const options = questionById.get('standards').options;
+  function checkboxes(title, choices, selected = []) {
+    const group = node('fieldset', undefined, 'pdf-choice-group'); group.append(node('legend', title));
+    const inputs = choices.map(([value, title]) => {
+      const label = node('label', undefined, 'pdf-scope'); const input = node('input');
+      input.type = 'checkbox'; input.value = value; input.checked = selected.includes(value);
+      label.append(input, node('span', title)); group.append(label); return input;
+    });
+    fields.append(group);
+    return () => inputs.filter(input => input.checked).map(input => input.value);
+  }
+  function textField(title, value = '', multiline = false) {
+    const label = node('label', title); const input = node(multiline ? 'textarea' : 'input');
+    input.value = value; input.maxLength = 20000;
+    if (multiline) input.rows = 3;
+    label.append(input); fields.append(label); return input;
+  }
+  const selected = checkboxes('Supported standards', options.map((title, index) => [String(index), title]), answer.selected);
+  const releases = checkboxes('Primary FHIR release used in production (when FHIR is selected)', ['R2', 'R3', 'R4', 'R4B', 'R5', 'Other'].map(value => [value, value]), answer.followups?.['0']);
+  const fhirOther = textField('Other FHIR release (optional)', answer.details?.fhir_other);
+  const fhirDetail = textField('FHIR use cases / limitations (optional)', answer.details?.['0']);
+  const messages = checkboxes('Supported HL7 v2 message types (when HL7 v2 is selected)', ['ADT', 'ORM', 'ORU', 'OML', 'MDM', 'SIU', 'DFT', 'BAR', 'RDE', 'RAS', 'VXU', 'Other', 'Not sure'].map(value => [value, value]), answer.followups?.['1']);
+  const v2Other = textField('Other HL7 v2 message types (comma-separated)', answer.details?.hl7v2_other);
+  const others = textField('Other supported standards (one per line; select Other above)', (answer.other_items?.length ? answer.other_items : [answer.details?.['5'] || '']).join('\n'), true);
+  const notes = textField('Notes / source of the separate reply (optional)', answer.text, true);
+  return () => {
+    const choices = selected(); const fhir = releases(); const v2 = messages();
+    return {
+      selected: choices,
+      followups: { '0': choices.includes('0') ? fhir : [], '1': choices.includes('1') ? v2 : [] },
+      details: {
+        ...(choices.includes('0') && fhirDetail.value.trim() ? { '0': fhirDetail.value.trim() } : {}),
+        ...(choices.includes('0') && fhir.includes('Other') ? { fhir_other: fhirOther.value.trim() } : {}),
+        ...(choices.includes('1') && v2.includes('Other') ? { hl7v2_other: v2Other.value.trim() } : {}),
+      },
+      other_items: choices.includes('5') ? others.value.split('\n').map(value => value.trim()).filter(Boolean) : [],
+      text: notes.value.trim(),
+    };
+  };
+}
 pdfForm.addEventListener('submit', async event => {
   event.preventDefault(); pdfPreviewButton.disabled = true; pdfStatus.textContent = 'Reading PDF…';
-  pdfPreview.hidden = true; pdfPreview.replaceChildren();
+  readAnswerOverrides = null; pdfPreview.hidden = true; pdfPreview.replaceChildren();
   try {
     const { preview } = await sendPdf('preview');
     pdfStatus.textContent = 'Review the recovered details and answers, then import the response.';
@@ -127,6 +353,7 @@ pdfForm.addEventListener('submit', async event => {
       for (const line of lines.length ? lines : ['Not answered']) answers.append(node('p', line));
     }
     pdfPreview.append(answers);
+    addAnswerCorrections(preview);
     const save = node('button', 'Import response'); save.type = 'button';
     save.addEventListener('click', async () => {
       if (!pdfForm.reportValidity()) return;

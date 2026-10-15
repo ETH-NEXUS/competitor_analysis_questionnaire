@@ -17,7 +17,10 @@ from rest_framework.exceptions import ValidationError as SerializerValidationErr
 
 from .analysis import CURRENT_QUESTIONNAIRE_VERSION, superuser_only
 from .models import QuestionnaireResponse
+from .pdf_answer_recovery import recover_details
+from .pdf_corrections import apply_corrections
 from .pdf_offerings import recover_offerings
+from .pdf_standards import supplemental_standards
 from .questionnaire import QUESTION_COLUMNS, SCOPE_FIELDS, answer_text
 from .serializers import QuestionnaireAnswerSerializer
 
@@ -32,10 +35,32 @@ SCOPE_LABELS = {
     "D": "Patient-facing solution",
 }
 SCHEMA = json.loads(Path(__file__).with_name("analysis_schema.json").read_text())
+IMPORT_SCHEMA = {
+    key: SCHEMA.get(key, {"label": label, "kind": "text"})
+    for key, (_column, label) in QUESTION_COLUMNS.items()
+}
+# Exact historical headings only: question numbers vary with scope and version.
+LEGACY_LABELS = {
+    "Describe your core CIS coverage and external integrations.": "clinicalCapabilities",
+    "Which capabilities in your core CIS reduce documentation burden?": "documentationMethods",
+}
 
 
 def normalize(value):
     return " ".join(value.split()).casefold()
+
+
+def question_for_label(label):
+    return next(
+        (
+            key
+            for key, definition in SCHEMA.items()
+            if key in QUESTION_COLUMNS and normalize(definition["label"]) == label
+        ),
+        next(
+            (key for old_label, key in LEGACY_LABELS.items() if normalize(old_label) == label), None
+        ),
+    )
 
 
 def empty_answer(label, lines):
@@ -87,7 +112,7 @@ def recover_selections(question_id, lines):  # noqa: C901, PLR0912 - separate an
                     for value in values:
                         if value.startswith("Other:"):
                             answer["details"][other] = value[6:].strip()
-    return answer
+    return recover_details(question_id, answer, lines, definition)
 
 
 def text_response(reader):  # noqa: C901 - validate each part of a legacy response
@@ -140,14 +165,7 @@ def text_response(reader):  # noqa: C901 - validate each part of a legacy respon
         # Answers have bullet markers; unanswered questions use the explicit placeholder.
         parts = re.split(r"(?m)^\s*(?:•\s*|Not answered\s*$)", block, maxsplit=1)
         label = normalize(parts[0])
-        question_id = next(
-            (
-                key
-                for key, definition in SCHEMA.items()
-                if key in QUESTION_COLUMNS and normalize(definition["label"]) == label
-            ),
-            None,
-        )
+        question_id = question_for_label(label)
         if not question_id:
             unmatched.append(parts[0].strip())
             continue
@@ -280,6 +298,12 @@ def import_pdf(request):  # noqa: C901, PLR0911 - preview, duplicate and save re
                 for key in ("providerName", "solutionName", "respondentName", "respondentEmail")
             }
             payload["scopes"] = request.POST.getlist("scopes")
+            if override := request.POST.get("standards_override"):
+                payload["answers"]["standards"] = supplemental_standards(
+                    json.loads(override), SCHEMA["standards"]
+                )
+            if corrections := request.POST.get("answer_overrides"):
+                apply_corrections(payload, json.loads(corrections), IMPORT_SCHEMA)
         row = response_model(payload, validate_identity=request.POST.get("action") != "preview")
         reference = payload.get("responseReference")
         existing = (
@@ -299,7 +323,7 @@ def import_pdf(request):  # noqa: C901, PLR0911 - preview, duplicate and save re
                 status=409,
             )
         if request.POST.get("action") == "preview":
-            return JsonResponse({"preview": payload})
+            return JsonResponse({"preview": {**payload, "question_definitions": IMPORT_SCHEMA}})
         if request.POST.get("action") != "import":
             raise ValueError("Choose preview or import.")
         row.imported_pdf = content

@@ -11,7 +11,7 @@ from pypdf import PdfReader, PdfWriter
 
 from .analysis import save_vendor_outreach
 from .models import QuestionnaireResponse, VendorInvitation
-from .pdf_import import SCHEMA, SCOPE_LABELS, import_pdf, imported_pdf
+from .pdf_import import LEGACY_LABELS, SCHEMA, SCOPE_LABELS, import_pdf, imported_pdf
 from .questionnaire_pdf import make_pdf
 
 
@@ -114,6 +114,126 @@ class PdfImportTests(TestCase):
         response = self.save(make_pdf(self.payload))
         self.assertEqual(response.status_code, 409)
         self.assertEqual(QuestionnaireResponse.objects.count(), 1)
+
+    def test_known_older_headings_are_matched_without_using_question_numbers(self):
+        self.payload["sections"][0]["questions"] = [
+            {
+                "id": key,
+                "number": index + 32,
+                "question": label,
+                "readableAnswer": [
+                    "Core CIS platform: Example Suite; Developed by your company; Areas: Clinical documentation"
+                ]
+                if key == "clinicalCapabilities"
+                else [SCHEMA[key]["options"][1]],
+            }
+            for index, (label, key) in enumerate(LEGACY_LABELS.items())
+        ]
+        writer = PdfWriter()
+        for page in PdfReader(BytesIO(make_pdf(self.payload))).pages:
+            writer.add_page(page)
+        stream = BytesIO()
+        writer.write(stream)
+        result = self.upload(stream.getvalue())
+        self.assertEqual(result.status_code, 200, result.content)
+        answers = json.loads(result.content)["preview"]["answers"]
+        self.assertEqual(answers["clinicalCapabilities"]["offerings"][0]["name"], "Example Suite")
+        self.assertEqual(answers["documentationMethods"]["selected"], ["1"])
+        self.assertEqual(self.save(stream.getvalue()).status_code, 201)
+
+    def test_unrecognized_heading_is_still_rejected(self):
+        self.payload["sections"][0]["questions"][0]["question"] = "An unknown question about APIs?"
+        writer = PdfWriter()
+        for page in PdfReader(BytesIO(make_pdf(self.payload))).pages:
+            writer.add_page(page)
+        stream = BytesIO()
+        writer.write(stream)
+        result = self.upload(stream.getvalue())
+        self.assertEqual(result.status_code, 400)
+        self.assertIn("could not be matched safely", json.loads(result.content)["error"])
+
+    def test_separately_received_q3_replaces_pdf_answer_in_analysis(self):
+        question = self.payload["sections"][0]["questions"][1]
+        question["answer"]["selected"] = ["0", "1", "3", "4"]
+        question["readableAnswer"] = [
+            SCHEMA["standards"]["options"][int(i)] for i in ["0", "1", "3", "4"]
+        ]
+        content = make_pdf(self.payload)
+        override = {
+            "selected": ["0", "1", "3", "5"],
+            "details": {"0": "1 use case", "hl7v2_other": "MFN, QBP, RSP, ORL"},
+            "followups": {
+                "0": ["R4"],
+                "1": ["ADT", "ORU", "MDM", "DFT", "ORM", "OML", "SIU", "Other"],
+            },
+            "other_items": ["ALIS", "SpiGes", "iDOC SAP"],
+            "text": "Separate reply: XDS/XCA and CDA not supported; RDE, VXU and BAR not supported.",
+        }
+        result = self.upload(
+            content,
+            "import",
+            scopes=["C"],
+            standards_override=json.dumps(override),
+            **self.payload["respondent"],
+        )
+        self.assertEqual(result.status_code, 201, result.content)
+        row = QuestionnaireResponse.objects.get()
+        answer = row.answer_data["standards"]
+        self.assertEqual(answer["selected"], ["0", "1", "3", "5"])
+        self.assertEqual(answer["followups"]["0"], ["R4"])
+        self.assertEqual(answer["other_items"], override["other_items"])
+        self.assertNotIn("HL7 CDA / Swiss CDA profiles", answer["readable_answer"])
+        self.assertIn("HL7 FHIR: 1 use case", row.interoperability_standards)
+        self.assertIn("Primary FHIR release used in production: R4", row.interoperability_standards)
+        self.assertIn("Other: MFN, QBP, RSP, ORL", row.interoperability_standards)
+        self.assertIn("Other: SpiGes", row.interoperability_standards)
+        self.assertIn(override["text"], row.interoperability_standards)
+        self.assertEqual(bytes(row.imported_pdf), content)
+        self.assertEqual(row.answer_data["apiTypes"]["selected"], ["0"])
+
+    def test_invalid_q3_override_does_not_create_a_response(self):
+        content = make_pdf(self.payload)
+        for override in (
+            {"selected": ["0", "6"]},
+            {"selected": ["99"]},
+            {"selected": ["0", "0"]},
+            {"selected": ["1"], "followups": {"1": ["BAD"]}},
+            {"selected": ["3"], "followups": {"0": ["R4"]}},
+            {"selected": ["0"], "other_items": ["ALIS"]},
+            {"selected": ["0"], "readable_answer": ["Forged display text"]},
+        ):
+            with self.subTest(override=override):
+                result = self.upload(
+                    content,
+                    "import",
+                    scopes=["C"],
+                    standards_override=json.dumps(override),
+                    **self.payload["respondent"],
+                )
+                self.assertEqual(result.status_code, 400, result.content)
+        self.assertFalse(QuestionnaireResponse.objects.exists())
+
+    def test_import_saves_multiple_selected_question_corrections(self):
+        content = make_pdf(self.payload)
+        corrections = {
+            "apiTypes": {"selected": ["2", "3"], "other_items": ["AsyncAPI"]},
+            "standards": {"selected": ["1"], "followups": {"1": ["ADT"]}},
+            "exportDetails": {"text": "Received separately"},
+        }
+        result = self.upload(
+            content,
+            "import",
+            scopes=["C"],
+            answer_overrides=json.dumps(corrections),
+            **self.payload["respondent"],
+        )
+        self.assertEqual(result.status_code, 201, result.content)
+        row = QuestionnaireResponse.objects.get()
+        self.assertEqual(row.answer_data["apiTypes"]["selected"], ["2", "3"])
+        self.assertIn("Other documented APIs: AsyncAPI", row.api_types)
+        self.assertEqual(row.interoperability_standards, "HL7 v2\nHL7 v2 message types: ADT")
+        self.assertEqual(row.record_export_details, "Received separately")
+        self.assertEqual(bytes(row.imported_pdf), content)
 
     def test_legacy_product_fields_are_recovered_for_product_analysis(self):
         self.payload["sections"][0]["questions"] = [
