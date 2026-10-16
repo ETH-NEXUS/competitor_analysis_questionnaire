@@ -480,8 +480,8 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
                 <div v-if="store.stage === 3" class="mt-5 space-y-4">
                   <h2 class="text-lg font-semibold">Submit now or continue with a colleague</h2>
                   <p class="text-muted text-sm leading-relaxed">
-                    Submit the answers you have, even if some questions are unanswered. If a colleague needs to add
-                    more, send them your draft instead: the button copies a private link with your existing answers.
+                    Submit your response, or send your draft to a colleague to add their input. The button copies a
+                    private link with your existing answers.
                   </p>
                   <div class="grid grid-cols-2 gap-3">
                     <UButton
