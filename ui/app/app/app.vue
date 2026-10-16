@@ -303,17 +303,46 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
             <h1 ref="heading" tabindex="-1" class="text-3xl font-semibold tracking-tight outline-none sm:text-4xl">
               {{
                 store.stage === 0
-                  ? 'About you and your solution'
+                  ? store.responseSubmitted
+                    ? 'About you and your solution'
+                    : 'Instructions for Submitting Your Solutions'
                   : store.stage === 3
                     ? 'Review your response'
                     : stages[store.stage]
               }}
             </h1>
-            <p v-if="store.stage === 0 && !store.responseSubmitted" class="mt-5 leading-relaxed">
-              Please complete the questionnaire for one solution/product at a time. If your organization offers multiple
-              distinct solutions, please submit them separately. A single solution may be assigned to multiple
-              categories where applicable.
-            </p>
+            <div v-if="store.stage === 0 && !store.responseSubmitted" class="mt-5 space-y-4 leading-relaxed">
+              <ul class="list-disc space-y-3 pl-5">
+                <li>
+                  <strong>Multiple independent products:</strong> If your company offers several standalone products,
+                  please complete a separate questionnaire for each product. After submitting a response, click
+                  <strong>“Fill questionnaire for another solution”</strong> to submit another product.
+                </li>
+                <li>
+                  <strong>One product with multiple modules:</strong> If your product includes several integrated
+                  modules or functionalities, please describe them together in one questionnaire.
+                </li>
+                <li>
+                  <strong>One product covering multiple categories:</strong> If your product fits into more than one of
+                  the questionnaire’s solution categories, simply select all applicable categories.
+                </li>
+              </ul>
+              <h2 class="text-xl font-semibold">Completing the Questionnaire with Colleagues</h2>
+              <p>
+                Fill in the questions you can answer. At the end, instead of submitting, you can select
+                <strong>“Share with a colleague”</strong> to send a colleague your draft so they can add their input.
+              </p>
+              <p class="font-semibold">
+                We encourage you to submit all relevant solutions from your portfolio. We appreciate your contribution,
+                which helps us consider the full range of your offerings in our market assessment.
+              </p>
+            </div>
+            <h2
+              v-if="store.stage === 0 && !store.responseSubmitted"
+              class="mt-8 text-3xl font-semibold tracking-tight sm:text-4xl"
+            >
+              About you and your solution
+            </h2>
           </div>
 
           <UCard v-if="store.responseSubmitted">
@@ -350,7 +379,9 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
                 <QuestionnaireIdentity :show-errors="scopeError" />
                 <UCard>
                   <fieldset>
-                    <legend class="text-muted mb-6 text-sm">Please select every category that applies.</legend>
+                    <legend class="text-muted mb-6 text-sm">
+                      Please select every category that applies to the product named above.
+                    </legend>
                     <div class="space-y-3">
                       <UCheckbox
                         v-for="(scope, index) in scopes"
@@ -503,7 +534,7 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
                       :loading="shareBusy"
                       :disabled="store.isSubmitting || store.sharedBlocked"
                       @click="copySharedLink"
-                      ><span class="whitespace-normal">Send to a colleague</span></UButton
+                      ><span class="whitespace-normal">Share with a colleague</span></UButton
                     >
                   </div>
                   <div v-if="store.sharedLink">

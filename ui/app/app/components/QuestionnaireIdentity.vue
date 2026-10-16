@@ -10,7 +10,6 @@ const fields = {
 
 <template>
   <UCard class="mb-6">
-    <template #header><h2 class="text-lg font-semibold">Who is completing this questionnaire?</h2></template>
     <dl v-if="readonly" class="grid gap-4 sm:grid-cols-2">
       <div v-for="(label, field) in fields" :key="field">
         <dt class="text-muted text-sm">{{ label }}</dt>

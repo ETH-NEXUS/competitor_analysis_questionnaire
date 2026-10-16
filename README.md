@@ -37,7 +37,7 @@ human-readable reference for reviewing the questionnaire.
 | Workflow | What is included |
 | --- | --- |
 | Save and resume | Answers save automatically in the browser and are restored after a refresh. |
-| Continue with a colleague | **Send to a colleague**, beside **Submit response** on the review page, copies a private link. The colleague sees the existing answers and can continue without an account. The respondent sends the link themselves; no email is sent automatically. |
+| Continue with a colleague | **Share with a colleague**, beside **Submit response** on the review page, copies a private link. The colleague sees the existing answers and can continue without an account. The respondent sends the link themselves; no email is sent automatically. |
 | Collaborate on one draft | Shared changes save automatically. Simultaneous edits are checked for conflicts so newer work is not silently overwritten. Links expire after 90 days; anyone with the link can view and edit that draft. |
 | Review and submit | Unanswered questions are highlighted. Click anywhere in a question box, or focus it and press Enter/Space, to edit the answer. Submission saves the response, even with incomplete questionnaire answers. |
 | Keep a response copy | PDF and JSON downloads are available during review and after submission. Downloading a copy does not submit the response. |
