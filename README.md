@@ -56,7 +56,7 @@ restricted to active superusers. Respondents do not need an account.
 | Area | What it covers |
 | --- | --- |
 | Presentation figures | Product-level counts, percentages, missing answers and source questions for the assessment slides. |
-| Vendor outreach | Vendor names, categories, contact emails, invitations, reminders and declines. Emails appear beneath vendor names. Marking an invitation as sent asks who sent it and records the date/time; both can be changed in **Edit details**. |
+| Vendor outreach | Vendor names, categories, contact emails, invitations, reminders and declines. Emails appear beneath vendor names. Marking an invitation as sent asks who sent it and records the date/time; both can be changed in **Edit details**. Unmatched questionnaires stay below the list: search existing vendors (including approximate names) and link directly, or choose **Add vendor as new entry**. |
 | Product comparison | Compare reported offerings by functional area, specialty and workflow integration. Group differently written names for the same product. |
 | Question tables | View answer distributions and provider-by-feature comparisons. Q1 uses an access scale; additional “Other” answers can be grouped or assigned to a category. |
 | Provider answers | Read the questions and answers for individual providers and solutions. |
@@ -80,7 +80,11 @@ restricted to active superusers. Respondents do not need an account.
   per vendor**, because invitations and declines are tracked for companies.
 - A submission matches an outreach vendor through its company/provider name or
   an alternate matching name entered in the vendor's details. Unmatched
-  submissions are shown for manual linking.
+  submissions are shown for manual linking with live vendor suggestions.
+  Manual links apply to all submissions under that organization name, including
+  future responses. Several submitted organization names can link to one vendor;
+  one organization cannot link to several vendors. Links persist after refresh and
+  can be removed in **Edit details**, without changing or deleting responses.
 - Unanswered questions and questions not asked are distinguished. Missing answers
   are not interpreted as “No”. Grouping product names or “Other” answers preserves
   the original wording.

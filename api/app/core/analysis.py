@@ -7,7 +7,7 @@ from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST
 
 from .models import OtherAnswerGrouping, QuestionnaireResponse, VendorInvitation
 from .questionnaire import LEGACY_QUESTION_IDS, QUESTION_COLUMNS, SCOPE_FIELDS, introduced_version, scope_codes
+from .vendor_linking import VendorLinkError, update_questionnaire_link
 
 
 MAX_OTHER_ANSWER_LENGTH = 2000
@@ -133,7 +134,7 @@ def analysis(request):
             }
             for row in QuestionnaireResponse.objects.defer("imported_pdf").all()
         ],
-        "invitations": [_vendor_payload(item) for item in VendorInvitation.objects.all()],
+        "invitations": [_vendor_payload(item) for item in VendorInvitation.objects.prefetch_related("questionnaire_links")],
         "other_groupings": [
             {
                 "question_id": item.question_id,
@@ -152,6 +153,7 @@ def _vendor_payload(item):
         "provider": item.provider_name,
         "category": item.category,
         "match_name": item.submission_match_name,
+        "linked_names": [link.organization_name for link in item.questionnaire_links.all()],
         "invitation_sent": item.invitation_sent,
         "contact_email": item.contact_email,
         "invitation_sent_by": item.invitation_sent_by,
@@ -173,6 +175,16 @@ def _delete_vendor_outreach(payload):
     return JsonResponse({"deleted_id": payload["id"]})
 
 
+def _save_questionnaire_vendor_link(payload):
+    try:
+        item = update_questionnaire_link(payload)
+    except VendorLinkError as failure:
+        return JsonResponse({"error": str(failure)}, status=failure.status)
+    except IntegrityError:
+        return JsonResponse({"error": "This organization was just added or linked. Refresh the page to see the latest changes."}, status=409)
+    return JsonResponse({"vendor": _vendor_payload(item)}, status=201 if payload["action"] == "create_from_submission" else 200)
+
+
 @superuser_only
 @require_POST
 def save_vendor_outreach(request):
@@ -180,10 +192,12 @@ def save_vendor_outreach(request):
         payload = json.loads(request.body)
     except (ValueError, TypeError):
         return JsonResponse({"error": "Invalid request."}, status=400)
-    if not isinstance(payload, dict) or payload.get("action") not in {"create", "update", "delete"}:
+    if not isinstance(payload, dict) or not isinstance(payload.get("action"), str) or payload["action"] not in {"create", "update", "delete", "link", "unlink", "create_from_submission"}:
         return JsonResponse({"error": "Invalid action."}, status=400)
     if payload["action"] == "delete":
         return _delete_vendor_outreach(payload)
+    if payload["action"] in {"link", "unlink", "create_from_submission"}:
+        return _save_questionnaire_vendor_link(payload)
 
     with transaction.atomic():
         if payload["action"] == "create":

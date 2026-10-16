@@ -1436,8 +1436,79 @@ function figureTable(rows) {
   return table;
 }
 function matchedVendorGroups(vendor, groups) {
-  const names = new Set([vendor.provider, vendor.match_name].filter(Boolean).map(normalizeOther));
+  const names = new Set([vendor.provider, vendor.match_name, ...(vendor.linked_names || [])].filter(Boolean).map(normalizeOther));
   return groups.filter(group => names.has(group.key));
+}
+const vendorSearchText = value => String(value).normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+function vendorNameScore(query, name) {
+  if (!query) return 1;
+  if (!name) return 0;
+  if (name === query) return 1;
+  if (name.includes(query) || query.includes(name)) return 0.9;
+  if (query.length < 3) return 0;
+  const queryWords = query.split(' ');
+  const words = name.split(' ');
+  const overlap = queryWords.filter(word => words.includes(word)).length / Math.max(words.length, queryWords.length);
+  let previous = Array.from({ length: name.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= query.length; row++) {
+    const current = [row];
+    for (let column = 1; column <= name.length; column++) {
+      current[column] = Math.min(current[column - 1] + 1, previous[column] + 1,
+        previous[column - 1] + Number(query[row - 1] !== name[column - 1]));
+    }
+    previous = current;
+  }
+  return Math.max(overlap, 1 - previous[name.length] / Math.max(query.length, name.length));
+}
+function searchVendors(query, vendors) {
+  const text = vendorSearchText(query);
+  return vendors.map(vendor => ({ vendor, score: Math.max(...[vendor.provider, vendor.match_name, ...(vendor.linked_names || [])].filter(Boolean).map(name => vendorNameScore(text, vendorSearchText(name)))) }))
+    .filter(item => item.score >= 0.45)
+    .sort((a, b) => b.score - a.score || a.vendor.provider.localeCompare(b.vendor.provider))
+    .slice(0, 8).map(item => item.vendor);
+}
+function unmatchedVendorEditor(group, vendors, error) {
+  const section = node('section', undefined, 'outreach-link-entry');
+  section.append(node('h4', group.name), node('p', `${group.rows.length} questionnaire response(s) · ${[...new Set(group.rows.map(row => row.solution).filter(Boolean))].join(', ') || 'Unnamed solution'}`, 'muted'));
+  const label = node('label', 'Find an existing vendor');
+  const input = node('input'); input.type = 'search'; input.value = group.name; input.placeholder = 'Type an organization name';
+  label.append(input);
+  const results = node('ul', undefined, 'outreach-link-results');
+  const status = node('p', 'Choose a vendor from the suggestions, or search by another name.', 'muted');
+  status.setAttribute('role', 'status');
+  const link = node('button', 'Link to selected vendor'); link.type = 'button'; link.disabled = true;
+  const add = node('button', 'Add vendor as new entry'); add.type = 'button';
+  const actions = node('div', undefined, 'outreach-link-actions'); actions.append(link, add);
+  let selected = null;
+  const updateResults = () => {
+    results.replaceChildren();
+    const suggestions = searchVendors(input.value, vendors);
+    for (const vendor of suggestions) {
+      const item = node('li'); const choose = node('button', vendor.provider); choose.type = 'button';
+      choose.setAttribute('aria-pressed', String(selected?.id === vendor.id));
+      choose.addEventListener('click', () => {
+        selected = vendor; link.disabled = false; status.textContent = `Selected: ${vendor.provider}`; updateResults();
+      });
+      item.append(choose); results.append(item);
+    }
+    if (!suggestions.length) results.append(node('li', 'No matching vendors. Try another name or add this organization as a new entry.', 'muted'));
+  };
+  input.addEventListener('input', () => {
+    selected = null; link.disabled = true; status.textContent = 'Choose a vendor from the suggestions.'; updateResults();
+  });
+  const save = async action => {
+    link.disabled = true; add.disabled = true; input.disabled = true; error.textContent = ''; status.textContent = 'Saving link…';
+    try {
+      await saveVendor({ action, response_id: group.rows[0].id, ...(action === 'link' ? { id: selected.id } : {}) });
+      renderOutreach(); renderPresentation(data.responses);
+    } catch (failure) {
+      error.textContent = failure.message; status.textContent = failure.message;
+      link.disabled = !selected; add.disabled = false; input.disabled = false;
+    }
+  };
+  link.addEventListener('click', () => { if (selected) return save('link'); });
+  add.addEventListener('click', () => save('create_from_submission'));
+  updateResults(); section.append(label, results, status, actions); return section;
 }
 async function saveVendor(payload) {
   const response = await fetch(vendorUrl, {
@@ -1460,7 +1531,7 @@ function renderOutreach() {
   outreach.replaceChildren();
   const card = node('article', undefined, 'card');
   card.append(node('h2', 'Vendor outreach'));
-  card.append(node('p', 'Tick each step as it happens. Current-version questionnaire responses are linked by organization name; refresh this page to see new submissions. If a vendor used a different name, enter it in Edit details.', 'muted'));
+  card.append(node('p', 'Tick each step as it happens. Current-version questionnaire responses are linked by organization name; refresh this page to see new submissions. Link unmatched organizations to an existing vendor or add them as new entries below.', 'muted'));
   const groups = vendorGroups(data.submissions.filter(row => row.version === data.current_version));
   const categories = [{ value: '', label: 'Uncategorized' }, ...data.vendor_categories];
   const categoryLabels = new Map(categories.map(item => [item.value, item.label]));
@@ -1571,6 +1642,22 @@ function renderOutreach() {
     });
     const actions = node('div', undefined, 'outreach-detail-actions'); actions.append(save, remove);
     form.append(nameLabel, emailLabel, categoryLabel, matchLabel, senderLabel, sentLabel, notesLabel, actions);
+    if (vendor.linked_names?.length) {
+      const links = node('div', undefined, 'outreach-manual-links');
+      links.append(node('strong', 'Linked questionnaire organizations'));
+      for (const name of vendor.linked_names) {
+        const line = node('div'); const unlink = node('button', 'Remove manual link'); unlink.type = 'button';
+        unlink.addEventListener('click', async () => {
+          unlink.disabled = true; error.textContent = '';
+          try {
+            await saveVendor({ action: 'unlink', id: vendor.id, organization: name });
+            renderOutreach(); renderPresentation(data.responses);
+          } catch (failure) { error.textContent = failure.message; unlink.disabled = false; }
+        });
+        line.append(node('span', name), unlink); links.append(line);
+      }
+      details.append(links);
+    }
     form.addEventListener('submit', async event => {
       event.preventDefault(); save.disabled = true; error.textContent = '';
       try {
@@ -1586,7 +1673,7 @@ function renderOutreach() {
     outreachSearch = search.value.trim().toLowerCase(); outreachFilter = filter.value; outreachCategory = categoryFilter.value;
     let count = 0;
     for (const { row, vendor, answered } of visibleRows) {
-      const searchMatch = `${vendor.provider} ${vendor.contact_email || ''} ${vendor.match_name || ''} ${vendor.invitation_sent_by || ''} ${vendor.notes || ''}`.toLowerCase().includes(outreachSearch);
+      const searchMatch = `${vendor.provider} ${vendor.contact_email || ''} ${vendor.match_name || ''} ${(vendor.linked_names || []).join(' ')} ${vendor.invitation_sent_by || ''} ${vendor.notes || ''}`.toLowerCase().includes(outreachSearch);
       const statusMatch = outreachFilter === 'all' ||
         (outreachFilter === 'not_invited' && !vendor.invitation_sent) ||
         (outreachFilter === 'waiting' && vendor.invitation_sent && !vendor.declined && !answered) ||
@@ -1623,7 +1710,8 @@ function renderOutreach() {
   if (unmatched.length) {
     const notice = node('div', undefined, 'outreach-unmatched');
     notice.append(node('h3', `${unmatched.length} questionnaire vendor(s) need linking`));
-    notice.append(node('p', unmatched.map(group => `${group.name} (${group.rows.length})`).join(', ') + '. Add each vendor above or enter its submitted organization name in an existing row’s details.', 'muted'));
+    notice.append(node('p', 'Search for an existing vendor and select it to link the questionnaire, or add the submitted organization as a new vendor.', 'muted'));
+    for (const group of unmatched) notice.append(unmatchedVendorEditor(group, vendors, error));
     card.append(notice);
   }
   outreach.append(card);

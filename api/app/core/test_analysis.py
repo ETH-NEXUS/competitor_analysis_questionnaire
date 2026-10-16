@@ -187,7 +187,7 @@ class AnalysisTests(TestCase):
             ).group(1)
         )
         self.assertEqual(
-            payload["invitations"], [{"id": VendorInvitation.objects.get().pk, "provider": "Declined Vendor", "category": "", "match_name": "", "invitation_sent": False, "contact_email": "", "invitation_sent_by": "", "invitation_sent_at": None, "reminder_sent": False, "declined": True, "notes": ""}]
+            payload["invitations"], [{"id": VendorInvitation.objects.get().pk, "provider": "Declined Vendor", "category": "", "match_name": "", "linked_names": [], "invitation_sent": False, "contact_email": "", "invitation_sent_by": "", "invitation_sent_at": None, "reminder_sent": False, "declined": True, "notes": ""}]
         )
         self.assertContains(response, "Presentation figures")
         user = get_user_model().objects.create_superuser(

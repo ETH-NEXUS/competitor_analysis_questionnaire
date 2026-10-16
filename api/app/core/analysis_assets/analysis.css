@@ -13,6 +13,7 @@ header nav{display:flex;flex-wrap:wrap;gap:16px}.summary-grid{display:grid;grid-
 .product-matrix tr:nth-child(even) td{background:#fafcfc}.product-matrix strong{display:block}.product-matrix small{display:block;color:#526965;margin-top:5px;line-height:1.35}
 .presentation-intro{background:#edf6f3;border-left:4px solid #007d76;padding:16px 20px;margin:14px 0 24px}
 .presentation-intro p{margin:6px 0}
+.outreach-link-entry{border-top:1px solid #dfcfb2;margin-top:16px;padding-top:16px}.outreach-link-entry h4{margin:0 0 6px}.outreach-link-entry input{width:100%;max-width:520px;font:inherit;padding:10px 12px;border:1px solid #aabfbc;border-radius:7px;background:white;color:#173331}.outreach-link-results{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:10px 0}.outreach-link-results [aria-pressed=true]{background:#dcece7;border-color:#007d76}.outreach-link-actions{display:flex;flex-wrap:wrap;gap:10px}.outreach-link-actions button:first-child{background:#007d76;color:white}.outreach-link-entry button:disabled{opacity:.5;cursor:not-allowed}.outreach-manual-links{display:grid;gap:10px;margin:14px 0}.outreach-manual-links>div{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.outreach-manual-links button{padding:5px 8px;font-size:12px}.outreach-link-entry input:focus-visible{outline:3px solid #b16c00;outline-offset:3px}
 .presentation-section{background:#fff;border:1px solid #dce5e4;border-radius:12px;margin:18px 0;padding:20px}
 .presentation-section h2{margin:0 0 6px}
 .presentation-section .muted{margin:4px 0 14px}

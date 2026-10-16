@@ -213,11 +213,22 @@ class VendorInvitation(models.Model):
             for name in (self.provider_name, self.submission_match_name)
             if name and name.strip()
         }
-        for other in type(self).objects.exclude(pk=self.pk):
+        if self.pk:
+            own_names.update(" ".join(link.organization_name.split()).casefold() for link in self.questionnaire_links.all())
+        for other in type(self).objects.exclude(pk=self.pk).prefetch_related("questionnaire_links"):
             other_names = {
                 " ".join(name.split()).casefold()
                 for name in (other.provider_name, other.submission_match_name)
                 if name and name.strip()
             }
+            other_names.update(" ".join(link.organization_name.split()).casefold() for link in other.questionnaire_links.all())
             if own_names & other_names:
                 raise ValidationError("This vendor or questionnaire name is already linked to another row.")
+
+
+class VendorQuestionnaireLink(models.Model):
+    """An administrator's organization-name match, shared by all its responses."""
+
+    vendor = models.ForeignKey(VendorInvitation, on_delete=models.CASCADE, related_name="questionnaire_links")
+    organization_name = models.CharField(max_length=200)
+    normalized_name = models.CharField(max_length=200, unique=True)
