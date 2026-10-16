@@ -232,7 +232,7 @@ function genericCorrection(parent, id, definition, answer, definitions) {
     }
   }
   const events = id === 'interoperabilityTesting' ? correctionList(parent, 'Testing event (when Yes is selected)', answer.testing_events, eventCorrection, 30) : null;
-  const requirements = id === 'requirements' ? correctionChoices(parent, 'What is required (when No is selected)', ['Integration with CIS/HIS', 'Integration with patient administration/ADT', 'Identity/SSO integration', 'Other clinical-system integrations', 'Data migration/import', 'Hospital-specific interface development', 'Vendor-specific customization/development', 'Local infrastructure/components', 'Clinical workflow/process configuration', 'Other'].map((title, index) => [String(index), title]), answer.followups?.['1']) : null;
+  const requirements = id === 'requirements' ? correctionChoices(parent, 'What is required (when No is selected)', ['Integration with CIS/HIS', 'Integration with patient administration/ADT', 'Identity/SSO integration', 'Other clinical-system integrations', 'Data migration/import', 'Hospital-specific interface development', 'Vendor-specific customization/development', 'Local infrastructure/components', 'Clinical workflow/process configuration', 'Other'].map((title, index) => [String(index), title]).filter(([value]) => value !== '1'), answer.followups?.['1']) : null;
   const requirementOther = requirements ? correctionText(parent, 'Other implementation requirement', answer.details?.requirements_other) : null;
   return () => {
     const choices = selected(); const otherSelected = choices.some(index => definition.options[Number(index)].startsWith('Other'));
@@ -906,7 +906,7 @@ function vendorTable(card, columns, rows, cellFor, { totals = false, additionalS
   const table = node('table', undefined, 'answer-matrix');
   const head = node('thead');
   const headings = node('tr');
-  headings.append(node('th', 'Provider / submission'));
+  headings.append(node('th', 'Product / submission'));
   if (statusFor) headings.append(node('th', 'Response'));
   columns.forEach((label, index) => {
     const heading = node('th', label);
@@ -927,15 +927,15 @@ function vendorTable(card, columns, rows, cellFor, { totals = false, additionalS
     const row = node('tr');
     const vendor = node('th', undefined, 'vendor-name');
     vendor.scope = 'row';
-    vendor.append(node('strong', response.provider || 'Unnamed provider'));
-    vendor.append(node('small', `${response.solution ? `${response.solution} · ` : ''}#${response.id} · ${response.scopes.join(', ') || 'No scope'}`));
+    vendor.append(node('strong', response.solution || 'Unnamed product'));
+    vendor.append(node('small', `${response.provider || 'Unnamed provider'} · #${response.id} · ${response.scopes.join(', ') || 'No scope'}`));
     row.append(vendor);
     if (statusFor) row.append(node('td', statusFor(response) === 'answered' ? 'Answered' : 'Unanswered', 'answer-status'));
     columns.forEach((label, index) => {
       const value = cellFor(response, label);
       const cell = node('td', value === 1 ? '✓' : value || '—', value ? 'matrix-yes' : 'matrix-no');
       if (index === additionalStart) cell.classList.add('additional-column');
-      cell.setAttribute('aria-label', `${response.provider}: ${label}: ${value === 1 ? 'Yes' : value || 'No'}`);
+      cell.setAttribute('aria-label', `${response.solution || 'Unnamed product'} — ${response.provider}: ${label}: ${value === 1 ? 'Yes' : value || 'No'}`);
       row.append(cell);
     });
     body.append(row);
@@ -1044,9 +1044,11 @@ function addCertificationsTable(card, rows, q) {
 function addImplementationRequirements(card, rows) {
   const noRows = rows.filter(response => answerSelection(response, 'requirements').includes('1'));
   if (!noRows.length) return;
+  // Keep stored values stable; retired ADT (1) is not a current answer option.
   const options = ['Integration with CIS/HIS', 'Integration with patient administration/ADT', 'Identity/SSO integration', 'Other clinical-system integrations', 'Data migration/import', 'Hospital-specific interface development', 'Vendor-specific customization/development', 'Local infrastructure/components', 'Clinical workflow/process configuration', 'Other'];
+  const visibleOptions = options.filter((_label, index) => index !== 1);
   card.append(node('h3', 'What is typically required if standard configuration is insufficient?'));
-  vendorTable(card, options, noRows, (response, label) => (response.answer_data?.requirements?.followups?.['1'] || []).includes(String(options.indexOf(label))) ? 1 : 0, { totals: true });
+  vendorTable(card, visibleOptions, noRows, (response, label) => (response.answer_data?.requirements?.followups?.['1'] || []).includes(String(options.indexOf(label))) ? 1 : 0, { totals: true });
   const other = noRows.filter(response => (response.answer_data?.requirements?.followups?.['1'] || []).includes('9'));
   if (other.length) {
     const list = node('dl', undefined, 'open-answers');
@@ -1216,15 +1218,8 @@ const sectionNames = {
 };
 const openSections = new Set(['1.1']);
 function filteredRows() {
-  const filtered = data.responses.filter(r => (!provider.value || r.provider === provider.value) && (!scope.value || r.scopes.includes(scope.value)));
-  if (mode.value !== 'latest_provider') return filtered;
-  const seen = new Set();
-  return filtered.filter(row => {
-    const key = normalizeOther(row.provider) || `response:${row.id}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  const rows = mode.value === 'latest_product' ? productGroups(data.responses).map(group => group.rows[0]) : data.responses;
+  return rows.filter(r => (!provider.value || r.provider === provider.value) && (!scope.value || r.scopes.includes(scope.value)));
 }
 function addSummaryMetric(parent, value, title, detail) {
   const metric = node('div', undefined, 'summary-metric');
@@ -1295,9 +1290,9 @@ const presentationSections = [
   { slide: 4, title: 'Deployment and Swiss data residency', keys: ['cloud', 'swissResidency', 'onPremise', 'privateCloud', 'publicCloud', 'saas', 'hybrid'], note: 'Swiss residency is asked only when a solution retains patient information. Conditional Yes answers count as capable under the stated hosting model.' },
   { slide: 5, title: 'Data portability and vendor independence', keys: ['exitProcess', 'recordExport', 'reusableContent', 'vendorMigration'], note: 'Record export is asked when Q6 reports persistent clinical-data storage without limiting it to specific data or documents. Migration dependence includes either a vendor-specific record export or a CIS migration approach requiring substantial custom conversion.' },
   { slide: 6, title: 'Structured and reusable clinical data', keys: ['fhirModel', 'snomed', 'loinc', 'openEhr', 'omop', 'researchApi', 'deidentification', 'secondaryGovernance'], note: 'These questions are available to the relevant solution categories. Explicit None or Not applicable answers remain separate from missing answers.' },
-  { slide: 7, title: 'HCP-facing solutions', keys: ['clinicalDocumentation', 'medicationManagement', 'nursingWorkflows', 'scheduling', 'wardManagement', 'decisionSupport', 'automaticReuse', 'specialtyWorkflows', 'speechToText', 'ambientAi', 'automatedLetters', 'shortcuts'], note: 'Functional coverage counts core CIS offerings. Documentation methods are reported at submission level; for vendors selecting both A and B, the answer may also describe specialized functions.' },
-  { slide: 8, title: 'Existing ecosystem building blocks', keys: ['coreVendors', 'specialistVendors', 'patientVendors', 'integrationEngine', 'apiManagement', 'orchestration', 'clinicalRepository', 'fhirServer', 'mpi', 'terminologyService', 'analyticsWarehouse', 'vendorNeutralArchive', 'researchSecondary'], note: 'These are distinct vendor counts. A vendor may appear in several building blocks. Data capabilities come from category C; research/secondary use is shown when Q6 reports persistent clinical data storage. Unanswered capability questions are not treated as a negative response.' },
-  { slide: 9, title: 'Security, certification and Swiss readiness', keys: ['iso27001', 'medicalConformity', 'eprConformity', 'testing'], note: 'Medical device and EPR/EPD rows exclude vendors who selected Not applicable. Certificate scope and validity remain in the detailed answers.' },
+  { slide: 7, title: 'HCP-facing solutions', keys: ['clinicalDocumentation', 'medicationManagement', 'nursingWorkflows', 'scheduling', 'wardManagement', 'decisionSupport', 'automaticReuse', 'specialtyWorkflows', 'speechToText', 'ambientAi', 'automatedLetters', 'shortcuts'], note: 'Functional coverage counts core CIS offerings. Documentation methods are reported at submission level; for products assigned both A and B, the answer may also describe specialized functions.' },
+  { slide: 8, title: 'Existing ecosystem building blocks', keys: ['coreVendors', 'specialistVendors', 'patientVendors', 'integrationEngine', 'apiManagement', 'orchestration', 'clinicalRepository', 'fhirServer', 'mpi', 'terminologyService', 'analyticsWarehouse', 'vendorNeutralArchive', 'researchSecondary'], note: 'These are distinct product counts. A product may appear in several building blocks. Data capabilities come from category C; research/secondary use is shown when Q6 reports persistent clinical data storage. Unanswered capability questions are not treated as a negative response.' },
+  { slide: 9, title: 'Security, certification and Swiss readiness', keys: ['iso27001', 'medicalConformity', 'eprConformity', 'testing'], note: 'Medical device and EPR/EPD rows exclude products marked Not applicable. Certificate scope and validity remain in the detailed answers.' },
   { slide: 10, title: 'Overall findings', keys: ['fhirStandard', 'documentedApis', 'independentDevelopment', 'sandbox', 'cloud', 'swissResidency', 'recordExport', 'exitProcess', 'clinicalDocumentation', 'automaticReuse', 'anyCertification', 'testing'] },
 ];
 const questionById = new Map(data.questions.map(question => [question.id, question]));
@@ -1307,6 +1302,21 @@ function vendorGroups(rows) {
     const key = normalizeOther(response.provider) || 'response:' + response.id;
     if (!groups.has(key)) groups.set(key, { key, name: response.provider || 'Unnamed provider', rows: [] });
     groups.get(key).rows.push(response);
+  }
+  return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+function productGroups(rows) {
+  const groups = new Map();
+  const newestFirst = [...rows].sort((a, b) =>
+    ((Date.parse(b.submitted) || 0) - (Date.parse(a.submitted) || 0)) || b.id - a.id);
+  for (const response of newestFirst) {
+    const provider = normalizeOther(response.provider || '');
+    const solution = normalizeOther(response.solution || '');
+    // Missing historical names must not accidentally merge unrelated responses.
+    const key = provider && solution ? JSON.stringify([provider, solution]) : 'response:' + response.id;
+    if (groups.has(key)) continue;
+    const name = `${response.solution || 'Unnamed product'} — ${response.provider || 'Unnamed provider'}${provider && solution ? '' : ' · #' + response.id}`;
+    groups.set(key, { key, name, rows: [response] });
   }
   return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -1378,20 +1388,20 @@ function figureRow(key, groups) {
   row.append(node('td', spec.label));
   const value = node('td', undefined, 'figure-value');
   if (spec.kind === 'count' || spec.kind === 'scopeCount') {
-    value.append(node('span', (spec.kind === 'count' ? result.answered.length : groups.length) ? result.matched.length + ' vendors' : '—'));
+    value.append(node('span', (spec.kind === 'count' ? result.answered.length : groups.length) ? result.matched.length + ' products' : '—'));
   } else if (result.answered.length) {
     value.append(node('span', result.matched.length + ' / ' + result.eligible));
-    value.append(node('small', Math.round(result.matched.length / result.eligible * 100) + '% of eligible vendors reporting this'));
+    value.append(node('small', Math.round(result.matched.length / result.eligible * 100) + '% of eligible products reporting this'));
   } else value.append(node('span', '—'));
   row.append(value);
   const coverage = node('td', undefined, 'figure-coverage');
   if (spec.kind === 'count' || spec.kind === 'scopeCount') {
-    coverage.append(node('span', spec.kind === 'scopeCount' ? 'Distinct providers' : result.answered.length + ' answered · ' + result.missing.length + ' missing' + (result.routingUnknown.length ? ' · ' + result.routingUnknown.length + ' routing unknown' : '')));
+    coverage.append(node('span', spec.kind === 'scopeCount' ? 'Distinct products' : result.answered.length + ' answered · ' + result.missing.length + ' missing' + (result.routingUnknown.length ? ' · ' + result.routingUnknown.length + ' routing unknown' : '')));
   } else {
     coverage.append(node('span', result.answered.length + ' answered · ' + result.missing.length + ' missing of ' + result.eligible + ' eligible' + (result.routingUnknown.length ? ' · ' + result.routingUnknown.length + ' routing unknown' : '')));
   }
   const vendorDetails = node('details', undefined, 'figure-vendors');
-  vendorDetails.append(node('summary', 'Show vendors'));
+  vendorDetails.append(node('summary', 'Show products'));
   vendorDetails.append(node('p', 'Counted: ' + (result.matched.join(', ') || 'None')));
   if (spec.kind !== 'scopeCount')
     vendorDetails.append(node('p', 'Answer missing: ' + (result.missing.join(', ') || 'None')));
@@ -1662,13 +1672,13 @@ function participationSection(groups) {
 }
 function renderPresentation(rows) {
   presentation.replaceChildren();
-  const groups = vendorGroups(rows);
+  const groups = productGroups(rows);
   const intro = node('div', undefined, 'presentation-intro');
-  intro.append(node('h2', 'Figures for the vendor assessment presentation'));
-  intro.append(node('p', 'Slide numbers match the assessment deck. A vendor is counted once per measure, even if it submitted several solutions. Percentages show the share of eligible vendors reporting a capability. Missing answers remain visible and are not interpreted as No.'));
-  intro.append(node('p', 'These figures always use all current-version submissions. Filters in the detailed analysis tabs do not change them.'));
-  if (!groups.length) intro.append(node('p', 'No current-version submissions are available yet. Figures will appear as vendors respond.'));
-  presentation.append(intro, participationSection(groups));
+  intro.append(node('h2', 'Figures for the product assessment presentation'));
+  intro.append(node('p', 'Slide numbers match the assessment deck. Each product is counted separately, including several products from one vendor. Products are identified by company and solution name, using the latest submission for each pair. Percentages show the share of eligible products reporting a capability. Missing answers remain visible and are not interpreted as No.'));
+  intro.append(node('p', 'These figures use the latest current-version response per product. Filters in the detailed analysis tabs do not change them. Outreach participation remains per vendor.'));
+  if (!groups.length) intro.append(node('p', 'No current-version submissions are available yet. Figures will appear as products are submitted.'));
+  presentation.append(intro, participationSection(vendorGroups(rows)));
   for (const definition of presentationSections) {
     const section = node('section', undefined, 'presentation-section');
     section.append(node('h2', 'Slide ' + definition.slide + ' · ' + definition.title));
@@ -1736,20 +1746,20 @@ function renderSubmissions() {
 function render() {
   const rows = filteredRows();
   const records = clinicalRecords(rows);
-  const productGroups = groupingMap('clinicalProduct');
+  const productNameGroups = groupingMap('clinicalProduct');
   const productNames = new Set(records.map(record => {
     const raw = `${record.developer} — ${record.name}`;
-    return productGroups.get(normalizeOther(raw)) || raw;
+    return productNameGroups.get(normalizeOther(raw)) || raw;
   }));
   const summary = document.getElementById('summary');
   summary.replaceChildren();
-  addSummaryMetric(summary, rows.length, mode.value === 'latest_provider' ? 'latest provider submissions' : 'submissions', 'Current filters');
-  addSummaryMetric(summary, new Set(rows.map(row => normalizeOther(row.provider))).size, 'providers', 'Names grouped by case and spacing');
+  addSummaryMetric(summary, productGroups(rows).length, 'products', 'Company + solution name');
+  addSummaryMetric(summary, rows.length, mode.value === 'latest_product' ? 'latest product submissions' : 'submissions including repeats', 'Current filters');
   addSummaryMetric(summary, records.length, 'reported offerings', `${productNames.size} grouped product names`);
   const url = new URL(exportUrl);
   if (provider.value) url.searchParams.set('provider', provider.value);
   if (scope.value) url.searchParams.set('scope', scope.value);
-  if (mode.value === 'latest_provider') url.searchParams.set('mode', 'latest_provider');
+  if (mode.value === 'latest_product') url.searchParams.set('mode', 'latest_product');
   exportLink.href = url.href;
   products.replaceChildren(); charts.replaceChildren(); providers.replaceChildren();
   renderPresentation(data.responses);

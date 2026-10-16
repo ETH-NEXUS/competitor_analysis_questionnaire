@@ -36,10 +36,31 @@ def superuser_only(view):
     return protected
 
 
+def latest_products(rows):
+    seen = set()
+    latest = []
+    for row in rows:
+        provider = " ".join(row.provider_name.split()).casefold()
+        solution = " ".join(row.solution_name.split()).casefold()
+        key = (provider, solution) if provider and solution else ("response", row.pk)
+        if key not in seen:
+            seen.add(key)
+            latest.append(row)
+    return latest
+
+
 def responses(request):
     queryset = QuestionnaireResponse.objects.defer("imported_pdf").filter(
         questionnaire_version=CURRENT_QUESTIONNAIRE_VERSION
     )
+    if request.GET.get("mode") == "latest_product":
+        provider = request.GET.get("provider")
+        scope = request.GET.get("scope")
+        return [
+            row for row in latest_products(queryset)
+            if (not provider or row.provider_name == provider)
+            and (scope not in SCOPE_FIELDS or getattr(row, SCOPE_FIELDS[scope]))
+        ]
     if provider := request.GET.get("provider"):
         queryset = queryset.filter(provider_name=provider)
     if (scope := request.GET.get("scope")) in SCOPE_FIELDS:

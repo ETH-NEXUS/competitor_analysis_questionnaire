@@ -25,7 +25,20 @@ const storeSource = (await read('stores/questionnaire.ts'))
   .replaceAll('import.meta.client', 'true')
 const globals = 'const {ref,computed,watch,onScopeDispose}=globalThis.__draftStoreVue; const {defineStore}=globalThis.__draftStorePinia;\n'
 const { useQuestionnaireStore } = await import(moduleUrl(globals + storeSource))
-const { emptyAnswer } = await import(questionnaire)
+const { emptyAnswer, sections, activeAnswer, answerLines, isAnswered, activeImplementationRequirementOptions } = await import(questionnaire)
+
+test('retiring the ADT requirement preserves the remaining saved option values', () => {
+  const question = sections.flatMap(section => section.questions).find(question => question.id === 'requirements')
+  assert.equal(activeImplementationRequirementOptions.some(option => option.value === '1'), false)
+  assert.equal(activeImplementationRequirementOptions.find(option => option.value === '2').label, 'Identity/SSO integration')
+  const answer = { ...emptyAnswer(), selected: ['1'], followups: { '1': ['1', '2', '4', '9'] }, details: { requirements_other: 'Extra mapping' } }
+  assert.deepEqual(activeAnswer(question, answer).followups['1'], ['2', '4', '9'])
+  const lines = answerLines(question, answer).join('\n')
+  assert.equal(lines.includes('Integration with patient administration/ADT'), false)
+  assert.equal(lines.includes('Identity/SSO integration'), true)
+  assert.equal(lines.includes('Data migration/import'), true)
+  assert.equal(isAnswered(question, { ...answer, followups: { '1': ['1'] } }), false)
+})
 
 function setup(t, { token = '', storage = new Map(), data } = {}) {
   const url = new URL('https://questionnaire.example/' + (token ? '#draft=' + token : ''))

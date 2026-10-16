@@ -368,6 +368,42 @@ class AnalysisTests(TestCase):
         self.assertEqual(rows[1][0], "' =Test   Provider ")
         self.assertIn("No documented APIs", rows[1][6])
 
+    def test_latest_product_csv_keeps_separate_solutions_and_uses_newest_answers(self):
+        QuestionnaireResponse.objects.all().delete()
+        for provider, solution, answer in (
+            ("Alpha", "Suite", "Older answer"),
+            ("Alpha", "Portal", "Portal answer"),
+            (" alpha ", " suite ", "Latest suite answer"),
+            ("Beta", "Suite", "Different company answer"),
+        ):
+            QuestionnaireResponse.objects.create(provider_name=provider, solution_name=solution,
+                respondent_email="test@example.com", data_interoperability=True, api_access=answer)
+        response = export_csv(self.request("/admin/analysis/export.csv?mode=latest_product"))
+        rows = list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"))))
+        self.assertEqual(len(rows), 4)
+        content = response.content.decode()
+        self.assertNotIn("Older answer", content)
+        for answer in ("Portal answer", "Latest suite answer", "Different company answer"):
+            self.assertIn(answer, content)
+
+    def test_latest_product_is_chosen_before_filtering_by_scope(self):
+        QuestionnaireResponse.objects.all().delete()
+        for scopes in ({"data_interoperability": True}, {"patient_facing": True}):
+            QuestionnaireResponse.objects.create(provider_name="Alpha", solution_name="Suite",
+                respondent_email="test@example.com", **scopes)
+        response = export_csv(self.request("/admin/analysis/export.csv?mode=latest_product&scope=C"))
+        rows = list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"))))
+        self.assertEqual(len(rows), 1, "An older scope must not resurrect an obsolete product response")
+
+    def test_unnamed_historical_products_are_not_merged(self):
+        QuestionnaireResponse.objects.all().delete()
+        for _ in range(2):
+            QuestionnaireResponse.objects.create(provider_name="Alpha", solution_name="",
+                respondent_email="test@example.com", data_interoperability=True)
+        response = export_csv(self.request("/admin/analysis/export.csv?mode=latest_product"))
+        rows = list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"))))
+        self.assertEqual(len(rows), 3)
+
     def test_separate_other_items_are_saved_as_structured_data(self):
         serializer = QuestionnaireResponseSerializer(
             data={

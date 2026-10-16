@@ -398,7 +398,7 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
                   :title="
                     complete
                       ? 'All applicable questions are complete. Your response is ready to submit.'
-                      : 'Your response is ready to submit. Unanswered or incomplete questions are highlighted below; you can submit without completing them.'
+                      : 'Your response is ready to submit. Unanswered or incomplete questions are highlighted below'
                   "
                 />
                 <UCard>
@@ -417,43 +417,42 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', onDraftLinkChange
                       <UButton type="button" variant="link" @click="goTo(section.stage)">Edit section</UButton>
                     </div>
                   </template>
-                  <div
+                  <button
                     v-for="question in section.questions"
                     :key="question.id"
-                    class="question-field"
+                    type="button"
+                    class="question-field review-question-box"
                     :class="{ 'review-unanswered': incompleteQuestionIds.has(question.id) }"
+                    :aria-label="`Edit question ${question.number}: ${question.label}`"
+                    @click="goToQuestion(section.stage, question.id)"
                   >
-                    <h3 class="text-sm font-medium">
-                      <button
-                        type="button"
-                        class="review-question-link"
-                        :aria-label="`Go to question ${question.number}: ${question.label}`"
-                        @click="goToQuestion(section.stage, question.id)"
-                      >
-                        Q{{ question.number }}. {{ question.label }}
-                      </button>
-                    </h3>
-                    <p
+                    <span class="flex items-start justify-between gap-4 text-sm font-medium">
+                      <span class="text-teal-700"> Q{{ question.number }}. {{ question.label }} </span>
+                      <span class="shrink-0 text-teal-700">Edit answer →</span>
+                    </span>
+                    <span
                       v-if="!isAnswered(question, store.answerForDisplay(question.id))"
-                      class="text-warning mt-2 text-xs"
+                      class="text-warning mt-2 block text-xs"
                     >
                       {{
                         answerLines(question, store.answerForDisplay(question.id)).length
                           ? 'Incomplete answer (optional to complete)'
                           : 'Unanswered (optional to complete)'
                       }}
-                    </p>
-                    <ul class="text-muted mt-3 space-y-2 text-sm leading-relaxed">
-                      <li
+                    </span>
+                    <span class="text-muted mt-3 block space-y-2 text-sm leading-relaxed">
+                      <span
                         v-for="(line, index) in answerLines(question, store.answerForDisplay(question.id))"
                         :key="index"
-                        class="whitespace-pre-wrap"
+                        class="block whitespace-pre-wrap"
                       >
                         {{ line }}
-                      </li>
-                      <li v-if="!answerLines(question, store.answerForDisplay(question.id)).length">Not answered</li>
-                    </ul>
-                  </div>
+                      </span>
+                      <span v-if="!answerLines(question, store.answerForDisplay(question.id)).length" class="block"
+                        >Not answered</span
+                      >
+                    </span>
+                  </button>
                 </UCard>
               </div>
 

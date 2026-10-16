@@ -7,7 +7,7 @@ import {
   emptyTestingEvent,
   fhirReleases,
   hl7v2MessageTypes,
-  implementationRequirementOptions,
+  activeImplementationRequirementOptions,
   otherIndex,
   otherIsSelected,
   productsFor,
@@ -453,11 +453,11 @@ function removeProduct(key: string, index: number) {
       <p class="text-muted text-sm">Select all that apply.</p>
       <div class="grid gap-2 sm:grid-cols-2">
         <UCheckbox
-          v-for="(item, index) in implementationRequirementOptions"
-          :key="item"
-          :label="item"
-          :model-value="(answer.followups['1'] || []).includes(String(index))"
-          @update:model-value="updateFollowup('1', String(index), $event === true)"
+          v-for="item in activeImplementationRequirementOptions"
+          :key="item.value"
+          :label="item.label"
+          :model-value="(answer.followups['1'] || []).includes(item.value)"
+          @update:model-value="updateFollowup('1', item.value, $event === true)"
         />
       </div>
       <UFormField v-if="answer.followups['1']?.includes('9')" label="Other requirement">

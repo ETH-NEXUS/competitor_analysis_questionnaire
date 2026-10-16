@@ -39,7 +39,7 @@ human-readable reference for reviewing the questionnaire.
 | Save and resume | Answers save automatically in the browser and are restored after a refresh. |
 | Continue with a colleague | **Send to a colleague**, beside **Submit response** on the review page, copies a private link. The colleague sees the existing answers and can continue without an account. The respondent sends the link themselves; no email is sent automatically. |
 | Collaborate on one draft | Shared changes save automatically. Simultaneous edits are checked for conflicts so newer work is not silently overwritten. Links expire after 90 days; anyone with the link can view and edit that draft. |
-| Review and submit | Unanswered questions are highlighted and question titles link back to their fields. Submission saves the response, even with incomplete questionnaire answers. |
+| Review and submit | Unanswered questions are highlighted. Click anywhere in a question box, or focus it and press Enter/Space, to edit the answer. Submission saves the response, even with incomplete questionnaire answers. |
 | Keep a response copy | PDF and JSON downloads are available during review and after submission. Downloading a copy does not submit the response. |
 | Describe several offerings | A response can include a core CIS platform, external integrations and specialized functions, with company/product names, functional areas, specialties and workflow-integration details. |
 | Provide additional detail | Follow-ups cover FHIR releases, HL7 v2 messages, testing events, certification scope/validity, integration requirements and charging bases. “Other” accepts separate entries; single-choice questions accept one. |
@@ -55,7 +55,7 @@ restricted to active superusers. Respondents do not need an account.
 
 | Area | What it covers |
 | --- | --- |
-| Presentation figures | Vendor-level counts, percentages, missing answers and source questions for the assessment slides. |
+| Presentation figures | Product-level counts, percentages, missing answers and source questions for the assessment slides. |
 | Vendor outreach | Vendor names, categories, contact emails, invitations, reminders and declines. Emails appear beneath vendor names. Marking an invitation as sent asks who sent it and records the date/time; both can be changed in **Edit details**. |
 | Product comparison | Compare reported offerings by functional area, specialty and workflow integration. Group differently written names for the same product. |
 | Question tables | View answer distributions and provider-by-feature comparisons. Q1 uses an access scale; additional “Other” answers can be grouped or assigned to a category. |
@@ -66,12 +66,18 @@ restricted to active superusers. Respondents do not need an account.
 
 **Analysis logic**
 
-- Detailed analysis and CSV use current-version responses, with provider/category
-  filters and an optional latest-response-per-provider view. Older responses
-  remain available under **Submissions**.
-- Presentation figures count distinct vendors and use all current-version
-  responses, independently of detailed-analysis filters. Participation figures
-  use vendors marked as invited.
+- **Count per product, not per vendor.** A product is identified by company/provider
+  and solution name, ignoring capitalization and extra spaces. Different products
+  from the same vendor count separately; the same product name from different
+  vendors also counts separately. Repeat submissions use the latest response for
+  that product, without combining answers from older submissions. Historical
+  responses without a company or solution name remain separate.
+- Detailed analysis and CSV default to the latest current-version response per
+  product, with provider/category filters. **All submissions (including repeats)**
+  remains available for reviewing history; **Submissions** includes older versions.
+- Presentation figures use the latest current-version response per product,
+  independently of detailed-analysis filters. **Outreach participation remains
+  per vendor**, because invitations and declines are tracked for companies.
 - A submission matches an outreach vendor through its company/provider name or
   an alternate matching name entered in the vendor's details. Unmatched
   submissions are shown for manual linking.
@@ -125,6 +131,9 @@ Keep the Word question catalogue and the live questionnaire aligned when changin
 questions, choices or dependencies. Editing the DOCX alone does not change the
 website. Existing choice order and historical answers need to be considered when
 updating the form.
+The Q47 follow-up no longer offers **Integration with patient administration/ADT**.
+Its old stored value is reserved so the remaining options keep their meaning;
+previously submitted answers are retained.
 
 ### Find settings and local access
 

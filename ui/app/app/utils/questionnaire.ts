@@ -408,6 +408,10 @@ export const implementationRequirementOptions = [
   'Clinical workflow/process configuration',
   'Other',
 ]
+// Preserve stored indices when retiring a choice; later answers must not shift.
+export const activeImplementationRequirementOptions = implementationRequirementOptions
+  .map((label, index) => ({ label, value: String(index) }))
+  .filter((option) => option.value !== '1')
 export const testingEventOptions = ['Digital Health Projectathon', 'IHE Connectathon', 'Other']
 export const testingOutcomeOptions = ['Successful', 'Partially successful', 'Unsuccessful', 'No formal result', 'Other']
 export const workflowChoiceOptions = {
@@ -640,7 +644,7 @@ export function isAnswered(question: Question, answer: Answer): boolean {
     }
   }
   if (question.id === 'requirements' && answer.selected.includes('1')) {
-    const required = answer.followups['1'] || []
+    const required = (answer.followups['1'] || []).filter((value) => value !== '1')
     if (!required.length || (required.includes('9') && !answer.details.requirements_other?.trim())) return false
   }
   if (question.id === 'interoperabilityTesting' && answer.selected.includes('0')) {
@@ -721,7 +725,7 @@ export function activeAnswer(question: Question, answer: Answer): Answer {
               .map((key) => [key, [...new Set(answer.followups[key] || [])]]),
           )
         : question.id === 'requirements' && answer.selected.includes('1')
-          ? { '1': [...new Set(answer.followups['1'] || [])] }
+          ? { '1': [...new Set(answer.followups['1'] || [])].filter((value) => value !== '1') }
           : {},
     testing_events:
       question.id === 'interoperabilityTesting' && answer.selected.includes('0')
@@ -922,11 +926,13 @@ export function answerLines(question: Question, answer: Answer): string[] {
     }
   }
   if (question.id === 'requirements' && answer.selected.includes('1')) {
-    const needed = (answer.followups['1'] || []).map((index) =>
-      index === '9'
-        ? `Other: ${answer.details.requirements_other || 'Not answered'}`
-        : implementationRequirementOptions[Number(index)] || index,
-    )
+    const needed = (answer.followups['1'] || [])
+      .filter((index) => index !== '1')
+      .map((index) =>
+        index === '9'
+          ? `Other: ${answer.details.requirements_other || 'Not answered'}`
+          : implementationRequirementOptions[Number(index)] || index,
+      )
     if (needed.length) selectedLines.push(`What is typically required: ${needed.join(', ')}`)
   }
   if (question.id === 'interoperabilityTesting' && answer.selected.includes('0')) {
