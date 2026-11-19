@@ -1,0 +1,31 @@
+# smnrpx configuration of the ws proxy (converted from the smnrp 3.1.2 SMNRP_* settings in .env).
+# The domain comes from SMNRP_DOMAINS in .env. TLS ends at the outer smnrpx on sites, which sends plain http here.
+# / serves the Nuxt build from the web_root volume, with index.html for client side routes.
+domains:
+  ${SMNRP_DOMAINS}:
+    disable_https: true
+    csp: "default-src 'self' http: https: data: blob: 'unsafe-inline'"
+    upstreams:
+      api:
+        - api:5000
+    locations:
+      - proxy:
+          uri: /api/
+          proto: http
+          upstream: api
+          path: /api/
+      - alias:
+          uri: /static/
+          path: /vol/web/static/
+      - alias:
+          uri: /media/
+          path: /vol/web/media/
+      - proxy:
+          uri: /admin/
+          proto: http
+          upstream: api
+          path: /admin/
+      - alias:
+          uri: /
+          path: /web_root/${SMNRP_DOMAINS}/
+          try_files: true
